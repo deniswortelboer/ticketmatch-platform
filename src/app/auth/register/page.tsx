@@ -83,6 +83,19 @@ export default function RegisterPage() {
         return;
       }
 
+      // 4. Send to HubSpot (non-blocking — don't fail registration if HubSpot fails)
+      fetch("/api/hubspot", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          companyName: form.companyName,
+          contactName: form.contactName,
+          email: form.email,
+          phone: form.phone,
+          companyType: form.companyType,
+        }),
+      }).catch(() => {}); // Silent fail — HubSpot is secondary
+
       router.push("/dashboard");
     }
 
