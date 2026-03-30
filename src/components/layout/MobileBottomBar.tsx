@@ -26,8 +26,8 @@ export default function MobileBottomBar() {
         </div>
       )}
 
-      {/* Bottom navigation bar */}
-      <nav className="fixed bottom-0 left-0 right-0 z-[9999] flex items-end justify-around border-t border-white/10 bg-[#0a0f1e]/95 backdrop-blur-xl md:hidden"
+      {/* Bottom navigation bar — hidden when chat is open */}
+      <nav className={`fixed bottom-0 left-0 right-0 z-[9999] flex items-end justify-around border-t border-white/10 bg-[#0a0f1e]/95 backdrop-blur-xl md:hidden ${chatOpen ? "hidden" : ""}`}
         style={{ padding: "6px 0 calc(6px + env(safe-area-inset-bottom, 0px))" }}
       >
         {/* Home */}
