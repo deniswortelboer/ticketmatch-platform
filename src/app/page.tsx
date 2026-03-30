@@ -79,6 +79,11 @@ export default function Home() {
               {/* Right — Hero image with AI Chat beside it */}
               <div className="relative">
                 <div className="flex gap-4 items-stretch">
+                  {/* AI Chat — left side on desktop */}
+                  <div className="hidden lg:block shrink-0">
+                    <AIChat />
+                  </div>
+
                   {/* Main hero image container */}
                   <div className="relative flex-1 min-h-[300px] lg:min-h-[420px] overflow-hidden rounded-3xl shadow-2xl shadow-black/10">
                     <img
@@ -111,11 +116,6 @@ export default function Home() {
                         <p className="text-[10px] text-white/70">Access</p>
                       </div>
                     </div>
-                  </div>
-
-                  {/* AI Chat — beside image on desktop */}
-                  <div className="hidden lg:block shrink-0">
-                    <AIChat />
                   </div>
                 </div>
 
