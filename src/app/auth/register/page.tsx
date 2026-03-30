@@ -244,27 +244,30 @@ export default function RegisterPage() {
           @keyframes reg-pulse { 0%, 100% { opacity: 0.25; } 50% { opacity: 0.75; } }
         ` }} />
 
-        {/* 2x2 photo grid */}
-        <div className="grid grid-cols-2 grid-rows-2 gap-1.5 p-3 pb-0">
-          <div className="group relative h-[105px] overflow-hidden rounded-xl">
+        {/* Spacer top */}
+        <div className="h-6" />
+
+        {/* 2x2 photo grid — larger */}
+        <div className="grid grid-cols-2 grid-rows-2 gap-2 px-4">
+          <div className="group relative h-[130px] overflow-hidden rounded-2xl">
             <img src="/images/register-museum.jpg" alt="Museum experience" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-            <span className="absolute bottom-2 left-2 rounded-full bg-white/20 px-2 py-0.5 text-[9px] font-medium text-white backdrop-blur-sm">Museums</span>
+            <span className="absolute bottom-2.5 left-2.5 rounded-full bg-white/20 px-2.5 py-0.5 text-[9px] font-medium text-white backdrop-blur-sm">Museums</span>
           </div>
-          <div className="group relative h-[105px] overflow-hidden rounded-xl">
+          <div className="group relative h-[130px] overflow-hidden rounded-2xl">
             <img src="/images/register-dining.jpg" alt="Group dining" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-            <span className="absolute bottom-2 left-2 rounded-full bg-white/20 px-2 py-0.5 text-[9px] font-medium text-white backdrop-blur-sm">Dining</span>
+            <span className="absolute bottom-2.5 left-2.5 rounded-full bg-white/20 px-2.5 py-0.5 text-[9px] font-medium text-white backdrop-blur-sm">Dining</span>
           </div>
-          <div className="group relative h-[105px] overflow-hidden rounded-xl">
+          <div className="group relative h-[130px] overflow-hidden rounded-2xl">
             <img src="/images/register-attraction.jpg" alt="Immersive attraction" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-            <span className="absolute bottom-2 left-2 rounded-full bg-white/20 px-2 py-0.5 text-[9px] font-medium text-white backdrop-blur-sm">Attractions</span>
+            <span className="absolute bottom-2.5 left-2.5 rounded-full bg-white/20 px-2.5 py-0.5 text-[9px] font-medium text-white backdrop-blur-sm">Attractions</span>
           </div>
-          <div className="group relative h-[105px] overflow-hidden rounded-xl">
+          <div className="group relative h-[130px] overflow-hidden rounded-2xl">
             <img src="/images/partners-canal.jpg" alt="Canal cruise" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-            <span className="absolute bottom-2 left-2 rounded-full bg-white/20 px-2 py-0.5 text-[9px] font-medium text-white backdrop-blur-sm">Cruises</span>
+            <span className="absolute bottom-2.5 left-2.5 rounded-full bg-white/20 px-2.5 py-0.5 text-[9px] font-medium text-white backdrop-blur-sm">Cruises</span>
           </div>
         </div>
 
@@ -298,13 +301,19 @@ export default function RegisterPage() {
         </div>
 
         {/* About text + trust */}
-        <div className="px-4 py-4">
-          <div className="rounded-2xl bg-foreground/[0.03] p-4">
-            <h3 className="text-sm font-bold">What is TicketMatch.ai?</h3>
-            <p className="mt-1.5 text-[11px] leading-relaxed text-muted">
-              TicketMatch.ai is the B2B booking platform for tour operators, DMCs and travel agencies. We aggregate museums, attractions, dining, cruises and day trips from multiple suppliers into one dashboard — at exclusive group rates. Built by travel professionals, for travel professionals.
+        <div className="px-4 pb-6 pt-4">
+          <div className="rounded-2xl bg-foreground/[0.03] p-5">
+            <h3 className="text-[15px] font-bold">What is TicketMatch.ai?</h3>
+            <p className="mt-2 text-[12px] leading-relaxed text-muted">
+              TicketMatch.ai is the B2B booking platform built exclusively for tour operators, DMCs and travel agencies. We aggregate 75+ museums, attractions, dining experiences, canal cruises and day trips from multiple suppliers into one powerful dashboard — all at exclusive group rates that are up to 25% below retail.
             </p>
-            <div className="mt-3 flex items-center gap-4 border-t border-border/30 pt-3">
+            <p className="mt-2 text-[12px] leading-relaxed text-muted">
+              Whether you&apos;re organizing a corporate incentive trip to Amsterdam, a school group visiting Brussels, or a luxury tour through the Dutch countryside — TicketMatch gives you the tools to build itineraries, manage guest lists, and book everything in one place. Our AI assistant helps you find the perfect venues for any group size and budget.
+            </p>
+            <p className="mt-2 text-[12px] leading-relaxed text-muted">
+              <span className="font-semibold text-foreground">Who is it for?</span> Tour operators, travel agencies, DMCs, MICE agencies, corporate travel managers, and anyone who books group experiences professionally.
+            </p>
+            <div className="mt-4 flex items-center gap-4 border-t border-border/30 pt-3">
               <div className="flex items-center gap-1.5">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round"><path d="M9 12l2 2 4-4" /><path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" /></svg>
                 <span className="text-[10px] font-medium">Free to join</span>
