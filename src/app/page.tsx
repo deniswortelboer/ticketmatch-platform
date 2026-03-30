@@ -37,15 +37,11 @@ export default function Home() {
 
         {/* ════════════ HERO ════════════ */}
         <section className="relative overflow-hidden bg-white">
-          {/* Decorative blobs */}
-          <div className="pointer-events-none absolute -left-40 -top-40 h-[600px] w-[600px] rounded-full bg-blue-100/40 blur-3xl" />
-          <div className="pointer-events-none absolute -right-40 top-20 h-[400px] w-[400px] rounded-full bg-amber-100/30 blur-3xl" />
-
           <div className="relative mx-auto max-w-7xl px-6 pb-24 pt-16 md:pb-32 md:pt-24">
-            <div className="grid items-start gap-12 lg:grid-cols-[1fr,480px] lg:gap-16">
+            <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
 
               {/* Left — copy */}
-              <div className="max-w-xl pt-4">
+              <div className="max-w-xl">
                 <p className="mb-5 text-[13px] font-medium uppercase tracking-[0.15em] text-accent">
                   B2B City Access Platform
                 </p>
@@ -88,13 +84,67 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Right — AI Chat */}
+              {/* Right — Hero image with AI Chat overlay */}
               <div className="relative">
-                <AIChat />
-                {/* Floating badge */}
-                <div className="absolute -bottom-3 -right-3 rounded-xl border border-border/60 bg-white px-4 py-2.5 shadow-lg">
-                  <p className="text-xs text-muted">Powered by</p>
-                  <p className="text-sm font-bold">TicketMatch AI</p>
+                {/* Main hero image container */}
+                <div className="relative aspect-[4/3] overflow-hidden rounded-3xl shadow-2xl shadow-black/10">
+                  {/* Placeholder background — replace with real photo */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-blue-900 via-blue-800 to-indigo-900">
+                    {/* Simulated city scene overlay */}
+                    <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.15'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")" }} />
+
+                    {/* City elements */}
+                    <div className="absolute bottom-0 left-0 right-0 flex items-end justify-center gap-3 px-8 pb-0">
+                      <div className="h-32 w-12 rounded-t-lg bg-white/10" />
+                      <div className="h-48 w-16 rounded-t-lg bg-white/8" />
+                      <div className="h-40 w-20 rounded-t-lg bg-white/12" />
+                      <div className="h-56 w-14 rounded-t-lg bg-white/6" />
+                      <div className="h-36 w-18 rounded-t-lg bg-white/10" />
+                      <div className="h-44 w-12 rounded-t-lg bg-white/8" />
+                    </div>
+
+                    {/* Text overlay */}
+                    <div className="absolute left-6 top-6">
+                      <div className="rounded-xl bg-white/10 px-4 py-2 backdrop-blur-sm">
+                        <p className="text-[11px] font-medium text-white/70">Most popular destination</p>
+                        <p className="text-lg font-bold text-white">Amsterdam</p>
+                      </div>
+                    </div>
+
+                    {/* Stats overlay */}
+                    <div className="absolute bottom-6 left-6 flex gap-3">
+                      <div className="rounded-xl bg-white/10 px-3.5 py-2 backdrop-blur-sm">
+                        <p className="text-xl font-bold text-white">45+</p>
+                        <p className="text-[10px] text-white/60">Venues</p>
+                      </div>
+                      <div className="rounded-xl bg-white/10 px-3.5 py-2 backdrop-blur-sm">
+                        <p className="text-xl font-bold text-white">B2B</p>
+                        <p className="text-[10px] text-white/60">Rates</p>
+                      </div>
+                      <div className="rounded-xl bg-white/10 px-3.5 py-2 backdrop-blur-sm">
+                        <p className="text-xl font-bold text-white">24h</p>
+                        <p className="text-[10px] text-white/60">Access</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Photo placeholder text */}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="text-center">
+                      <p className="text-sm font-medium text-white/40">Hero photo placeholder</p>
+                      <p className="mt-1 text-[11px] text-white/25">Replace with Amsterdam canal / museum photo</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* AI Chat — floating overlay bottom-right */}
+                <div className="absolute -bottom-6 -right-4 z-10 hidden lg:block">
+                  <AIChat />
+                </div>
+
+                {/* AI Chat — mobile: below image */}
+                <div className="mt-6 lg:hidden">
+                  <AIChat />
                 </div>
               </div>
 

@@ -11,16 +11,14 @@ type Message = {
 const INITIAL_MESSAGES: Message[] = [
   {
     role: "assistant",
-    content:
-      "Hi! I'm the TicketMatch AI assistant. Tell me about your group trip and I'll recommend the best experiences.",
+    content: "Hi! Tell me about your group trip and I'll find the best experiences.",
   },
 ];
 
 const DEMO_RESPONSES: Record<string, Message> = {
   default: {
     role: "assistant",
-    content:
-      "Great question! Based on popular group trips to Amsterdam, here are my top picks:",
+    content: "Here are my top picks for your group:",
     suggestions: [
       { name: "Moco Museum", price: "€17.95", tag: "Museum" },
       { name: "AMAZE Amsterdam", price: "€22.70", tag: "Attraction" },
@@ -43,13 +41,10 @@ export default function AIChat() {
 
   const handleSend = () => {
     if (!input.trim()) return;
-
     const userMsg: Message = { role: "user", content: input };
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setIsTyping(true);
-
-    // Simulate AI response
     setTimeout(() => {
       setIsTyping(false);
       setMessages((prev) => [...prev, DEMO_RESPONSES.default]);
@@ -57,60 +52,54 @@ export default function AIChat() {
   };
 
   return (
-    <div className="flex h-[520px] flex-col overflow-hidden rounded-2xl border border-border/80 bg-white shadow-xl shadow-black/[0.04]">
+    <div className="flex h-[380px] w-[340px] flex-col overflow-hidden rounded-2xl border border-white/20 bg-white/95 shadow-2xl shadow-black/20 backdrop-blur-xl">
       {/* Header */}
-      <div className="flex items-center gap-3 border-b border-border/60 px-5 py-4">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-accent to-blue-700">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <div className="flex items-center gap-2.5 border-b border-border/40 px-4 py-3">
+        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-accent to-blue-700">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M12 2L2 7l10 5 10-5-10-5z" />
             <path d="M2 17l10 5 10-5" />
             <path d="M2 12l10 5 10-5" />
           </svg>
         </div>
-        <div>
-          <p className="text-sm font-semibold">TicketMatch AI</p>
-          <p className="text-xs text-muted">Your group travel assistant</p>
+        <div className="flex-1">
+          <p className="text-xs font-semibold">TicketMatch AI</p>
         </div>
-        <div className="ml-auto flex h-2 w-2 rounded-full bg-emerald-400" />
+        <div className="flex h-1.5 w-1.5 rounded-full bg-emerald-400" />
+        <span className="text-[10px] text-emerald-600">Online</span>
       </div>
 
       {/* Messages */}
-      <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto px-5 py-5">
+      <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-3">
         {messages.map((msg, i) => (
           <div key={i} className={`chat-msg flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-            <div className={`max-w-[85%] ${msg.role === "user" ? "order-1" : ""}`}>
+            <div className="max-w-[90%]">
               <div
-                className={`rounded-2xl px-4 py-3 text-sm leading-relaxed ${
+                className={`rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed ${
                   msg.role === "user"
-                    ? "bg-foreground text-white rounded-br-md"
+                    ? "bg-accent text-white rounded-br-md"
                     : "bg-gray-100 text-foreground rounded-bl-md"
                 }`}
               >
                 {msg.content}
               </div>
 
-              {/* Suggestion cards */}
               {msg.suggestions && (
-                <div className="mt-3 space-y-2">
+                <div className="mt-2 space-y-1.5">
                   {msg.suggestions.map((s, j) => (
                     <div
                       key={j}
-                      className="chat-msg flex items-center justify-between rounded-xl border border-border/60 bg-white px-4 py-3 transition-all hover:border-accent/30 hover:shadow-md hover:shadow-accent/5"
+                      className="chat-msg flex items-center justify-between rounded-lg border border-border/50 bg-white px-3 py-2 transition-all hover:border-accent/30 hover:shadow-sm"
                       style={{ animationDelay: `${j * 0.1}s` }}
                     >
-                      <div className="flex items-center gap-3">
-                        <span className="rounded-lg bg-accent/10 px-2 py-0.5 text-[11px] font-semibold text-accent">
-                          {s.tag}
-                        </span>
-                        <span className="text-sm font-medium">{s.name}</span>
-                      </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold text-accent">{s.price}</span>
-                        <span className="text-xs text-muted">p.p.</span>
+                        <span className="rounded bg-accent/10 px-1.5 py-0.5 text-[10px] font-bold text-accent">{s.tag}</span>
+                        <span className="text-[12px] font-medium">{s.name}</span>
                       </div>
+                      <span className="text-[12px] font-bold text-accent">{s.price}</span>
                     </div>
                   ))}
-                  <button className="mt-1 w-full rounded-xl bg-foreground py-2.5 text-xs font-semibold text-white transition-all hover:bg-gray-800">
+                  <button className="mt-1 w-full rounded-lg bg-accent py-2 text-[11px] font-semibold text-white transition-all hover:brightness-110">
                     Add all to itinerary
                   </button>
                 </div>
@@ -119,35 +108,34 @@ export default function AIChat() {
           </div>
         ))}
 
-        {/* Typing indicator */}
         {isTyping && (
           <div className="chat-msg flex justify-start">
-            <div className="flex items-center gap-1.5 rounded-2xl rounded-bl-md bg-gray-100 px-4 py-3">
-              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted/50" style={{ animationDelay: "0ms" }} />
-              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted/50" style={{ animationDelay: "150ms" }} />
-              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted/50" style={{ animationDelay: "300ms" }} />
+            <div className="flex items-center gap-1 rounded-2xl rounded-bl-md bg-gray-100 px-3.5 py-2.5">
+              <span className="h-1 w-1 animate-bounce rounded-full bg-muted/50" style={{ animationDelay: "0ms" }} />
+              <span className="h-1 w-1 animate-bounce rounded-full bg-muted/50" style={{ animationDelay: "150ms" }} />
+              <span className="h-1 w-1 animate-bounce rounded-full bg-muted/50" style={{ animationDelay: "300ms" }} />
             </div>
           </div>
         )}
       </div>
 
       {/* Input */}
-      <div className="border-t border-border/60 px-4 py-3">
+      <div className="border-t border-border/40 px-3 py-2.5">
         <div className="flex items-center gap-2">
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSend()}
-            placeholder="E.g. 25 people, 3 days in Amsterdam, mix of culture and fun..."
-            className="flex-1 bg-transparent py-2 text-sm outline-none placeholder:text-muted/50"
+            placeholder="Ask about your group trip..."
+            className="flex-1 bg-transparent py-1 text-[13px] outline-none placeholder:text-muted/40"
           />
           <button
             onClick={handleSend}
             disabled={!input.trim()}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-foreground text-white transition-all hover:bg-gray-800 disabled:opacity-30"
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-accent text-white transition-all hover:brightness-110 disabled:opacity-30"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M22 2L11 13" />
               <path d="M22 2L15 22L11 13L2 9L22 2Z" />
             </svg>

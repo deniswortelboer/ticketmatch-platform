@@ -1,0 +1,92 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+
+const navItems = [
+  { href: "/dashboard", label: "Overview", icon: "grid" },
+  { href: "/dashboard/catalog", label: "Catalog", icon: "search" },
+  { href: "/dashboard/bookings", label: "Bookings", icon: "ticket" },
+  { href: "/dashboard/groups", label: "Groups", icon: "users" },
+  { href: "/dashboard/itinerary", label: "Itinerary", icon: "calendar" },
+  { href: "/dashboard/profile", label: "Company", icon: "building" },
+  { href: "/dashboard/settings", label: "Settings", icon: "settings" },
+];
+
+function NavIcon({ type }: { type: string }) {
+  const props = { width: 18, height: 18, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.5, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
+  switch (type) {
+    case "grid": return <svg {...props}><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></svg>;
+    case "search": return <svg {...props}><circle cx="11" cy="11" r="8" /><path d="M21 21l-4.3-4.3" /></svg>;
+    case "ticket": return <svg {...props}><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" /></svg>;
+    case "users": return <svg {...props}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>;
+    case "calendar": return <svg {...props}><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4" /><path d="M8 2v4" /><path d="M3 10h18" /></svg>;
+    case "building": return <svg {...props}><path d="M3 21h18" /><path d="M5 21V7l7-4 7 4v14" /><path d="M9 21v-6h6v6" /></svg>;
+    case "settings": return <svg {...props}><circle cx="12" cy="12" r="3" /><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72 1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" /></svg>;
+    default: return null;
+  }
+}
+
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+
+  return (
+    <div className="flex h-screen bg-background">
+      {/* Sidebar */}
+      <aside className="flex w-64 flex-col border-r border-border/60 bg-white">
+        {/* Logo */}
+        <div className="flex h-[72px] items-center px-6">
+          <Link href="/" className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-accent to-blue-800">
+              <span className="text-sm font-bold text-white">TM</span>
+            </div>
+            <span className="text-base font-semibold tracking-tight">
+              Ticket<span className="text-accent">Match</span>
+            </span>
+          </Link>
+        </div>
+
+        {/* Nav */}
+        <nav className="flex-1 space-y-1 px-3 py-4">
+          {navItems.map((item) => {
+            const isActive = pathname === item.href;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
+                  isActive
+                    ? "bg-accent/10 text-accent"
+                    : "text-muted hover:bg-gray-50 hover:text-foreground"
+                }`}
+              >
+                <NavIcon type={item.icon} />
+                {item.label}
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* User */}
+        <div className="border-t border-border/60 p-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-accent/10 text-sm font-semibold text-accent">
+              JD
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium">John Doe</p>
+              <p className="truncate text-xs text-muted">Demo Company</p>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      {/* Main content */}
+      <main className="flex-1 overflow-y-auto">
+        <div className="mx-auto max-w-6xl px-8 py-8">
+          {children}
+        </div>
+      </main>
+    </div>
+  );
+}
