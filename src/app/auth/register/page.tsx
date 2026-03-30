@@ -240,72 +240,84 @@ export default function RegisterPage() {
       <div className="hidden flex-1 flex-col overflow-y-auto bg-gradient-to-br from-blue-50 via-white to-amber-50/30 lg:flex">
         <style dangerouslySetInnerHTML={{ __html: `
           @keyframes reg-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-          @keyframes reg-pulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 0.8; } }
+          @keyframes reg-spin-rev { from { transform: rotate(360deg); } to { transform: rotate(0deg); } }
+          @keyframes reg-pulse { 0%, 100% { opacity: 0.25; } 50% { opacity: 0.75; } }
         ` }} />
 
-        {/* Photo strip — 4 venue photos */}
-        <div className="grid grid-cols-4 gap-1 p-3 pb-0">
-          <div className="group relative h-24 overflow-hidden rounded-xl">
-            <img src="/images/register-museum.jpg" alt="Museum experience" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" />
+        {/* 2x2 photo grid */}
+        <div className="grid grid-cols-2 grid-rows-2 gap-1.5 p-3 pb-0">
+          <div className="group relative h-[105px] overflow-hidden rounded-xl">
+            <img src="/images/register-museum.jpg" alt="Museum experience" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-            <span className="absolute bottom-1.5 left-1.5 rounded-full bg-white/20 px-1.5 py-0.5 text-[8px] font-medium text-white backdrop-blur-sm">Museums</span>
+            <span className="absolute bottom-2 left-2 rounded-full bg-white/20 px-2 py-0.5 text-[9px] font-medium text-white backdrop-blur-sm">Museums</span>
           </div>
-          <div className="group relative h-24 overflow-hidden rounded-xl">
-            <img src="/images/register-dining.jpg" alt="Group dining" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" />
+          <div className="group relative h-[105px] overflow-hidden rounded-xl">
+            <img src="/images/register-dining.jpg" alt="Group dining" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-            <span className="absolute bottom-1.5 left-1.5 rounded-full bg-white/20 px-1.5 py-0.5 text-[8px] font-medium text-white backdrop-blur-sm">Dining</span>
+            <span className="absolute bottom-2 left-2 rounded-full bg-white/20 px-2 py-0.5 text-[9px] font-medium text-white backdrop-blur-sm">Dining</span>
           </div>
-          <div className="group relative h-24 overflow-hidden rounded-xl">
-            <img src="/images/register-attraction.jpg" alt="Immersive attraction" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" />
+          <div className="group relative h-[105px] overflow-hidden rounded-xl">
+            <img src="/images/register-attraction.jpg" alt="Immersive attraction" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-            <span className="absolute bottom-1.5 left-1.5 rounded-full bg-white/20 px-1.5 py-0.5 text-[8px] font-medium text-white backdrop-blur-sm">Attractions</span>
+            <span className="absolute bottom-2 left-2 rounded-full bg-white/20 px-2 py-0.5 text-[9px] font-medium text-white backdrop-blur-sm">Attractions</span>
           </div>
-          <div className="group relative h-24 overflow-hidden rounded-xl">
-            <img src="/images/partners-canal.jpg" alt="Canal cruise" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" />
+          <div className="group relative h-[105px] overflow-hidden rounded-xl">
+            <img src="/images/partners-canal.jpg" alt="Canal cruise" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-            <span className="absolute bottom-1.5 left-1.5 rounded-full bg-white/20 px-1.5 py-0.5 text-[8px] font-medium text-white backdrop-blur-sm">Cruises</span>
+            <span className="absolute bottom-2 left-2 rounded-full bg-white/20 px-2 py-0.5 text-[9px] font-medium text-white backdrop-blur-sm">Cruises</span>
           </div>
         </div>
 
-        {/* Content */}
-        <div className="flex flex-1 flex-col justify-center px-10 py-6">
-          <h2 className="text-xl font-bold tracking-tight">
-            One platform for all your<br /><span className="text-accent">group travel needs.</span>
-          </h2>
-          <p className="mt-2 text-[13px] leading-relaxed text-muted">
-            TicketMatch.ai gives tour operators and travel agencies access to 75+ venues at exclusive B2B rates — with AI-powered tools to build itineraries, manage groups and book instantly.
-          </p>
-
-          {/* Value props with mini animated SVGs */}
-          <div className="mt-6 grid grid-cols-2 gap-3">
-            {[
-              { label: "75+ Venues", desc: "Museums, attractions & more", color: "#2563eb", from: "#3b82f6", to: "#1d4ed8" },
-              { label: "B2B Rates", desc: "Up to 25% below retail", color: "#f59e0b", from: "#fbbf24", to: "#d97706" },
-              { label: "AI Itineraries", desc: "Smart trip suggestions", color: "#10b981", from: "#34d399", to: "#059669" },
-              { label: "One Dashboard", desc: "Book, track & manage", color: "#8b5cf6", from: "#a78bfa", to: "#7c3aed" },
-            ].map((item, i) => (
-              <div key={item.label} className="flex items-center gap-2.5 rounded-xl border border-border/40 bg-white p-2.5 shadow-sm">
-                <svg viewBox="0 0 40 40" fill="none" className="h-9 w-9 shrink-0">
-                  <circle cx="20" cy="20" r="18" stroke={item.color} strokeWidth="0.5" strokeDasharray="3 2" opacity="0.2" style={{ transformOrigin: '20px 20px', animation: `reg-spin ${16 + i * 4}s linear infinite` }} />
-                  <circle cx="20" cy="20" r="12" fill={`url(#regG${i})`} />
-                  <circle cx="20" cy="2" r="1.5" fill={item.color} style={{ animation: 'reg-pulse 2s ease-in-out infinite' }} />
-                  <circle cx="38" cy="20" r="1" fill={item.color} style={{ animation: `reg-pulse 2s ease-in-out ${0.5 + i * 0.3}s infinite` }} />
-                  <defs><radialGradient id={`regG${i}`}><stop offset="0%" stopColor={item.from} /><stop offset="100%" stopColor={item.to} /></radialGradient></defs>
-                </svg>
-                <div>
-                  <p className="text-[11px] font-semibold">{item.label}</p>
-                  <p className="text-[10px] text-muted">{item.desc}</p>
-                </div>
+        {/* 6 value prop blocks with animated SVGs */}
+        <div className="grid grid-cols-2 gap-2 px-4 pt-4">
+          {[
+            { label: "75+ Venues", desc: "Museums, attractions, restaurants and more across multiple cities", color: "#2563eb", from: "#3b82f6", to: "#1d4ed8", icon: "M3 21h18M3 7l9-4 9 4M6 7v14M18 7v14" },
+            { label: "Exclusive B2B Rates", desc: "Up to 25% below retail pricing — only for verified travel professionals", color: "#f59e0b", from: "#fbbf24", to: "#d97706", icon: "M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" },
+            { label: "AI Trip Planner", desc: "Describe your group and let our AI suggest the perfect itinerary", color: "#10b981", from: "#34d399", to: "#059669", icon: "M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" },
+            { label: "Itinerary Builder", desc: "Create day-by-day plans, drag and drop venues, export to PDF", color: "#8b5cf6", from: "#a78bfa", to: "#7c3aed", icon: "M3 4h18v18H3zM16 2v4M8 2v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01" },
+            { label: "Group Management", desc: "Upload guest lists via CSV, generate QR codes and vouchers per person", color: "#0891b2", from: "#22d3ee", to: "#0891b2", icon: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" },
+            { label: "Live Dashboard", desc: "Track all bookings, invoices and supplier data from one place", color: "#e11d48", from: "#fb7185", to: "#e11d48", icon: "M3 3v18h18M7 17l4-6 4 3 6-8" },
+          ].map((item, i) => (
+            <div key={item.label} className="flex items-start gap-2.5 rounded-xl border border-border/40 bg-white p-3 shadow-sm">
+              <svg viewBox="0 0 44 44" fill="none" className="mt-0.5 h-10 w-10 shrink-0">
+                <circle cx="22" cy="22" r="20" stroke={item.color} strokeWidth="0.5" strokeDasharray="4 3" opacity="0.15" style={{ transformOrigin: '22px 22px', animation: `${i % 2 === 0 ? 'reg-spin' : 'reg-spin-rev'} ${18 + i * 3}s linear infinite` }} />
+                <circle cx="22" cy="22" r="14" fill={`url(#rG${i})`} />
+                <g transform="translate(14, 14) scale(0.67)">
+                  <path d={item.icon} stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                </g>
+                <circle cx="22" cy="2" r="1.5" fill={item.color} style={{ animation: `reg-pulse 2.5s ease-in-out ${i * 0.4}s infinite` }} />
+                <circle cx="42" cy="22" r="1" fill={item.color} style={{ animation: `reg-pulse 2.5s ease-in-out ${0.8 + i * 0.3}s infinite` }} />
+                <defs><radialGradient id={`rG${i}`}><stop offset="0%" stopColor={item.from} /><stop offset="100%" stopColor={item.to} /></radialGradient></defs>
+              </svg>
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold">{item.label}</p>
+                <p className="text-[10px] leading-snug text-muted">{item.desc}</p>
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
+        </div>
 
-          {/* Trust line */}
-          <div className="mt-6 flex items-center gap-3 rounded-xl bg-accent/5 px-4 py-2.5">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
-              <path d="M9 12l2 2 4-4" /><path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" />
-            </svg>
-            <p className="text-[11px] text-muted"><span className="font-semibold text-foreground">Free to join</span> — no upfront costs, no commitment.</p>
+        {/* About text + trust */}
+        <div className="px-4 py-4">
+          <div className="rounded-2xl bg-foreground/[0.03] p-4">
+            <h3 className="text-sm font-bold">What is TicketMatch.ai?</h3>
+            <p className="mt-1.5 text-[11px] leading-relaxed text-muted">
+              TicketMatch.ai is the B2B booking platform for tour operators, DMCs and travel agencies. We aggregate museums, attractions, dining, cruises and day trips from multiple suppliers into one dashboard — at exclusive group rates. Built by travel professionals, for travel professionals.
+            </p>
+            <div className="mt-3 flex items-center gap-4 border-t border-border/30 pt-3">
+              <div className="flex items-center gap-1.5">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round"><path d="M9 12l2 2 4-4" /><path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" /></svg>
+                <span className="text-[10px] font-medium">Free to join</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round"><path d="M9 12l2 2 4-4" /><path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" /></svg>
+                <span className="text-[10px] font-medium">No commitment</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round"><path d="M9 12l2 2 4-4" /><path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" /></svg>
+                <span className="text-[10px] font-medium">24h activation</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
