@@ -88,7 +88,7 @@ export default function Home() {
                   <img
                     src="/images/hero-assistant.jpg"
                     alt="Your AI travel assistant"
-                    className="h-[320px] w-[260px] object-cover object-top lg:h-[380px] lg:w-[300px]"
+                    className="h-[280px] w-[380px] object-cover object-[center_15%] lg:h-[380px] lg:w-[460px]"
                   />
                 </div>
               </div>
