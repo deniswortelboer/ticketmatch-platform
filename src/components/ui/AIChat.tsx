@@ -109,7 +109,8 @@ export default function AIChat({ fullscreen = false }: { fullscreen?: boolean })
         <div className="flex-1">
           <p className={`font-semibold ${fullscreen ? "text-sm text-white" : "text-xs"}`}>TicketMatch AI-Agent</p>
           {fullscreen && (
-            <div className="flex items-center gap-1.5 mt-0.5">
+            <div className="flex items-center gap-2 mt-0.5">
+              <p className="text-[11px] text-white/70">Your B2B travel assistant</p>
               <div className="h-1.5 w-1.5 rounded-full bg-emerald-300" />
               <p className="text-[11px] text-emerald-200">Online</p>
             </div>
