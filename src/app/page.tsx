@@ -87,52 +87,37 @@ export default function Home() {
               {/* Right — Hero image with AI Chat overlay */}
               <div className="relative">
                 {/* Main hero image container */}
-                <div className="relative aspect-[4/3] overflow-hidden rounded-3xl shadow-2xl shadow-black/10">
-                  {/* Placeholder background — replace with real photo */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-blue-900 via-blue-800 to-indigo-900">
-                    {/* Simulated city scene overlay */}
-                    <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.15'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")" }} />
+                <div className="relative aspect-[16/9] overflow-hidden rounded-3xl shadow-2xl shadow-black/10">
+                  {/* Hero photo */}
+                  <img
+                    src="/images/hero-amsterdam.jpg"
+                    alt="Amsterdam canals at golden hour — aerial view of historic canal houses, bridges and boats"
+                    className="absolute inset-0 h-full w-full object-cover"
+                  />
+                  {/* Dark overlay for readability of badges */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
 
-                    {/* City elements */}
-                    <div className="absolute bottom-0 left-0 right-0 flex items-end justify-center gap-3 px-8 pb-0">
-                      <div className="h-32 w-12 rounded-t-lg bg-white/10" />
-                      <div className="h-48 w-16 rounded-t-lg bg-white/8" />
-                      <div className="h-40 w-20 rounded-t-lg bg-white/12" />
-                      <div className="h-56 w-14 rounded-t-lg bg-white/6" />
-                      <div className="h-36 w-18 rounded-t-lg bg-white/10" />
-                      <div className="h-44 w-12 rounded-t-lg bg-white/8" />
-                    </div>
-
-                    {/* Text overlay */}
-                    <div className="absolute left-6 top-6">
-                      <div className="rounded-xl bg-white/10 px-4 py-2 backdrop-blur-sm">
-                        <p className="text-[11px] font-medium text-white/70">Most popular destination</p>
-                        <p className="text-lg font-bold text-white">Amsterdam</p>
-                      </div>
-                    </div>
-
-                    {/* Stats overlay */}
-                    <div className="absolute bottom-6 left-6 flex gap-3">
-                      <div className="rounded-xl bg-white/10 px-3.5 py-2 backdrop-blur-sm">
-                        <p className="text-xl font-bold text-white">45+</p>
-                        <p className="text-[10px] text-white/60">Venues</p>
-                      </div>
-                      <div className="rounded-xl bg-white/10 px-3.5 py-2 backdrop-blur-sm">
-                        <p className="text-xl font-bold text-white">B2B</p>
-                        <p className="text-[10px] text-white/60">Rates</p>
-                      </div>
-                      <div className="rounded-xl bg-white/10 px-3.5 py-2 backdrop-blur-sm">
-                        <p className="text-xl font-bold text-white">24h</p>
-                        <p className="text-[10px] text-white/60">Access</p>
-                      </div>
+                  {/* Text overlay */}
+                  <div className="absolute left-6 top-6">
+                    <div className="rounded-xl bg-black/20 px-4 py-2 backdrop-blur-md">
+                      <p className="text-[11px] font-medium text-white/80">Most popular destination</p>
+                      <p className="text-lg font-bold text-white">Amsterdam</p>
                     </div>
                   </div>
 
-                  {/* Photo placeholder text */}
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="text-center">
-                      <p className="text-sm font-medium text-white/40">Hero photo placeholder</p>
-                      <p className="mt-1 text-[11px] text-white/25">Replace with Amsterdam canal / museum photo</p>
+                  {/* Stats overlay */}
+                  <div className="absolute bottom-6 left-6 flex gap-3">
+                    <div className="rounded-xl bg-black/20 px-3.5 py-2 backdrop-blur-md">
+                      <p className="text-xl font-bold text-white">45+</p>
+                      <p className="text-[10px] text-white/70">Venues</p>
+                    </div>
+                    <div className="rounded-xl bg-black/20 px-3.5 py-2 backdrop-blur-md">
+                      <p className="text-xl font-bold text-white">B2B</p>
+                      <p className="text-[10px] text-white/70">Rates</p>
+                    </div>
+                    <div className="rounded-xl bg-black/20 px-3.5 py-2 backdrop-blur-md">
+                      <p className="text-xl font-bold text-white">24h</p>
+                      <p className="text-[10px] text-white/70">Access</p>
                     </div>
                   </div>
                 </div>
