@@ -499,13 +499,61 @@ export default function Home() {
           <div className="mx-auto max-w-7xl px-6">
             <div className="grid items-center gap-16 lg:grid-cols-2">
 
-              {/* Image placeholder — for dashboard screenshot */}
+              {/* Dashboard mockup */}
               <div className="relative">
-                <div className="aspect-[4/3] overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-br from-gray-50 to-gray-100 shadow-2xl shadow-black/5">
-                  <div className="flex h-full flex-col items-center justify-center gap-2">
-                    <div className="h-12 w-12 rounded-xl bg-accent/10" />
-                    <p className="text-[13px] font-medium text-muted">Dashboard screenshot</p>
-                    <p className="text-[11px] text-muted/50">Replace with actual product image</p>
+                <div className="overflow-hidden rounded-2xl border border-border/60 bg-white shadow-2xl shadow-black/5">
+                  {/* Window chrome */}
+                  <div className="flex items-center gap-2 border-b border-border/40 bg-gray-50/80 px-4 py-2.5">
+                    <div className="flex gap-1.5">
+                      <div className="h-2.5 w-2.5 rounded-full bg-red-400" />
+                      <div className="h-2.5 w-2.5 rounded-full bg-amber-400" />
+                      <div className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
+                    </div>
+                    <div className="ml-3 flex-1 rounded-md bg-white/80 px-3 py-1 text-[10px] text-muted">ticketmatch.ai/dashboard/catalog</div>
+                  </div>
+                  {/* Dashboard content */}
+                  <div className="flex">
+                    {/* Sidebar mock */}
+                    <div className="hidden w-[140px] shrink-0 border-r border-border/40 bg-white p-3 sm:block">
+                      <div className="mb-4 flex items-center gap-1.5">
+                        <div className="flex h-5 w-5 items-center justify-center rounded bg-accent text-[7px] font-bold text-white">TM</div>
+                        <span className="text-[9px] font-semibold">TicketMatch</span>
+                      </div>
+                      <div className="space-y-1">
+                        {["Overview", "Catalog", "Bookings", "Groups", "Itinerary"].map((item, i) => (
+                          <div key={item} className={`rounded-md px-2 py-1.5 text-[8px] font-medium ${i === 1 ? "bg-accent/10 text-accent" : "text-muted"}`}>{item}</div>
+                        ))}
+                      </div>
+                    </div>
+                    {/* Main area */}
+                    <div className="flex-1 p-4">
+                      <div className="mb-3">
+                        <div className="text-[11px] font-bold">Catalog</div>
+                        <div className="mt-0.5 text-[8px] text-muted">Browse available venues</div>
+                      </div>
+                      {/* Filter pills */}
+                      <div className="mb-3 flex gap-1">
+                        {["All", "Museum", "Attraction"].map((f, i) => (
+                          <div key={f} className={`rounded-full px-2 py-0.5 text-[7px] font-medium ${i === 0 ? "bg-foreground text-white" : "border border-border/60 text-muted"}`}>{f}</div>
+                        ))}
+                      </div>
+                      {/* Card grid */}
+                      <div className="grid grid-cols-3 gap-2">
+                        {[
+                          { color: "from-purple-400 to-indigo-500", name: "AMAZE", price: "22.70" },
+                          { color: "from-blue-400 to-cyan-500", name: "Moco Museum", price: "17.95" },
+                          { color: "from-amber-400 to-orange-500", name: "Fabrique", price: "16.20" },
+                        ].map((card) => (
+                          <div key={card.name} className="overflow-hidden rounded-lg border border-border/40">
+                            <div className={`h-12 bg-gradient-to-br ${card.color}`} />
+                            <div className="p-1.5">
+                              <div className="text-[7px] font-semibold">{card.name}</div>
+                              <div className="mt-0.5 text-[9px] font-bold text-accent">&euro; {card.price}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
