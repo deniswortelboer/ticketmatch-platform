@@ -8,6 +8,8 @@ type Message = {
   suggestions?: { name: string; price: string; tag: string }[];
 };
 
+const AGENT_URL = process.env.NEXT_PUBLIC_AGENT_URL || "http://localhost:3070";
+
 const INITIAL_MESSAGES: Message[] = [
   {
     role: "assistant",
@@ -15,17 +17,15 @@ const INITIAL_MESSAGES: Message[] = [
   },
 ];
 
-const DEMO_RESPONSES: Record<string, Message> = {
-  default: {
-    role: "assistant",
-    content: "Here are my top picks for your group:",
-    suggestions: [
-      { name: "Moco Museum", price: "€17.95", tag: "Museum" },
-      { name: "AMAZE Amsterdam", price: "€22.70", tag: "Attraction" },
-      { name: "Fabrique des Lumières", price: "€16.20", tag: "Museum" },
-    ],
-  },
-};
+function getSessionId() {
+  if (typeof window === "undefined") return "";
+  let id = sessionStorage.getItem("tm_session");
+  if (!id) {
+    id = crypto.randomUUID();
+    sessionStorage.setItem("tm_session", id);
+  }
+  return id;
+}
 
 export default function AIChat() {
   const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
@@ -39,16 +39,52 @@ export default function AIChat() {
     }
   }, [messages, isTyping]);
 
-  const handleSend = () => {
-    if (!input.trim()) return;
+  const handleSend = async () => {
+    if (!input.trim() || isTyping) return;
+
     const userMsg: Message = { role: "user", content: input };
-    setMessages((prev) => [...prev, userMsg]);
+    const updatedMessages = [...messages, userMsg];
+    setMessages(updatedMessages);
     setInput("");
     setIsTyping(true);
-    setTimeout(() => {
+
+    try {
+      const history = updatedMessages
+        .filter((m) => m !== INITIAL_MESSAGES[0])
+        .map((m) => ({ role: m.role, content: m.content }));
+
+      const res = await fetch(`${AGENT_URL}/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: input,
+          history: history.slice(0, -1),
+          sessionId: getSessionId(),
+        }),
+      });
+
+      if (!res.ok) throw new Error("Agent unavailable");
+
+      const data = await res.json();
+
+      const assistantMsg: Message = {
+        role: "assistant",
+        content: data.content,
+        suggestions: data.suggestions?.length > 0 ? data.suggestions : undefined,
+      };
+
+      setMessages((prev) => [...prev, assistantMsg]);
+    } catch {
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: "Sorry, I'm temporarily unavailable. Please try again in a moment.",
+        },
+      ]);
+    } finally {
       setIsTyping(false);
-      setMessages((prev) => [...prev, DEMO_RESPONSES.default]);
-    }, 1500);
+    }
   };
 
   return (
@@ -132,7 +168,7 @@ export default function AIChat() {
           />
           <button
             onClick={handleSend}
-            disabled={!input.trim()}
+            disabled={!input.trim() || isTyping}
             className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-accent text-white transition-all hover:brightness-110 disabled:opacity-30"
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
