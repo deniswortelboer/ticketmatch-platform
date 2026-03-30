@@ -104,12 +104,14 @@ export default function Home() {
 
                 {/* Desktop: AI Chat + Assistant portrait side by side */}
                 <div className="hidden items-end gap-6 lg:flex">
-                  <AIChat />
+                  <div className="shrink-0">
+                    <AIChat />
+                  </div>
                   <div className="overflow-hidden rounded-3xl shadow-2xl shadow-black/10 ring-4 ring-white/80">
                     <img
                       src="/images/hero-assistant.jpg"
                       alt="Your AI travel assistant"
-                      className="h-[380px] w-[520px] object-cover object-[30%_15%]"
+                      className="h-[380px] w-[340px] object-cover object-[30%_15%]"
                     />
                   </div>
                 </div>
