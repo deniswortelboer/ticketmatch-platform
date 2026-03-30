@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase";
 
 const navItems = [
   { href: "/dashboard", label: "Overview", icon: "grid" },
@@ -29,6 +31,45 @@ function NavIcon({ type }: { type: string }) {
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const [user, setUser] = useState<{ name: string; company: string; initials: string }>({
+    name: "",
+    company: "",
+    initials: "",
+  });
+
+  useEffect(() => {
+    const supabase = createClient();
+    const loadUser = async () => {
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (authUser) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("full_name, company_id, companies(name)")
+          .eq("id", authUser.id)
+          .single();
+
+        if (profile) {
+          const name = profile.full_name || authUser.email || "";
+          const companies = profile.companies as unknown as { name: string } | { name: string }[] | null;
+          const company = Array.isArray(companies) ? companies[0]?.name || "" : companies?.name || "";
+          const parts = name.split(" ");
+          const initials = parts.length >= 2
+            ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+            : name.substring(0, 2).toUpperCase();
+          setUser({ name, company, initials });
+        }
+      }
+    };
+    loadUser();
+  }, []);
+
+  const handleLogout = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/");
+    router.refresh();
+  };
 
   return (
     <div className="flex h-screen bg-background">
@@ -71,12 +112,23 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="border-t border-border/60 p-4">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-accent/10 text-sm font-semibold text-accent">
-              JD
+              {user.initials || "?"}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium">John Doe</p>
-              <p className="truncate text-xs text-muted">Demo Company</p>
+              <p className="truncate text-sm font-medium">{user.name || "Loading..."}</p>
+              <p className="truncate text-xs text-muted">{user.company}</p>
             </div>
+            <button
+              onClick={handleLogout}
+              className="rounded-lg p-1.5 text-muted hover:bg-gray-100 hover:text-foreground transition-colors"
+              title="Sign out"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+            </button>
           </div>
         </div>
       </aside>

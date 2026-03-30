@@ -2,19 +2,92 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase";
 
 export default function RegisterPage() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [form, setForm] = useState({
     companyName: "",
     contactName: "",
     email: "",
     phone: "",
+    password: "",
     companyType: "",
     message: "",
   });
 
   const update = (field: string, value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+
+    const supabase = createClient();
+
+    // 1. Create auth user
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email: form.email,
+      password: form.password,
+      options: {
+        data: {
+          full_name: form.contactName,
+          company_name: form.companyName,
+        },
+      },
+    });
+
+    if (authError) {
+      setError(authError.message);
+      setLoading(false);
+      return;
+    }
+
+    if (authData.user) {
+      // 2. Create company record
+      const { data: company, error: companyError } = await supabase
+        .from("companies")
+        .insert({
+          name: form.companyName,
+          company_type: form.companyType,
+          phone: form.phone,
+          message: form.message,
+        })
+        .select()
+        .single();
+
+      if (companyError) {
+        setError(companyError.message);
+        setLoading(false);
+        return;
+      }
+
+      // 3. Create profile linked to user and company
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .insert({
+          id: authData.user.id,
+          company_id: company.id,
+          full_name: form.contactName,
+          email: form.email,
+          role: "owner",
+        });
+
+      if (profileError) {
+        setError(profileError.message);
+        setLoading(false);
+        return;
+      }
+
+      router.push("/dashboard");
+    }
+
+    setLoading(false);
+  };
 
   return (
     <div className="flex min-h-screen">
@@ -36,7 +109,13 @@ export default function RegisterPage() {
             Tell us about your company and we&apos;ll set up your B2B account.
           </p>
 
-          <form className="mt-8 space-y-5" onSubmit={(e) => e.preventDefault()}>
+          {error && (
+            <div className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-600">
+              {error}
+            </div>
+          )}
+
+          <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
             <div className="grid gap-5 sm:grid-cols-2">
               <div>
                 <label className="mb-1.5 block text-sm font-medium">Company name</label>
@@ -83,6 +162,19 @@ export default function RegisterPage() {
             </div>
 
             <div>
+              <label className="mb-1.5 block text-sm font-medium">Password</label>
+              <input
+                type="password"
+                value={form.password}
+                onChange={(e) => update("password", e.target.value)}
+                placeholder="Min. 6 characters"
+                className="h-12 w-full rounded-xl border border-border bg-white px-4 text-sm outline-none transition-colors focus:border-accent focus:ring-2 focus:ring-accent/10"
+                required
+                minLength={6}
+              />
+            </div>
+
+            <div>
               <label className="mb-1.5 block text-sm font-medium">Company type</label>
               <select
                 value={form.companyType}
@@ -115,14 +207,11 @@ export default function RegisterPage() {
 
             <button
               type="submit"
-              className="h-12 w-full rounded-xl bg-foreground text-sm font-semibold text-white transition-all hover:bg-gray-800"
+              disabled={loading}
+              className="h-12 w-full rounded-xl bg-foreground text-sm font-semibold text-white transition-all hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Submit Request
+              {loading ? "Creating account..." : "Create Account"}
             </button>
-
-            <p className="text-center text-xs text-muted">
-              We&apos;ll review your request and get back to you within 24 hours.
-            </p>
           </form>
 
           <p className="mt-6 text-center text-sm text-muted">
