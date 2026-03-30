@@ -103,7 +103,7 @@ export default function Home() {
                 </div>
 
                 {/* Desktop: AI Chat + Assistant portrait side by side */}
-                <div className="hidden items-end gap-6 lg:flex">
+                <div className="hidden items-center gap-6 lg:flex">
                   <div className="shrink-0">
                     <AIChat />
                   </div>
