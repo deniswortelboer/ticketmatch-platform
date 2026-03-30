@@ -22,10 +22,10 @@ const categories = [
 ];
 
 const cities = [
-  { name: "Amsterdam", country: "NL", count: "45+ venues", active: true },
-  { name: "Brussels", country: "BE", count: "30+ venues", active: true },
-  { name: "Berlin", country: "DE", count: "Coming soon", active: false },
-  { name: "Paris", country: "FR", count: "Coming soon", active: false },
+  { name: "Amsterdam", country: "NL", count: "45+ venues", active: true, image: "/images/city-amsterdam.jpg" },
+  { name: "Brussels", country: "BE", count: "30+ venues", active: true, image: "/images/city-brussels.jpg" },
+  { name: "Berlin", country: "DE", count: "Coming soon", active: false, image: "/images/city-berlin.jpg" },
+  { name: "Paris", country: "FR", count: "Coming soon", active: false, image: "/images/city-paris.jpg" },
 ];
 
 /* ───── page ───── */
@@ -233,10 +233,15 @@ export default function Home() {
                   }`}
                 >
                   {/* Image area */}
-                  <div className="aspect-[3/2] bg-gradient-to-br from-gray-100 to-gray-50">
-                    <div className="flex h-full items-center justify-center">
-                      <span className="text-3xl font-black text-gray-200">{city.country}</span>
-                    </div>
+                  <div className="relative aspect-[3/2] overflow-hidden">
+                    <img
+                      src={city.image}
+                      alt={`${city.name} city view`}
+                      className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                    {!city.active && (
+                      <div className="absolute inset-0 bg-white/40 backdrop-blur-[1px]" />
+                    )}
                   </div>
                   <div className="p-5">
                     <div className="flex items-center justify-between">
