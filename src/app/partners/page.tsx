@@ -122,7 +122,7 @@ export default function PartnersPage() {
                 </p>
                 <div className="mt-8 flex items-center gap-4">
                   <a
-                    href="mailto:partners@ticketmatch.ai"
+                    href="mailto:hello@ticketmatch.ai"
                     className="inline-flex items-center gap-2 rounded-full bg-foreground px-7 py-3.5 text-sm font-semibold text-white transition-all hover:bg-gray-800"
                   >
                     Contact us to join
@@ -267,6 +267,12 @@ export default function PartnersPage() {
         <section className="pb-24">
           <div className="mx-auto max-w-7xl px-6">
             <div className="relative overflow-hidden rounded-3xl bg-foreground px-8 py-16 text-center md:px-16">
+              <img
+                src="/images/partners-cta.jpg"
+                alt="Professional group walking along Amsterdam canals at golden hour"
+                className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+              />
+              <div className="pointer-events-none absolute inset-0 bg-black/55" />
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-amber-500/15 via-transparent to-accent/10" />
               {/* Decorative animated dots */}
               <div className="pointer-events-none absolute inset-0 overflow-hidden">
@@ -289,7 +295,7 @@ export default function PartnersPage() {
                 </p>
                 <div className="mt-8">
                   <a
-                    href="mailto:partners@ticketmatch.ai"
+                    href="mailto:hello@ticketmatch.ai"
                     className="inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-sm font-semibold text-foreground transition-all hover:bg-gray-100"
                   >
                     Get in touch
