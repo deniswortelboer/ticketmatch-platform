@@ -117,10 +117,7 @@ export default function Home() {
                   <AIChat />
                 </div>
 
-                {/* AI Chat — mobile: below image */}
-                <div className="mt-6 lg:hidden">
-                  <AIChat />
-                </div>
+                {/* AI Chat on mobile: use the AI Agent button in the bottom bar */}
               </div>
 
             </div>
