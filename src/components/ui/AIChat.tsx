@@ -108,10 +108,19 @@ export default function AIChat({ fullscreen = false }: { fullscreen?: boolean })
         </div>
         <div className="flex-1">
           <p className={`font-semibold ${fullscreen ? "text-sm text-white" : "text-xs"}`}>TicketMatch AI-Agent</p>
-          {fullscreen && <p className="text-[11px] text-white/70">Your B2B travel assistant</p>}
+          {fullscreen && (
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <div className="h-1.5 w-1.5 rounded-full bg-emerald-300" />
+              <p className="text-[11px] text-emerald-200">Online</p>
+            </div>
+          )}
         </div>
-        <div className={`flex rounded-full ${fullscreen ? "h-2 w-2 bg-emerald-300" : "h-1.5 w-1.5 bg-emerald-400"}`} />
-        <span className={`${fullscreen ? "text-[11px] text-emerald-200" : "text-[10px] text-emerald-600"}`}>Online</span>
+        {!fullscreen && (
+          <>
+            <div className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+            <span className="text-[10px] text-emerald-600">Online</span>
+          </>
+        )}
       </div>
 
       {/* Messages */}
