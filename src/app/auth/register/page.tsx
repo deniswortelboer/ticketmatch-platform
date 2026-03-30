@@ -236,47 +236,74 @@ export default function RegisterPage() {
         </div>
       </div>
 
-      {/* Right — visual story */}
-      <div className="hidden flex-1 flex-col items-center justify-center bg-gradient-to-br from-blue-50 via-white to-amber-50/30 px-12 lg:flex">
-        <style dangerouslySetInnerHTML={{ __html: `
-          @keyframes tm-pulse-subtle { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
-          @keyframes tm-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
-        ` }} />
+      {/* Right — photo collage */}
+      <div className="hidden flex-1 flex-col bg-gradient-to-br from-blue-50 via-white to-amber-50/30 lg:flex">
+        {/* Full-height photo grid */}
+        <div className="grid h-full grid-cols-2 grid-rows-3 gap-1.5 p-3">
+          {/* Row 1 — tall left, square right */}
+          <div className="group relative row-span-2 overflow-hidden rounded-2xl">
+            <img src="/images/partners-hero.jpg" alt="VIP group at Rijksmuseum" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+            <div className="absolute bottom-3 left-3">
+              <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">Museums</span>
+            </div>
+          </div>
+          <div className="group relative overflow-hidden rounded-2xl">
+            <img src="https://cdn.prod.website-files.com/6690fa96f0b41bbabcfbee64/68e50425db84cd19c37464bf_Business_events_AMAZE.jpg" alt="AMAZE Amsterdam" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+            <div className="absolute bottom-3 left-3">
+              <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">Attractions</span>
+            </div>
+          </div>
 
-        {/* Hero image */}
-        <div className="relative mb-8 w-full max-w-md overflow-hidden rounded-2xl shadow-xl">
-          <img src="/images/partners-hero.jpg" alt="VIP group travel" className="h-48 w-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
-          <div className="absolute bottom-4 left-4">
-            <p className="text-xs font-medium text-white/70">Your groups, our platform</p>
-            <p className="text-lg font-bold text-white">Book smarter. Save more.</p>
+          {/* Row 2 right — canal cruise */}
+          <div className="group relative overflow-hidden rounded-2xl">
+            <img src="/images/partners-canal.jpg" alt="Canal cruise Amsterdam" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+            <div className="absolute bottom-3 left-3">
+              <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">Canal Cruises</span>
+            </div>
+          </div>
+
+          {/* Row 3 — Hard Rock + Tulips */}
+          <div className="group relative overflow-hidden rounded-2xl">
+            <img src="https://app.thefeedfactory.nl/api/assets/5ff88131de7e8633a4aa65eb/e1f07ea8-bee1-447b-8bdf-6e72c9cc93f5.jpg" alt="Hard Rock Cafe" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+            <div className="absolute bottom-3 left-3">
+              <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">Restaurants</span>
+            </div>
+          </div>
+          <div className="group relative overflow-hidden rounded-2xl">
+            <img src="/images/partners-tulips.jpg" alt="Tulip fields tour" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+            <div className="absolute bottom-3 left-3">
+              <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">Day Trips</span>
+            </div>
           </div>
         </div>
 
-        {/* Value props — clear and visual */}
-        <div className="w-full max-w-md space-y-3">
-          {[
-            { icon: "🏛️", title: "75+ venues", desc: "Museums, attractions & experiences in Amsterdam and Brussels", color: "bg-blue-50 text-blue-600" },
-            { icon: "💰", title: "Exclusive B2B rates", desc: "Up to 25% lower than retail — only for travel professionals", color: "bg-amber-50 text-amber-600" },
-            { icon: "📋", title: "Itinerary builder", desc: "Create day-by-day plans, upload guest lists via CSV", color: "bg-violet-50 text-violet-600" },
-            { icon: "🤖", title: "AI-powered suggestions", desc: "Tell our AI about your group, get instant recommendations", color: "bg-cyan-50 text-cyan-600" },
-            { icon: "⚡", title: "One dashboard", desc: "All suppliers, bookings, vouchers and QR codes in one place", color: "bg-emerald-50 text-emerald-600" },
-          ].map((item, i) => (
-            <div key={item.title} className="flex items-start gap-3 rounded-xl border border-border/40 bg-white p-3.5 shadow-sm transition-all hover:shadow-md" style={{ animation: `tm-float ${3 + i * 0.5}s ease-in-out ${i * 0.3}s infinite` }}>
-              <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-base ${item.color}`}>
-                {item.icon}
-              </span>
-              <div>
-                <p className="text-sm font-semibold">{item.title}</p>
-                <p className="text-xs text-muted">{item.desc}</p>
-              </div>
-            </div>
-          ))}
+        {/* Bottom bar */}
+        <div className="flex items-center justify-center gap-6 border-t border-border/30 bg-white/50 px-6 py-3 backdrop-blur-sm">
+          <div className="text-center">
+            <p className="text-lg font-bold text-accent">75+</p>
+            <p className="text-[10px] text-muted">Venues</p>
+          </div>
+          <div className="h-6 w-px bg-border/40" />
+          <div className="text-center">
+            <p className="text-lg font-bold text-accent">2</p>
+            <p className="text-[10px] text-muted">Cities</p>
+          </div>
+          <div className="h-6 w-px bg-border/40" />
+          <div className="text-center">
+            <p className="text-lg font-bold text-accent">B2B</p>
+            <p className="text-[10px] text-muted">Rates</p>
+          </div>
+          <div className="h-6 w-px bg-border/40" />
+          <div className="text-center">
+            <p className="text-lg font-bold text-accent">AI</p>
+            <p className="text-[10px] text-muted">Powered</p>
+          </div>
         </div>
-
-        <p className="mt-6 text-center text-xs text-muted">
-          Free to join — no upfront costs, no commitment.
-        </p>
       </div>
     </div>
   );
