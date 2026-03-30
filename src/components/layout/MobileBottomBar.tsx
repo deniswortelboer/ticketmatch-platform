@@ -61,7 +61,7 @@ export default function MobileBottomBar() {
               <path d="M2 12l10 5 10-5" />
             </svg>
           </div>
-          <span className="mt-0.5 text-[10px] font-semibold text-white">AI Agent</span>
+          <span className="mt-0.5 text-[10px] font-semibold text-white">Emma</span>
         </button>
 
         {/* Cities */}
