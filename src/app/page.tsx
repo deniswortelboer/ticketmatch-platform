@@ -158,132 +158,44 @@ export default function Home() {
               @keyframes tm-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
             ` }} />
 
-            <div className="relative mt-16">
-              {/* Connecting line (desktop) */}
-              <div className="absolute left-0 right-0 top-[100px] hidden h-px bg-gradient-to-r from-transparent via-accent/20 to-transparent md:block" />
-
-              <div className="grid gap-8 md:grid-cols-3">
-                {/* Step 1 — Request Access */}
-                <div className="group relative rounded-2xl border border-border/60 bg-white p-8 text-center transition-all hover:border-accent/30 hover:shadow-xl hover:shadow-accent/5">
-                  <div className="mx-auto mb-2 h-[140px] w-[140px]">
-                    <svg viewBox="0 0 140 140" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      {/* Outer rotating ring */}
-                      <circle cx="70" cy="70" r="62" stroke="#2563eb" strokeWidth="1" strokeDasharray="6 4" opacity="0.2" style={{ transformOrigin: '70px 70px', animation: 'tm-spin 20s linear infinite' }} />
-                      {/* Inner rotating ring */}
-                      <circle cx="70" cy="70" r="48" stroke="#2563eb" strokeWidth="0.75" strokeDasharray="3 5" opacity="0.15" style={{ transformOrigin: '70px 70px', animation: 'tm-spin-rev 15s linear infinite' }} />
-                      {/* Center icon bg */}
-                      <circle cx="70" cy="70" r="32" fill="url(#grad1)" />
-                      {/* User icon */}
-                      <path d="M60 82v-1.5a6 6 0 0 1 6-6h8a6 6 0 0 1 6 6V82" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
-                      <circle cx="70" cy="65" r="5" stroke="white" strokeWidth="1.5" />
-                      {/* Pulsing dots on ring */}
-                      <circle cx="70" cy="8" r="3" fill="#2563eb" style={{ animation: 'tm-pulse 2s ease-in-out infinite' }} />
-                      <circle cx="132" cy="70" r="3" fill="#3b82f6" style={{ animation: 'tm-pulse 2s ease-in-out 0.5s infinite' }} />
-                      <circle cx="70" cy="132" r="3" fill="#2563eb" style={{ animation: 'tm-pulse 2s ease-in-out 1s infinite' }} />
-                      <circle cx="8" cy="70" r="3" fill="#3b82f6" style={{ animation: 'tm-pulse 2s ease-in-out 1.5s infinite' }} />
-                      {/* Small orbiting nodes */}
-                      <circle cx="108" cy="32" r="2" fill="#60a5fa" style={{ animation: 'tm-dot-pulse 3s ease-in-out infinite' }} />
-                      <circle cx="32" cy="108" r="2" fill="#60a5fa" style={{ animation: 'tm-dot-pulse 3s ease-in-out 1s infinite' }} />
-                      <defs><radialGradient id="grad1"><stop offset="0%" stopColor="#3b82f6" /><stop offset="100%" stopColor="#1d4ed8" /></radialGradient></defs>
-                    </svg>
+            <div className="mt-14 grid gap-5 md:grid-cols-3">
+              {[
+                { step: "1", title: "Request Access", desc: "Register your company with your business details. We verify and activate your B2B account within 24 hours.", tags: ["Free signup", "24h activation"], bg: "from-blue-600 to-blue-800", iconPath: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8M22 11h-6M19 8v6" },
+                { step: "2", title: "Build Your Trip", desc: "Browse our multi-supplier catalog, create day-by-day itineraries, upload guest lists and let AI suggest the best matches.", tags: ["Itinerary builder", "AI suggestions"], bg: "from-amber-500 to-orange-600", iconPath: "M3 4h18v18H3zM16 2v4M8 2v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01" },
+                { step: "3", title: "Book & Manage", desc: "Confirm bookings at exclusive B2B rates, generate vouchers and QR codes per guest, track everything live.", tags: ["B2B rates", "Live tracking"], bg: "from-emerald-500 to-emerald-700", iconPath: "M9 12l2 2 4-4M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" },
+              ].map((s, i) => (
+                <div key={s.step} className={`group relative overflow-hidden rounded-2xl bg-gradient-to-br ${s.bg} p-6 text-white transition-all hover:shadow-xl hover:scale-[1.02]`}>
+                  {/* Decorative circles */}
+                  <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-white/10" />
+                  <div className="absolute -bottom-4 -left-4 h-16 w-16 rounded-full bg-white/5" />
+                  {/* Step number */}
+                  <div className="relative flex items-center gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d={s.iconPath} />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-medium text-white/60 uppercase tracking-wider">Step {s.step}</p>
+                      <h3 className="text-lg font-bold">{s.title}</h3>
+                    </div>
                   </div>
-                  <div className="mx-auto flex h-7 w-7 items-center justify-center rounded-full bg-accent/10 text-xs font-bold text-accent">1</div>
-                  <h3 className="mt-3 text-base font-bold">Request Access</h3>
-                  <p className="mt-2 text-[13px] leading-relaxed text-muted">Register your company with your KVK and business details. We verify and activate your B2B account within 24 hours.</p>
-                  <div className="mt-5 flex flex-wrap justify-center gap-2">
-                    <span className="rounded-full bg-accent/5 px-3 py-1 text-[11px] font-medium text-accent">Free signup</span>
-                    <span className="rounded-full bg-accent/5 px-3 py-1 text-[11px] font-medium text-accent">24h activation</span>
+                  <p className="relative mt-3 text-[13px] leading-relaxed text-white/80">{s.desc}</p>
+                  <div className="relative mt-4 flex flex-wrap gap-2">
+                    {s.tags.map((t) => (
+                      <span key={t} className="rounded-full bg-white/15 px-3 py-1 text-[11px] font-medium text-white backdrop-blur-sm">{t}</span>
+                    ))}
                   </div>
+                  {/* Arrow to next (desktop) */}
+                  {i < 2 && (
+                    <div className="absolute -right-3 top-1/2 z-10 hidden -translate-y-1/2 md:block">
+                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-white shadow-md">
+                        <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="#2563eb" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                      </div>
+                    </div>
+                  )}
                 </div>
-
-                {/* Step 2 — Build Your Trip */}
-                <div className="group relative rounded-2xl border border-border/60 bg-white p-8 text-center transition-all hover:border-accent/30 hover:shadow-xl hover:shadow-accent/5">
-                  <div className="mx-auto mb-2 h-[140px] w-[140px]">
-                    <svg viewBox="0 0 140 140" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      {/* Hexagonal outer ring */}
-                      <polygon points="70,5 125,35 125,95 70,125 15,95 15,35" stroke="#f59e0b" strokeWidth="1" strokeDasharray="8 4" fill="none" opacity="0.2" style={{ transformOrigin: '70px 65px', animation: 'tm-spin 25s linear infinite' }} />
-                      {/* Inner hexagon */}
-                      <polygon points="70,22 108,42 108,82 70,102 32,82 32,42" stroke="#f59e0b" strokeWidth="0.75" strokeDasharray="4 6" fill="none" opacity="0.15" style={{ transformOrigin: '70px 62px', animation: 'tm-spin-rev 18s linear infinite' }} />
-                      {/* Center icon bg */}
-                      <circle cx="70" cy="65" r="30" fill="url(#grad2)" />
-                      {/* Calendar icon */}
-                      <rect x="55" y="55" width="30" height="24" rx="3" stroke="white" strokeWidth="1.5" fill="none" />
-                      <path d="M55 63h30" stroke="white" strokeWidth="1.5" />
-                      <path d="M63 51v6" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
-                      <path d="M77 51v6" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
-                      {/* Day dots */}
-                      <circle cx="63" cy="70" r="1.5" fill="white" />
-                      <circle cx="70" cy="70" r="1.5" fill="white" />
-                      <circle cx="77" cy="70" r="1.5" fill="white" />
-                      {/* Floating connection dots */}
-                      <circle cx="70" cy="5" r="3" fill="#f59e0b" style={{ animation: 'tm-pulse 2.5s ease-in-out infinite' }} />
-                      <circle cx="125" cy="35" r="2.5" fill="#fbbf24" style={{ animation: 'tm-dot-pulse 2s ease-in-out 0.3s infinite' }} />
-                      <circle cx="125" cy="95" r="2.5" fill="#f59e0b" style={{ animation: 'tm-dot-pulse 2s ease-in-out 0.6s infinite' }} />
-                      <circle cx="70" cy="125" r="3" fill="#fbbf24" style={{ animation: 'tm-pulse 2.5s ease-in-out 0.9s infinite' }} />
-                      <circle cx="15" cy="95" r="2.5" fill="#f59e0b" style={{ animation: 'tm-dot-pulse 2s ease-in-out 1.2s infinite' }} />
-                      <circle cx="15" cy="35" r="2.5" fill="#fbbf24" style={{ animation: 'tm-dot-pulse 2s ease-in-out 1.5s infinite' }} />
-                      {/* Connecting lines from dots */}
-                      <line x1="70" y1="8" x2="70" y2="35" stroke="#f59e0b" strokeWidth="0.5" strokeDasharray="2 3" opacity="0.3" style={{ animation: 'tm-dash 3s linear infinite' }} />
-                      <line x1="70" y1="95" x2="70" y2="122" stroke="#f59e0b" strokeWidth="0.5" strokeDasharray="2 3" opacity="0.3" style={{ animation: 'tm-dash 3s linear 1s infinite' }} />
-                      <defs><radialGradient id="grad2"><stop offset="0%" stopColor="#fbbf24" /><stop offset="100%" stopColor="#d97706" /></radialGradient></defs>
-                    </svg>
-                  </div>
-                  <div className="mx-auto flex h-7 w-7 items-center justify-center rounded-full bg-amber-500/10 text-xs font-bold text-amber-600">2</div>
-                  <h3 className="mt-3 text-base font-bold">Build Your Trip</h3>
-                  <p className="mt-2 text-[13px] leading-relaxed text-muted">Browse our multi-supplier catalog, create day-by-day itineraries, upload guest lists via CSV and let AI suggest the best matches.</p>
-                  <div className="mt-5 flex flex-wrap justify-center gap-2">
-                    <span className="rounded-full bg-amber-500/5 px-3 py-1 text-[11px] font-medium text-amber-600">Itinerary builder</span>
-                    <span className="rounded-full bg-amber-500/5 px-3 py-1 text-[11px] font-medium text-amber-600">AI suggestions</span>
-                  </div>
-                </div>
-
-                {/* Step 3 — Book & Manage */}
-                <div className="group relative rounded-2xl border border-border/60 bg-white p-8 text-center transition-all hover:border-accent/30 hover:shadow-xl hover:shadow-accent/5">
-                  <div className="mx-auto mb-2 h-[140px] w-[140px]">
-                    <svg viewBox="0 0 140 140" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      {/* Outer diamond ring */}
-                      <rect x="70" y="6" width="88" height="88" rx="4" stroke="#10b981" strokeWidth="1" strokeDasharray="6 4" fill="none" opacity="0.2" style={{ transformOrigin: '70px 70px', transform: 'rotate(45deg) translate(-44px, -44px)', animation: 'tm-spin 22s linear infinite' }} />
-                      {/* Inner circle */}
-                      <circle cx="70" cy="70" r="46" stroke="#10b981" strokeWidth="0.75" strokeDasharray="4 5" opacity="0.15" style={{ transformOrigin: '70px 70px', animation: 'tm-spin-rev 16s linear infinite' }} />
-                      {/* Center icon bg */}
-                      <circle cx="70" cy="70" r="30" fill="url(#grad3)" />
-                      {/* Checkmark icon */}
-                      <path d="M58 70l7 7 17-17" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-                      {/* Pulsing dots */}
-                      <circle cx="70" cy="8" r="3" fill="#10b981" style={{ animation: 'tm-pulse 2s ease-in-out infinite' }} />
-                      <circle cx="128" cy="50" r="2.5" fill="#34d399" style={{ animation: 'tm-dot-pulse 2.5s ease-in-out 0.4s infinite' }} />
-                      <circle cx="128" cy="90" r="2.5" fill="#10b981" style={{ animation: 'tm-dot-pulse 2.5s ease-in-out 0.8s infinite' }} />
-                      <circle cx="70" cy="132" r="3" fill="#34d399" style={{ animation: 'tm-pulse 2s ease-in-out 1.2s infinite' }} />
-                      <circle cx="12" cy="90" r="2.5" fill="#10b981" style={{ animation: 'tm-dot-pulse 2.5s ease-in-out 1.6s infinite' }} />
-                      <circle cx="12" cy="50" r="2.5" fill="#34d399" style={{ animation: 'tm-dot-pulse 2.5s ease-in-out 2s infinite' }} />
-                      {/* Success sparkles */}
-                      <circle cx="100" cy="28" r="1.5" fill="#6ee7b7" style={{ animation: 'tm-float 3s ease-in-out infinite' }} />
-                      <circle cx="40" cy="112" r="1.5" fill="#6ee7b7" style={{ animation: 'tm-float 3s ease-in-out 1s infinite' }} />
-                      <circle cx="115" cy="105" r="1" fill="#a7f3d0" style={{ animation: 'tm-float 4s ease-in-out 0.5s infinite' }} />
-                      <defs><radialGradient id="grad3"><stop offset="0%" stopColor="#34d399" /><stop offset="100%" stopColor="#059669" /></radialGradient></defs>
-                    </svg>
-                  </div>
-                  <div className="mx-auto flex h-7 w-7 items-center justify-center rounded-full bg-emerald-500/10 text-xs font-bold text-emerald-600">3</div>
-                  <h3 className="mt-3 text-base font-bold">Book &amp; Manage</h3>
-                  <p className="mt-2 text-[13px] leading-relaxed text-muted">Confirm bookings at exclusive B2B rates, generate vouchers and QR codes per guest, track everything from your live dashboard.</p>
-                  <div className="mt-5 flex flex-wrap justify-center gap-2">
-                    <span className="rounded-full bg-emerald-500/5 px-3 py-1 text-[11px] font-medium text-emerald-600">B2B rates</span>
-                    <span className="rounded-full bg-emerald-500/5 px-3 py-1 text-[11px] font-medium text-emerald-600">Live tracking</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Arrow connectors (desktop) */}
-              <div className="absolute top-[100px] left-[33.3%] hidden -translate-x-1/2 md:block">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white border border-border/60 shadow-sm">
-                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-accent" /></svg>
-                </div>
-              </div>
-              <div className="absolute top-[100px] left-[66.6%] hidden -translate-x-1/2 md:block">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white border border-border/60 shadow-sm">
-                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-accent" /></svg>
-                </div>
-              </div>
+              ))}
             </div>
           </div>
         </section>
