@@ -246,19 +246,19 @@ export default function RegisterPage() {
         {/* Photo strip — compact row of venue photos */}
         <div className="grid grid-cols-3 gap-1 p-3 pb-0">
           <div className="group relative h-28 overflow-hidden rounded-xl">
-            <img src="/images/partners-hero.jpg" alt="Museum visit" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" />
+            <img src="/images/register-museum.jpg" alt="Immersive museum experience" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
             <span className="absolute bottom-2 left-2 rounded-full bg-white/20 px-2 py-0.5 text-[9px] font-medium text-white backdrop-blur-sm">Museums</span>
+          </div>
+          <div className="group relative h-28 overflow-hidden rounded-xl">
+            <img src="/images/register-dining.jpg" alt="Group dining Amsterdam" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+            <span className="absolute bottom-2 left-2 rounded-full bg-white/20 px-2 py-0.5 text-[9px] font-medium text-white backdrop-blur-sm">Dining</span>
           </div>
           <div className="group relative h-28 overflow-hidden rounded-xl">
             <img src="/images/partners-canal.jpg" alt="Canal cruise" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
             <span className="absolute bottom-2 left-2 rounded-full bg-white/20 px-2 py-0.5 text-[9px] font-medium text-white backdrop-blur-sm">Cruises</span>
-          </div>
-          <div className="group relative h-28 overflow-hidden rounded-xl">
-            <img src="/images/partners-tulips.jpg" alt="Day trips" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-            <span className="absolute bottom-2 left-2 rounded-full bg-white/20 px-2 py-0.5 text-[9px] font-medium text-white backdrop-blur-sm">Day Trips</span>
           </div>
         </div>
 
