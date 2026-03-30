@@ -107,8 +107,8 @@ export default function AIChat({ fullscreen = false }: { fullscreen?: boolean })
           </svg>
         </div>
         <div className="flex-1">
-          <p className={`font-semibold ${fullscreen ? "text-sm text-white" : "text-xs"}`}>Emma</p>
-          {fullscreen && <p className="text-[11px] text-white/70">Your TicketMatch travel assistant</p>}
+          <p className={`font-semibold ${fullscreen ? "text-sm text-white" : "text-xs"}`}>TicketMatch AI</p>
+          {fullscreen && <p className="text-[11px] text-white/70">Your B2B travel assistant</p>}
         </div>
         <div className={`flex rounded-full ${fullscreen ? "h-2 w-2 bg-emerald-300" : "h-1.5 w-1.5 bg-emerald-400"}`} />
         <span className={`${fullscreen ? "text-[11px] text-emerald-200" : "text-[10px] text-emerald-600"}`}>Online</span>
