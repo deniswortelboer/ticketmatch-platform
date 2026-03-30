@@ -23,19 +23,19 @@ export default function Header() {
         {/* Desktop Nav */}
         <nav className="hidden items-center gap-8 md:flex">
           <Link
-            href="#how-it-works"
+            href="/#how-it-works"
             className="text-sm font-medium text-muted transition-colors hover:text-foreground"
           >
             How it Works
           </Link>
           <Link
-            href="#categories"
+            href="/#categories"
             className="text-sm font-medium text-muted transition-colors hover:text-foreground"
           >
             Categories
           </Link>
           <Link
-            href="#cities"
+            href="/#cities"
             className="text-sm font-medium text-muted transition-colors hover:text-foreground"
           >
             Cities
@@ -96,21 +96,21 @@ export default function Header() {
         <div className="border-t border-border/60 bg-white px-6 pb-6 pt-4 md:hidden">
           <nav className="flex flex-col gap-4">
             <Link
-              href="#how-it-works"
+              href="/#how-it-works"
               className="text-sm font-medium text-muted"
               onClick={() => setMobileOpen(false)}
             >
               How it Works
             </Link>
             <Link
-              href="#categories"
+              href="/#categories"
               className="text-sm font-medium text-muted"
               onClick={() => setMobileOpen(false)}
             >
               Categories
             </Link>
             <Link
-              href="#cities"
+              href="/#cities"
               className="text-sm font-medium text-muted"
               onClick={() => setMobileOpen(false)}
             >
