@@ -128,7 +128,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
             <button
               onClick={handleLogout}
-              className="rounded-lg p-1.5 text-muted hover:bg-gray-100 hover:text-foreground transition-colors"
+              className="rounded-lg p-1.5 text-muted hover:bg-red-50 hover:text-red-600 transition-colors"
               title="Sign out"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -138,6 +138,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </svg>
             </button>
           </div>
+          <button
+            onClick={handleLogout}
+            className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-border/60 py-2 text-xs font-medium text-muted hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+            Sign Out
+          </button>
         </div>
       </aside>
 
