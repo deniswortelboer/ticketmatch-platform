@@ -76,47 +76,47 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Right — Hero image with AI Chat overlay */}
+              {/* Right — Hero image with AI Chat beside it */}
               <div className="relative">
-                {/* Main hero image container */}
-                <div className="relative aspect-[16/9] overflow-hidden rounded-3xl shadow-2xl shadow-black/10">
-                  {/* Hero photo */}
-                  <img
-                    src="/images/hero-amsterdam.jpg"
-                    alt="Amsterdam canals at golden hour — aerial view of historic canal houses, bridges and boats"
-                    className="absolute inset-0 h-full w-full object-cover"
-                  />
-                  {/* Dark overlay for readability of badges */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
+                <div className="flex gap-4 items-stretch">
+                  {/* Main hero image container */}
+                  <div className="relative flex-1 min-h-[300px] lg:min-h-[420px] overflow-hidden rounded-3xl shadow-2xl shadow-black/10">
+                    <img
+                      src="/images/hero-amsterdam.jpg"
+                      alt="Amsterdam canals at golden hour — aerial view of historic canal houses, bridges and boats"
+                      className="absolute inset-0 h-full w-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
 
-                  {/* Text overlay */}
-                  <div className="absolute left-6 top-6">
-                    <div className="rounded-xl bg-black/20 px-4 py-2 backdrop-blur-md">
-                      <p className="text-[11px] font-medium text-white/80">Most popular destination</p>
-                      <p className="text-lg font-bold text-white">Amsterdam</p>
+                    {/* Text overlay */}
+                    <div className="absolute left-5 top-5">
+                      <div className="rounded-xl bg-black/20 px-3.5 py-2 backdrop-blur-md">
+                        <p className="text-[11px] font-medium text-white/80">Most popular destination</p>
+                        <p className="text-lg font-bold text-white">Amsterdam</p>
+                      </div>
+                    </div>
+
+                    {/* Stats overlay */}
+                    <div className="absolute bottom-5 left-5 flex gap-2.5">
+                      <div className="rounded-xl bg-black/20 px-3 py-2 backdrop-blur-md">
+                        <p className="text-xl font-bold text-white">45+</p>
+                        <p className="text-[10px] text-white/70">Venues</p>
+                      </div>
+                      <div className="rounded-xl bg-black/20 px-3 py-2 backdrop-blur-md">
+                        <p className="text-xl font-bold text-white">B2B</p>
+                        <p className="text-[10px] text-white/70">Rates</p>
+                      </div>
+                      <div className="rounded-xl bg-black/20 px-3 py-2 backdrop-blur-md">
+                        <p className="text-xl font-bold text-white">24h</p>
+                        <p className="text-[10px] text-white/70">Access</p>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Stats overlay */}
-                  <div className="absolute bottom-6 left-6 flex gap-3">
-                    <div className="rounded-xl bg-black/20 px-3.5 py-2 backdrop-blur-md">
-                      <p className="text-xl font-bold text-white">45+</p>
-                      <p className="text-[10px] text-white/70">Venues</p>
-                    </div>
-                    <div className="rounded-xl bg-black/20 px-3.5 py-2 backdrop-blur-md">
-                      <p className="text-xl font-bold text-white">B2B</p>
-                      <p className="text-[10px] text-white/70">Rates</p>
-                    </div>
-                    <div className="rounded-xl bg-black/20 px-3.5 py-2 backdrop-blur-md">
-                      <p className="text-xl font-bold text-white">24h</p>
-                      <p className="text-[10px] text-white/70">Access</p>
-                    </div>
+                  {/* AI Chat — beside image on desktop */}
+                  <div className="hidden lg:block shrink-0">
+                    <AIChat />
                   </div>
-                </div>
-
-                {/* AI Chat — floating overlay bottom-right */}
-                <div className="absolute -bottom-6 -right-4 z-10 hidden lg:block">
-                  <AIChat />
                 </div>
 
                 {/* AI Chat — mobile: below image */}
@@ -153,20 +153,47 @@ export default function Home() {
               </p>
             </div>
 
+            {/* Animated SVG keyframes */}
+            <style dangerouslySetInnerHTML={{ __html: `
+              @keyframes tm-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+              @keyframes tm-spin-rev { from { transform: rotate(360deg); } to { transform: rotate(0deg); } }
+              @keyframes tm-pulse { 0%, 100% { opacity: 0.3; r: 3; } 50% { opacity: 0.7; r: 4.5; } }
+              @keyframes tm-dot-pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+              @keyframes tm-dash { from { stroke-dashoffset: 40; } to { stroke-dashoffset: 0; } }
+              @keyframes tm-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+            ` }} />
+
             <div className="relative mt-16">
               {/* Connecting line (desktop) */}
-              <div className="absolute left-0 right-0 top-[72px] hidden h-px bg-gradient-to-r from-transparent via-accent/20 to-transparent md:block" />
+              <div className="absolute left-0 right-0 top-[100px] hidden h-px bg-gradient-to-r from-transparent via-accent/20 to-transparent md:block" />
 
               <div className="grid gap-8 md:grid-cols-3">
-                {/* Step 1 */}
+                {/* Step 1 — Request Access */}
                 <div className="group relative rounded-2xl border border-border/60 bg-white p-8 text-center transition-all hover:border-accent/30 hover:shadow-xl hover:shadow-accent/5">
-                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-accent to-blue-700 shadow-lg shadow-accent/20 transition-transform group-hover:scale-110">
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                  <div className="mx-auto mb-2 h-[140px] w-[140px]">
+                    <svg viewBox="0 0 140 140" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      {/* Outer rotating ring */}
+                      <circle cx="70" cy="70" r="62" stroke="#2563eb" strokeWidth="1" strokeDasharray="6 4" opacity="0.2" style={{ transformOrigin: '70px 70px', animation: 'tm-spin 20s linear infinite' }} />
+                      {/* Inner rotating ring */}
+                      <circle cx="70" cy="70" r="48" stroke="#2563eb" strokeWidth="0.75" strokeDasharray="3 5" opacity="0.15" style={{ transformOrigin: '70px 70px', animation: 'tm-spin-rev 15s linear infinite' }} />
+                      {/* Center icon bg */}
+                      <circle cx="70" cy="70" r="32" fill="url(#grad1)" />
+                      {/* User icon */}
+                      <path d="M60 82v-1.5a6 6 0 0 1 6-6h8a6 6 0 0 1 6 6V82" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+                      <circle cx="70" cy="65" r="5" stroke="white" strokeWidth="1.5" />
+                      {/* Pulsing dots on ring */}
+                      <circle cx="70" cy="8" r="3" fill="#2563eb" style={{ animation: 'tm-pulse 2s ease-in-out infinite' }} />
+                      <circle cx="132" cy="70" r="3" fill="#3b82f6" style={{ animation: 'tm-pulse 2s ease-in-out 0.5s infinite' }} />
+                      <circle cx="70" cy="132" r="3" fill="#2563eb" style={{ animation: 'tm-pulse 2s ease-in-out 1s infinite' }} />
+                      <circle cx="8" cy="70" r="3" fill="#3b82f6" style={{ animation: 'tm-pulse 2s ease-in-out 1.5s infinite' }} />
+                      {/* Small orbiting nodes */}
+                      <circle cx="108" cy="32" r="2" fill="#60a5fa" style={{ animation: 'tm-dot-pulse 3s ease-in-out infinite' }} />
+                      <circle cx="32" cy="108" r="2" fill="#60a5fa" style={{ animation: 'tm-dot-pulse 3s ease-in-out 1s infinite' }} />
+                      <defs><radialGradient id="grad1"><stop offset="0%" stopColor="#3b82f6" /><stop offset="100%" stopColor="#1d4ed8" /></radialGradient></defs>
                     </svg>
                   </div>
-                  <div className="mx-auto mt-4 flex h-7 w-7 items-center justify-center rounded-full bg-accent/10 text-xs font-bold text-accent">1</div>
-                  <h3 className="mt-4 text-base font-bold">Request Access</h3>
+                  <div className="mx-auto flex h-7 w-7 items-center justify-center rounded-full bg-accent/10 text-xs font-bold text-accent">1</div>
+                  <h3 className="mt-3 text-base font-bold">Request Access</h3>
                   <p className="mt-2 text-[13px] leading-relaxed text-muted">Register your company with your KVK and business details. We verify and activate your B2B account within 24 hours.</p>
                   <div className="mt-5 flex flex-wrap justify-center gap-2">
                     <span className="rounded-full bg-accent/5 px-3 py-1 text-[11px] font-medium text-accent">Free signup</span>
@@ -174,15 +201,40 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* Step 2 */}
+                {/* Step 2 — Build Your Trip */}
                 <div className="group relative rounded-2xl border border-border/60 bg-white p-8 text-center transition-all hover:border-accent/30 hover:shadow-xl hover:shadow-accent/5">
-                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 shadow-lg shadow-amber-500/20 transition-transform group-hover:scale-110">
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4" /><path d="M8 2v4" /><path d="M3 10h18" /><path d="M8 14h.01" /><path d="M12 14h.01" /><path d="M16 14h.01" /><path d="M8 18h.01" /><path d="M12 18h.01" />
+                  <div className="mx-auto mb-2 h-[140px] w-[140px]">
+                    <svg viewBox="0 0 140 140" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      {/* Hexagonal outer ring */}
+                      <polygon points="70,5 125,35 125,95 70,125 15,95 15,35" stroke="#f59e0b" strokeWidth="1" strokeDasharray="8 4" fill="none" opacity="0.2" style={{ transformOrigin: '70px 65px', animation: 'tm-spin 25s linear infinite' }} />
+                      {/* Inner hexagon */}
+                      <polygon points="70,22 108,42 108,82 70,102 32,82 32,42" stroke="#f59e0b" strokeWidth="0.75" strokeDasharray="4 6" fill="none" opacity="0.15" style={{ transformOrigin: '70px 62px', animation: 'tm-spin-rev 18s linear infinite' }} />
+                      {/* Center icon bg */}
+                      <circle cx="70" cy="65" r="30" fill="url(#grad2)" />
+                      {/* Calendar icon */}
+                      <rect x="55" y="55" width="30" height="24" rx="3" stroke="white" strokeWidth="1.5" fill="none" />
+                      <path d="M55 63h30" stroke="white" strokeWidth="1.5" />
+                      <path d="M63 51v6" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+                      <path d="M77 51v6" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+                      {/* Day dots */}
+                      <circle cx="63" cy="70" r="1.5" fill="white" />
+                      <circle cx="70" cy="70" r="1.5" fill="white" />
+                      <circle cx="77" cy="70" r="1.5" fill="white" />
+                      {/* Floating connection dots */}
+                      <circle cx="70" cy="5" r="3" fill="#f59e0b" style={{ animation: 'tm-pulse 2.5s ease-in-out infinite' }} />
+                      <circle cx="125" cy="35" r="2.5" fill="#fbbf24" style={{ animation: 'tm-dot-pulse 2s ease-in-out 0.3s infinite' }} />
+                      <circle cx="125" cy="95" r="2.5" fill="#f59e0b" style={{ animation: 'tm-dot-pulse 2s ease-in-out 0.6s infinite' }} />
+                      <circle cx="70" cy="125" r="3" fill="#fbbf24" style={{ animation: 'tm-pulse 2.5s ease-in-out 0.9s infinite' }} />
+                      <circle cx="15" cy="95" r="2.5" fill="#f59e0b" style={{ animation: 'tm-dot-pulse 2s ease-in-out 1.2s infinite' }} />
+                      <circle cx="15" cy="35" r="2.5" fill="#fbbf24" style={{ animation: 'tm-dot-pulse 2s ease-in-out 1.5s infinite' }} />
+                      {/* Connecting lines from dots */}
+                      <line x1="70" y1="8" x2="70" y2="35" stroke="#f59e0b" strokeWidth="0.5" strokeDasharray="2 3" opacity="0.3" style={{ animation: 'tm-dash 3s linear infinite' }} />
+                      <line x1="70" y1="95" x2="70" y2="122" stroke="#f59e0b" strokeWidth="0.5" strokeDasharray="2 3" opacity="0.3" style={{ animation: 'tm-dash 3s linear 1s infinite' }} />
+                      <defs><radialGradient id="grad2"><stop offset="0%" stopColor="#fbbf24" /><stop offset="100%" stopColor="#d97706" /></radialGradient></defs>
                     </svg>
                   </div>
-                  <div className="mx-auto mt-4 flex h-7 w-7 items-center justify-center rounded-full bg-amber-500/10 text-xs font-bold text-amber-600">2</div>
-                  <h3 className="mt-4 text-base font-bold">Build Your Trip</h3>
+                  <div className="mx-auto flex h-7 w-7 items-center justify-center rounded-full bg-amber-500/10 text-xs font-bold text-amber-600">2</div>
+                  <h3 className="mt-3 text-base font-bold">Build Your Trip</h3>
                   <p className="mt-2 text-[13px] leading-relaxed text-muted">Browse our multi-supplier catalog, create day-by-day itineraries, upload guest lists via CSV and let AI suggest the best matches.</p>
                   <div className="mt-5 flex flex-wrap justify-center gap-2">
                     <span className="rounded-full bg-amber-500/5 px-3 py-1 text-[11px] font-medium text-amber-600">Itinerary builder</span>
@@ -190,15 +242,34 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* Step 3 */}
+                {/* Step 3 — Book & Manage */}
                 <div className="group relative rounded-2xl border border-border/60 bg-white p-8 text-center transition-all hover:border-accent/30 hover:shadow-xl hover:shadow-accent/5">
-                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-green-600 shadow-lg shadow-emerald-500/20 transition-transform group-hover:scale-110">
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M9 12l2 2 4-4" /><path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" />
+                  <div className="mx-auto mb-2 h-[140px] w-[140px]">
+                    <svg viewBox="0 0 140 140" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      {/* Outer diamond ring */}
+                      <rect x="70" y="6" width="88" height="88" rx="4" stroke="#10b981" strokeWidth="1" strokeDasharray="6 4" fill="none" opacity="0.2" style={{ transformOrigin: '70px 70px', transform: 'rotate(45deg) translate(-44px, -44px)', animation: 'tm-spin 22s linear infinite' }} />
+                      {/* Inner circle */}
+                      <circle cx="70" cy="70" r="46" stroke="#10b981" strokeWidth="0.75" strokeDasharray="4 5" opacity="0.15" style={{ transformOrigin: '70px 70px', animation: 'tm-spin-rev 16s linear infinite' }} />
+                      {/* Center icon bg */}
+                      <circle cx="70" cy="70" r="30" fill="url(#grad3)" />
+                      {/* Checkmark icon */}
+                      <path d="M58 70l7 7 17-17" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                      {/* Pulsing dots */}
+                      <circle cx="70" cy="8" r="3" fill="#10b981" style={{ animation: 'tm-pulse 2s ease-in-out infinite' }} />
+                      <circle cx="128" cy="50" r="2.5" fill="#34d399" style={{ animation: 'tm-dot-pulse 2.5s ease-in-out 0.4s infinite' }} />
+                      <circle cx="128" cy="90" r="2.5" fill="#10b981" style={{ animation: 'tm-dot-pulse 2.5s ease-in-out 0.8s infinite' }} />
+                      <circle cx="70" cy="132" r="3" fill="#34d399" style={{ animation: 'tm-pulse 2s ease-in-out 1.2s infinite' }} />
+                      <circle cx="12" cy="90" r="2.5" fill="#10b981" style={{ animation: 'tm-dot-pulse 2.5s ease-in-out 1.6s infinite' }} />
+                      <circle cx="12" cy="50" r="2.5" fill="#34d399" style={{ animation: 'tm-dot-pulse 2.5s ease-in-out 2s infinite' }} />
+                      {/* Success sparkles */}
+                      <circle cx="100" cy="28" r="1.5" fill="#6ee7b7" style={{ animation: 'tm-float 3s ease-in-out infinite' }} />
+                      <circle cx="40" cy="112" r="1.5" fill="#6ee7b7" style={{ animation: 'tm-float 3s ease-in-out 1s infinite' }} />
+                      <circle cx="115" cy="105" r="1" fill="#a7f3d0" style={{ animation: 'tm-float 4s ease-in-out 0.5s infinite' }} />
+                      <defs><radialGradient id="grad3"><stop offset="0%" stopColor="#34d399" /><stop offset="100%" stopColor="#059669" /></radialGradient></defs>
                     </svg>
                   </div>
-                  <div className="mx-auto mt-4 flex h-7 w-7 items-center justify-center rounded-full bg-emerald-500/10 text-xs font-bold text-emerald-600">3</div>
-                  <h3 className="mt-4 text-base font-bold">Book &amp; Manage</h3>
+                  <div className="mx-auto flex h-7 w-7 items-center justify-center rounded-full bg-emerald-500/10 text-xs font-bold text-emerald-600">3</div>
+                  <h3 className="mt-3 text-base font-bold">Book &amp; Manage</h3>
                   <p className="mt-2 text-[13px] leading-relaxed text-muted">Confirm bookings at exclusive B2B rates, generate vouchers and QR codes per guest, track everything from your live dashboard.</p>
                   <div className="mt-5 flex flex-wrap justify-center gap-2">
                     <span className="rounded-full bg-emerald-500/5 px-3 py-1 text-[11px] font-medium text-emerald-600">B2B rates</span>
@@ -208,12 +279,12 @@ export default function Home() {
               </div>
 
               {/* Arrow connectors (desktop) */}
-              <div className="absolute top-[72px] left-[33.3%] hidden -translate-x-1/2 md:block">
+              <div className="absolute top-[100px] left-[33.3%] hidden -translate-x-1/2 md:block">
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white border border-border/60 shadow-sm">
                   <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-accent" /></svg>
                 </div>
               </div>
-              <div className="absolute top-[72px] left-[66.6%] hidden -translate-x-1/2 md:block">
+              <div className="absolute top-[100px] left-[66.6%] hidden -translate-x-1/2 md:block">
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white border border-border/60 shadow-sm">
                   <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-accent" /></svg>
                 </div>
