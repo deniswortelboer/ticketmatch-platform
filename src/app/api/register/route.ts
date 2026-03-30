@@ -42,6 +42,24 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: profileError.message }, { status: 500 });
     }
 
+    // 3. Notify via n8n webhook (non-blocking)
+    const webhookUrl = process.env.N8N_REGISTER_WEBHOOK_URL;
+    if (webhookUrl) {
+      fetch(webhookUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          companyName,
+          contactName,
+          email,
+          phone,
+          companyType,
+          message,
+          registeredAt: new Date().toISOString(),
+        }),
+      }).catch(() => {});
+    }
+
     return NextResponse.json({ success: true, companyId: company.id });
   } catch (error) {
     return NextResponse.json(
