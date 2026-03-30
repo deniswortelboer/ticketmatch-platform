@@ -17,36 +17,87 @@ const benefits = [
   {
     title: "Reach B2B buyers directly",
     desc: "Get your venue in front of tour operators, DMCs and travel agencies who book group visits.",
+    color: "#2563eb",
+    gradFrom: "#3b82f6",
+    gradTo: "#1d4ed8",
+    icon: (
+      <>
+        <circle cx="9" cy="7" r="4" stroke="white" strokeWidth="1.5" />
+        <path d="M2 21v-2a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v2" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+        <path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+        <path d="M21 21v-2a4 4 0 0 0-3-3.87" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+      </>
+    ),
   },
   {
     title: "Grow group bookings",
     desc: "Our platform is built specifically for group travel procurement — your ideal customer.",
+    color: "#f59e0b",
+    gradFrom: "#fbbf24",
+    gradTo: "#d97706",
+    icon: (
+      <>
+        <path d="M12 2L2 7l10 5 10-5-10-5z" stroke="white" strokeWidth="1.5" strokeLinejoin="round" fill="none" />
+        <path d="M2 17l10 5 10-5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M2 12l10 5 10-5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </>
+    ),
   },
   {
     title: "Simple integration",
     desc: "Connect via our API or provide your availability manually. We handle the rest.",
+    color: "#10b981",
+    gradFrom: "#34d399",
+    gradTo: "#059669",
+    icon: (
+      <>
+        <rect x="4" y="4" width="16" height="16" rx="2" stroke="white" strokeWidth="1.5" fill="none" />
+        <path d="M9 9h6" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+        <path d="M9 13h4" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+        <path d="M9 17h2" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+      </>
+    ),
   },
   {
     title: "Real-time analytics",
     desc: "Track views, bookings and revenue from the supplier dashboard.",
+    color: "#8b5cf6",
+    gradFrom: "#a78bfa",
+    gradTo: "#7c3aed",
+    icon: (
+      <>
+        <path d="M3 3v18h18" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M7 17l4-6 4 3 6-8" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      </>
+    ),
   },
 ];
 
 const supplierTypes = [
-  "Museums & galleries",
-  "Attractions & experiences",
-  "Canal cruise operators",
-  "Public transport providers",
-  "Restaurants & dining",
-  "Walking tour operators",
-  "Theater & events",
-  "Hop-on-hop-off services",
+  { name: "Museums & galleries", icon: "🏛️" },
+  { name: "Attractions & experiences", icon: "🎡" },
+  { name: "Canal cruise operators", icon: "⛵" },
+  { name: "Public transport providers", icon: "🚃" },
+  { name: "Restaurants & dining", icon: "🍽️" },
+  { name: "Walking tour operators", icon: "🚶" },
+  { name: "Theater & events", icon: "🎭" },
+  { name: "Hop-on-hop-off services", icon: "🚌" },
 ];
+
+/* Animated SVG keyframes — reused from homepage */
+const svgStyles = `
+  @keyframes tm-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  @keyframes tm-spin-rev { from { transform: rotate(360deg); } to { transform: rotate(0deg); } }
+  @keyframes tm-pulse { 0%, 100% { opacity: 0.3; r: 3; } 50% { opacity: 0.7; r: 4.5; } }
+  @keyframes tm-dot-pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+  @keyframes tm-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+`;
 
 export default function PartnersPage() {
   return (
     <>
       <Header />
+      <style dangerouslySetInnerHTML={{ __html: svgStyles }} />
 
       <main className="flex-1">
         {/* Hero */}
@@ -69,7 +120,7 @@ export default function PartnersPage() {
                   with tour operators and group travel agencies across Europe. No
                   upfront cost — you only pay when bookings come in.
                 </p>
-                <div className="mt-8">
+                <div className="mt-8 flex items-center gap-4">
                   <a
                     href="mailto:partners@ticketmatch.ai"
                     className="inline-flex items-center gap-2 rounded-full bg-foreground px-7 py-3.5 text-sm font-semibold text-white transition-all hover:bg-gray-800"
@@ -77,17 +128,91 @@ export default function PartnersPage() {
                     Contact us to join
                     <IconArrow />
                   </a>
+                  <Link href="/#how-it-works" className="text-sm font-medium text-muted hover:text-foreground transition-colors">
+                    How it works
+                  </Link>
+                </div>
+
+                {/* Trust stats */}
+                <div className="mt-12 flex gap-8">
+                  {[
+                    { value: "75+", label: "Venues live" },
+                    { value: "2", label: "Cities" },
+                    { value: "0%", label: "Upfront cost" },
+                  ].map((s) => (
+                    <div key={s.label}>
+                      <p className="text-2xl font-bold text-accent">{s.value}</p>
+                      <p className="text-xs text-muted">{s.label}</p>
+                    </div>
+                  ))}
                 </div>
               </div>
 
-              {/* Image placeholder */}
-              <div className="aspect-[4/3] overflow-hidden rounded-3xl border border-border/60 bg-gradient-to-br from-amber-50 to-gray-100">
-                <div className="flex h-full items-center justify-center p-8 text-center">
-                  <div>
-                    <p className="text-sm font-medium text-muted">Partner visual</p>
-                    <p className="mt-1 text-xs text-muted/60">Replace with partner/venue imagery</p>
-                  </div>
-                </div>
+              {/* Animated partner visual */}
+              <div className="flex items-center justify-center">
+                <svg viewBox="0 0 400 360" fill="none" className="w-full max-w-md">
+                  {/* Outer ring */}
+                  <circle cx="200" cy="180" r="160" stroke="#f59e0b" strokeWidth="1" strokeDasharray="8 6" opacity="0.15" style={{ transformOrigin: '200px 180px', animation: 'tm-spin 30s linear infinite' }} />
+                  {/* Middle ring */}
+                  <circle cx="200" cy="180" r="120" stroke="#2563eb" strokeWidth="0.75" strokeDasharray="5 5" opacity="0.12" style={{ transformOrigin: '200px 180px', animation: 'tm-spin-rev 22s linear infinite' }} />
+                  {/* Inner ring */}
+                  <circle cx="200" cy="180" r="80" stroke="#10b981" strokeWidth="0.75" strokeDasharray="4 4" opacity="0.1" style={{ transformOrigin: '200px 180px', animation: 'tm-spin 18s linear infinite' }} />
+
+                  {/* Center — TM logo */}
+                  <circle cx="200" cy="180" r="45" fill="url(#partnerGrad)" />
+                  <text x="200" y="175" textAnchor="middle" fill="white" fontSize="16" fontWeight="bold" fontFamily="system-ui">Ticket</text>
+                  <text x="200" y="195" textAnchor="middle" fill="white" fontSize="16" fontWeight="bold" fontFamily="system-ui">Match</text>
+
+                  {/* Supplier nodes on outer ring */}
+                  {/* Museum */}
+                  <circle cx="200" cy="20" r="28" fill="white" stroke="#f59e0b" strokeWidth="1" />
+                  <text x="200" y="25" textAnchor="middle" fontSize="20">🏛️</text>
+                  {/* Attraction */}
+                  <circle cx="360" cy="100" r="24" fill="white" stroke="#2563eb" strokeWidth="1" />
+                  <text x="360" y="105" textAnchor="middle" fontSize="16">🎡</text>
+                  {/* Cruise */}
+                  <circle cx="370" cy="240" r="22" fill="white" stroke="#0891b2" strokeWidth="1" />
+                  <text x="370" y="245" textAnchor="middle" fontSize="14">⛵</text>
+                  {/* Restaurant */}
+                  <circle cx="280" cy="330" r="24" fill="white" stroke="#e11d48" strokeWidth="1" />
+                  <text x="280" y="335" textAnchor="middle" fontSize="16">🍽️</text>
+                  {/* Walking */}
+                  <circle cx="120" cy="330" r="22" fill="white" stroke="#65a30d" strokeWidth="1" />
+                  <text x="120" y="335" textAnchor="middle" fontSize="14">🚶</text>
+                  {/* Transport */}
+                  <circle cx="30" cy="240" r="24" fill="white" stroke="#7c3aed" strokeWidth="1" />
+                  <text x="30" y="245" textAnchor="middle" fontSize="16">🚃</text>
+                  {/* Theater */}
+                  <circle cx="40" cy="100" r="22" fill="white" stroke="#ec4899" strokeWidth="1" />
+                  <text x="40" y="105" textAnchor="middle" fontSize="14">🎭</text>
+
+                  {/* Connecting lines */}
+                  <line x1="200" y1="48" x2="200" y2="135" stroke="#f59e0b" strokeWidth="0.5" strokeDasharray="3 3" opacity="0.25" />
+                  <line x1="336" y1="108" x2="245" y2="165" stroke="#2563eb" strokeWidth="0.5" strokeDasharray="3 3" opacity="0.25" />
+                  <line x1="348" y1="235" x2="240" y2="200" stroke="#0891b2" strokeWidth="0.5" strokeDasharray="3 3" opacity="0.2" />
+                  <line x1="262" y1="318" x2="225" y2="215" stroke="#e11d48" strokeWidth="0.5" strokeDasharray="3 3" opacity="0.2" />
+                  <line x1="138" y1="318" x2="175" y2="215" stroke="#65a30d" strokeWidth="0.5" strokeDasharray="3 3" opacity="0.2" />
+                  <line x1="54" y1="235" x2="160" y2="200" stroke="#7c3aed" strokeWidth="0.5" strokeDasharray="3 3" opacity="0.25" />
+                  <line x1="62" y1="108" x2="155" y2="165" stroke="#ec4899" strokeWidth="0.5" strokeDasharray="3 3" opacity="0.2" />
+
+                  {/* Pulsing dots on connections */}
+                  <circle cx="200" cy="90" r="3" fill="#f59e0b" style={{ animation: 'tm-pulse 2s ease-in-out infinite' }} />
+                  <circle cx="290" cy="136" r="2.5" fill="#2563eb" style={{ animation: 'tm-dot-pulse 2.5s ease-in-out 0.4s infinite' }} />
+                  <circle cx="295" cy="218" r="2.5" fill="#0891b2" style={{ animation: 'tm-dot-pulse 2.5s ease-in-out 0.8s infinite' }} />
+                  <circle cx="243" cy="267" r="2.5" fill="#e11d48" style={{ animation: 'tm-dot-pulse 2.5s ease-in-out 1.2s infinite' }} />
+                  <circle cx="157" cy="267" r="2.5" fill="#65a30d" style={{ animation: 'tm-dot-pulse 2.5s ease-in-out 1.6s infinite' }} />
+                  <circle cx="107" cy="218" r="2.5" fill="#7c3aed" style={{ animation: 'tm-dot-pulse 2.5s ease-in-out 2s infinite' }} />
+                  <circle cx="108" cy="136" r="2.5" fill="#ec4899" style={{ animation: 'tm-dot-pulse 2.5s ease-in-out 2.4s infinite' }} />
+
+                  {/* Floating sparkles */}
+                  <circle cx="320" cy="60" r="2" fill="#fbbf24" style={{ animation: 'tm-float 3s ease-in-out infinite' }} />
+                  <circle cx="80" cy="310" r="1.5" fill="#86efac" style={{ animation: 'tm-float 4s ease-in-out 1s infinite' }} />
+                  <circle cx="350" cy="300" r="1.5" fill="#93c5fd" style={{ animation: 'tm-float 3.5s ease-in-out 0.5s infinite' }} />
+
+                  <defs>
+                    <radialGradient id="partnerGrad"><stop offset="0%" stopColor="#3b82f6" /><stop offset="100%" stopColor="#1e40af" /></radialGradient>
+                  </defs>
+                </svg>
               </div>
             </div>
           </div>
@@ -104,8 +229,22 @@ export default function PartnersPage() {
             </div>
 
             <div className="grid gap-6 md:grid-cols-2">
-              {benefits.map((b) => (
-                <div key={b.title} className="rounded-3xl border border-border/60 bg-background p-8 transition-all hover:shadow-lg hover:shadow-black/[0.03]">
+              {benefits.map((b, i) => (
+                <div key={b.title} className="group rounded-3xl border border-border/60 bg-background p-8 transition-all hover:border-accent/20 hover:shadow-xl hover:shadow-accent/5">
+                  <div className="mb-5 h-[80px] w-[80px]">
+                    <svg viewBox="0 0 80 80" fill="none">
+                      <circle cx="40" cy="40" r="36" stroke={b.color} strokeWidth="0.75" strokeDasharray="4 3" opacity="0.15" style={{ transformOrigin: '40px 40px', animation: `tm-spin ${18 + i * 3}s linear infinite` }} />
+                      <circle cx="40" cy="40" r="24" fill={`url(#benefitGrad${i})`} />
+                      <g transform="translate(28, 28) scale(0.5)">
+                        {b.icon}
+                      </g>
+                      <circle cx="40" cy="4" r="2" fill={b.color} style={{ animation: 'tm-pulse 2.5s ease-in-out infinite' }} />
+                      <circle cx="76" cy="40" r="1.5" fill={b.color} style={{ animation: 'tm-dot-pulse 3s ease-in-out 0.5s infinite' }} />
+                      <circle cx="40" cy="76" r="2" fill={b.color} style={{ animation: 'tm-pulse 2.5s ease-in-out 1s infinite' }} />
+                      <circle cx="4" cy="40" r="1.5" fill={b.color} style={{ animation: 'tm-dot-pulse 3s ease-in-out 1.5s infinite' }} />
+                      <defs><radialGradient id={`benefitGrad${i}`}><stop offset="0%" stopColor={b.gradFrom} /><stop offset="100%" stopColor={b.gradTo} /></radialGradient></defs>
+                    </svg>
+                  </div>
                   <h3 className="text-lg font-semibold">{b.title}</h3>
                   <p className="mt-2 text-sm leading-relaxed text-muted">{b.desc}</p>
                 </div>
@@ -126,11 +265,11 @@ export default function PartnersPage() {
 
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {supplierTypes.map((type) => (
-                <div key={type} className="flex items-center gap-3 rounded-2xl border border-border/60 bg-white px-5 py-4">
-                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent/10 text-accent">
-                    <IconCheck />
+                <div key={type.name} className="group flex items-center gap-4 rounded-2xl border border-border/60 bg-white px-5 py-5 transition-all hover:border-accent/20 hover:shadow-lg hover:shadow-accent/5">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent/5 text-lg transition-transform group-hover:scale-110">
+                    {type.icon}
                   </span>
-                  <span className="text-sm font-medium">{type}</span>
+                  <span className="text-sm font-medium">{type.name}</span>
                 </div>
               ))}
             </div>
@@ -142,6 +281,17 @@ export default function PartnersPage() {
           <div className="mx-auto max-w-7xl px-6">
             <div className="relative overflow-hidden rounded-3xl bg-foreground px-8 py-16 text-center md:px-16">
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-amber-500/15 via-transparent to-accent/10" />
+              {/* Decorative animated dots */}
+              <div className="pointer-events-none absolute inset-0 overflow-hidden">
+                <svg className="absolute left-8 top-8 h-20 w-20 opacity-20" viewBox="0 0 80 80" fill="none">
+                  <circle cx="40" cy="40" r="35" stroke="white" strokeWidth="0.5" strokeDasharray="4 3" style={{ transformOrigin: '40px 40px', animation: 'tm-spin 15s linear infinite' }} />
+                  <circle cx="40" cy="5" r="2" fill="white" style={{ animation: 'tm-pulse 2s ease-in-out infinite' }} />
+                </svg>
+                <svg className="absolute bottom-8 right-8 h-16 w-16 opacity-15" viewBox="0 0 80 80" fill="none">
+                  <circle cx="40" cy="40" r="30" stroke="white" strokeWidth="0.5" strokeDasharray="3 4" style={{ transformOrigin: '40px 40px', animation: 'tm-spin-rev 12s linear infinite' }} />
+                  <circle cx="40" cy="10" r="2" fill="white" style={{ animation: 'tm-pulse 2.5s ease-in-out 0.5s infinite' }} />
+                </svg>
+              </div>
               <div className="relative">
                 <h2 className="text-3xl font-bold tracking-tight text-white md:text-4xl">
                   Ready to list your venue?
