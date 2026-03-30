@@ -2,6 +2,7 @@ import Link from "next/link";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import AIChat from "@/components/ui/AIChat";
+import MobileBottomBar from "@/components/layout/MobileBottomBar";
 
 /* ───── small icons ───── */
 function IconCheck() {
@@ -23,15 +24,8 @@ const cities = [
 export default function Home() {
   return (
     <>
-      {/* Mobile: fullscreen chat app */}
-      <div className="fixed inset-0 z-50 flex flex-col md:hidden">
-        <AIChat fullscreen />
-      </div>
-
-      {/* Desktop: normal landing page */}
-      <div className="hidden md:flex md:flex-col md:min-h-full">
       <Header />
-      <main className="flex-1">
+      <main className="flex-1 pb-20 md:pb-0">
 
         {/* ════════════ HERO ════════════ */}
         <section className="relative overflow-hidden bg-white">
@@ -460,7 +454,7 @@ export default function Home() {
 
       </main>
       <Footer />
-      </div>
+      <MobileBottomBar />
     </>
   );
 }
