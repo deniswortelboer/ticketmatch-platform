@@ -210,8 +210,38 @@ export default function PartnersPage() {
           </div>
         </section>
 
-        {/* Supplier types */}
+        {/* Photo gallery — experiences */}
         <section className="py-24">
+          <div className="mx-auto max-w-7xl px-6">
+            <div className="mb-12 max-w-2xl">
+              <p className="mb-3 text-sm font-semibold uppercase tracking-wider text-accent">The experiences</p>
+              <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
+                From city tours to countryside adventures.
+              </h2>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="group relative overflow-hidden rounded-3xl">
+                <img src="/images/partners-canal.jpg" alt="VIP canal cruise through Amsterdam" className="h-[320px] w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+                <div className="absolute bottom-6 left-6">
+                  <p className="text-lg font-bold text-white">Private Canal Cruises</p>
+                  <p className="text-sm text-white/70">Exclusive group experiences on Amsterdam&apos;s canals</p>
+                </div>
+              </div>
+              <div className="group relative overflow-hidden rounded-3xl">
+                <img src="/images/partners-tulips.jpg" alt="Tour bus driving through Dutch tulip fields" className="h-[320px] w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+                <div className="absolute bottom-6 left-6">
+                  <p className="text-lg font-bold text-white">Countryside Day Trips</p>
+                  <p className="text-sm text-white/70">Keukenhof, tulip fields and windmill tours</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Supplier types */}
+        <section className="bg-white py-24">
           <div className="mx-auto max-w-7xl px-6">
             <div className="mb-16 max-w-2xl">
               <p className="mb-3 text-sm font-semibold uppercase tracking-wider text-accent">Who can join</p>
