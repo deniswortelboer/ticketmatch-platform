@@ -76,47 +76,45 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Right — Hero image with AI Chat beside it */}
+              {/* Right — Hero image with AI Chat overlay */}
               <div className="relative">
-                <div className="flex gap-4 items-stretch">
-                  {/* AI Chat — left side on desktop */}
-                  <div className="hidden lg:block shrink-0">
-                    <AIChat />
-                  </div>
+                {/* Main hero image container */}
+                <div className="relative aspect-[16/9] overflow-hidden rounded-3xl shadow-2xl shadow-black/10">
+                  <img
+                    src="/images/hero-amsterdam.jpg"
+                    alt="Amsterdam canals at golden hour — aerial view of historic canal houses, bridges and boats"
+                    className="absolute inset-0 h-full w-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
 
-                  {/* Main hero image container */}
-                  <div className="relative flex-1 min-h-[300px] lg:min-h-[420px] overflow-hidden rounded-3xl shadow-2xl shadow-black/10">
-                    <img
-                      src="/images/hero-amsterdam.jpg"
-                      alt="Amsterdam canals at golden hour — aerial view of historic canal houses, bridges and boats"
-                      className="absolute inset-0 h-full w-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
-
-                    {/* Text overlay */}
-                    <div className="absolute left-5 top-5">
-                      <div className="rounded-xl bg-black/20 px-3.5 py-2 backdrop-blur-md">
-                        <p className="text-[11px] font-medium text-white/80">Most popular destination</p>
-                        <p className="text-lg font-bold text-white">Amsterdam</p>
-                      </div>
-                    </div>
-
-                    {/* Stats overlay */}
-                    <div className="absolute bottom-5 left-5 flex gap-2.5">
-                      <div className="rounded-xl bg-black/20 px-3 py-2 backdrop-blur-md">
-                        <p className="text-xl font-bold text-white">45+</p>
-                        <p className="text-[10px] text-white/70">Venues</p>
-                      </div>
-                      <div className="rounded-xl bg-black/20 px-3 py-2 backdrop-blur-md">
-                        <p className="text-xl font-bold text-white">B2B</p>
-                        <p className="text-[10px] text-white/70">Rates</p>
-                      </div>
-                      <div className="rounded-xl bg-black/20 px-3 py-2 backdrop-blur-md">
-                        <p className="text-xl font-bold text-white">24h</p>
-                        <p className="text-[10px] text-white/70">Access</p>
-                      </div>
+                  {/* Text overlay */}
+                  <div className="absolute left-6 top-6">
+                    <div className="rounded-xl bg-black/20 px-4 py-2 backdrop-blur-md">
+                      <p className="text-[11px] font-medium text-white/80">Most popular destination</p>
+                      <p className="text-lg font-bold text-white">Amsterdam</p>
                     </div>
                   </div>
+
+                  {/* Stats overlay */}
+                  <div className="absolute bottom-6 left-6 flex gap-3">
+                    <div className="rounded-xl bg-black/20 px-3.5 py-2 backdrop-blur-md">
+                      <p className="text-xl font-bold text-white">45+</p>
+                      <p className="text-[10px] text-white/70">Venues</p>
+                    </div>
+                    <div className="rounded-xl bg-black/20 px-3.5 py-2 backdrop-blur-md">
+                      <p className="text-xl font-bold text-white">B2B</p>
+                      <p className="text-[10px] text-white/70">Rates</p>
+                    </div>
+                    <div className="rounded-xl bg-black/20 px-3.5 py-2 backdrop-blur-md">
+                      <p className="text-xl font-bold text-white">24h</p>
+                      <p className="text-[10px] text-white/70">Access</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* AI Chat — floating overlay bottom-left */}
+                <div className="absolute -bottom-6 -left-4 z-10 hidden lg:block">
+                  <AIChat />
                 </div>
 
                 {/* AI Chat — mobile: below image */}
