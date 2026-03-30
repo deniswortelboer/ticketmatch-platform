@@ -48,42 +48,29 @@ export default function RegisterPage() {
     }
 
     if (authData.user) {
-      // 2. Create company record
-      const { data: company, error: companyError } = await supabase
-        .from("companies")
-        .insert({
-          name: form.companyName,
-          company_type: form.companyType,
+      // 2. Create company + profile via server-side API (bypasses RLS)
+      const regRes = await fetch("/api/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: authData.user.id,
+          companyName: form.companyName,
+          companyType: form.companyType,
           phone: form.phone,
           message: form.message,
-        })
-        .select()
-        .single();
-
-      if (companyError) {
-        setError(companyError.message);
-        setLoading(false);
-        return;
-      }
-
-      // 3. Create profile linked to user and company
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .insert({
-          id: authData.user.id,
-          company_id: company.id,
-          full_name: form.contactName,
+          contactName: form.contactName,
           email: form.email,
-          role: "owner",
-        });
+        }),
+      });
 
-      if (profileError) {
-        setError(profileError.message);
+      if (!regRes.ok) {
+        const regData = await regRes.json();
+        setError(regData.error || "Registration failed");
         setLoading(false);
         return;
       }
 
-      // 4. Send to HubSpot (non-blocking — don't fail registration if HubSpot fails)
+      // 3. Send to HubSpot (non-blocking — don't fail registration if HubSpot fails)
       fetch("/api/hubspot", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
