@@ -307,10 +307,20 @@ export default function Home() {
 
             <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {/* Museums — Live */}
-              <div className="group rounded-2xl border border-border/60 bg-background p-7 transition-all hover:border-accent/30 hover:shadow-xl hover:shadow-accent/5">
-                <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-100 to-amber-50 transition-transform group-hover:scale-105">
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#b45309" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M3 21h18" /><path d="M3 7l9-4 9 4" /><path d="M6 7v14" /><path d="M18 7v14" /><rect x="9" y="10" width="6" height="7" rx="1" /><path d="M12 10v7" />
+              <div className="group rounded-2xl border border-border/60 bg-background p-7 transition-all hover:border-amber-300/40 hover:shadow-xl hover:shadow-amber-500/5">
+                <div className="mb-5 h-[90px] w-[90px]">
+                  <svg viewBox="0 0 90 90" fill="none">
+                    <circle cx="45" cy="45" r="40" stroke="#b45309" strokeWidth="0.75" strokeDasharray="4 3" opacity="0.15" style={{ transformOrigin: '45px 45px', animation: 'tm-spin 18s linear infinite' }} />
+                    <circle cx="45" cy="45" r="28" fill="url(#catGrad1)" />
+                    <path d="M33 57h24" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+                    <path d="M33 42l12-6 12 6" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M37 42v15" stroke="white" strokeWidth="1.2" /><path d="M53 42v15" stroke="white" strokeWidth="1.2" />
+                    <rect x="42" y="46" width="6" height="8" rx="1" stroke="white" strokeWidth="1" fill="none" />
+                    <circle cx="45" cy="5" r="2.5" fill="#b45309" style={{ animation: 'tm-pulse 2.5s ease-in-out infinite' }} />
+                    <circle cx="85" cy="45" r="2" fill="#d97706" style={{ animation: 'tm-dot-pulse 3s ease-in-out 0.5s infinite' }} />
+                    <circle cx="45" cy="85" r="2.5" fill="#b45309" style={{ animation: 'tm-pulse 2.5s ease-in-out 1s infinite' }} />
+                    <circle cx="5" cy="45" r="2" fill="#d97706" style={{ animation: 'tm-dot-pulse 3s ease-in-out 1.5s infinite' }} />
+                    <defs><radialGradient id="catGrad1"><stop offset="0%" stopColor="#fbbf24" /><stop offset="100%" stopColor="#b45309" /></radialGradient></defs>
                   </svg>
                 </div>
                 <div className="flex items-center justify-between">
@@ -322,10 +332,23 @@ export default function Home() {
               </div>
 
               {/* Attractions — Live */}
-              <div className="group rounded-2xl border border-border/60 bg-background p-7 transition-all hover:border-accent/30 hover:shadow-xl hover:shadow-accent/5">
-                <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-100 to-blue-50 transition-transform group-hover:scale-105">
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#1d4ed8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="3" /><path d="M12 2v4" /><path d="M12 18v4" /><path d="M4.93 4.93l2.83 2.83" /><path d="M16.24 16.24l2.83 2.83" /><path d="M2 12h4" /><path d="M18 12h4" /><path d="M4.93 19.07l2.83-2.83" /><path d="M16.24 7.76l2.83-2.83" />
+              <div className="group rounded-2xl border border-border/60 bg-background p-7 transition-all hover:border-blue-300/40 hover:shadow-xl hover:shadow-blue-500/5">
+                <div className="mb-5 h-[90px] w-[90px]">
+                  <svg viewBox="0 0 90 90" fill="none">
+                    <circle cx="45" cy="45" r="40" stroke="#1d4ed8" strokeWidth="0.75" strokeDasharray="5 4" opacity="0.15" style={{ transformOrigin: '45px 45px', animation: 'tm-spin-rev 20s linear infinite' }} />
+                    <circle cx="45" cy="45" r="28" fill="url(#catGrad2)" />
+                    <circle cx="45" cy="45" r="5" stroke="white" strokeWidth="1.5" fill="none" />
+                    <path d="M45 33v5" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+                    <path d="M45 52v5" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+                    <path d="M33 45h5" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+                    <path d="M52 45h5" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+                    <path d="M37 37l3.5 3.5" stroke="white" strokeWidth="1.2" strokeLinecap="round" />
+                    <path d="M49.5 49.5L53 53" stroke="white" strokeWidth="1.2" strokeLinecap="round" />
+                    <circle cx="45" cy="5" r="2.5" fill="#1d4ed8" style={{ animation: 'tm-pulse 2s ease-in-out infinite' }} />
+                    <circle cx="85" cy="45" r="2" fill="#3b82f6" style={{ animation: 'tm-dot-pulse 2.5s ease-in-out 0.6s infinite' }} />
+                    <circle cx="45" cy="85" r="2.5" fill="#1d4ed8" style={{ animation: 'tm-pulse 2s ease-in-out 1.2s infinite' }} />
+                    <circle cx="5" cy="45" r="2" fill="#3b82f6" style={{ animation: 'tm-dot-pulse 2.5s ease-in-out 1.8s infinite' }} />
+                    <defs><radialGradient id="catGrad2"><stop offset="0%" stopColor="#60a5fa" /><stop offset="100%" stopColor="#1d4ed8" /></radialGradient></defs>
                   </svg>
                 </div>
                 <div className="flex items-center justify-between">
@@ -338,9 +361,15 @@ export default function Home() {
 
               {/* Canal Cruises — Soon */}
               <div className="group rounded-2xl border border-dashed border-border/40 p-7 transition-all hover:border-border/60">
-                <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-100 to-cyan-50 opacity-60">
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#0891b2" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M2 20c2-1 4-1 6 0s4 1 6 0 4-1 6 0" /><path d="M4 16l4.6-9.4a1 1 0 0 1 1.8 0l2.6 5.2 2.6-5.2a1 1 0 0 1 1.8 0L22 16" /><path d="M12 12v4" />
+                <div className="mb-5 h-[90px] w-[90px] opacity-40">
+                  <svg viewBox="0 0 90 90" fill="none">
+                    <circle cx="45" cy="45" r="40" stroke="#0891b2" strokeWidth="0.75" strokeDasharray="4 5" opacity="0.2" style={{ transformOrigin: '45px 45px', animation: 'tm-spin 22s linear infinite' }} />
+                    <circle cx="45" cy="45" r="28" fill="url(#catGrad3)" />
+                    <path d="M30 55c3-1.5 6-1.5 9 0s6 1.5 9 0 6-1.5 9 0" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+                    <path d="M35 50l4-8.5a1 1 0 0 1 1.8 0l3 6 3-6a1 1 0 0 1 1.8 0L53 50" stroke="white" strokeWidth="1.2" strokeLinecap="round" fill="none" />
+                    <circle cx="45" cy="5" r="2" fill="#0891b2" opacity="0.3" />
+                    <circle cx="85" cy="45" r="1.5" fill="#06b6d4" opacity="0.3" />
+                    <defs><radialGradient id="catGrad3"><stop offset="0%" stopColor="#67e8f9" /><stop offset="100%" stopColor="#0891b2" /></radialGradient></defs>
                   </svg>
                 </div>
                 <div className="flex items-center justify-between">
@@ -352,9 +381,18 @@ export default function Home() {
 
               {/* Public Transport — Soon */}
               <div className="group rounded-2xl border border-dashed border-border/40 p-7 transition-all hover:border-border/60">
-                <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-100 to-violet-50 opacity-60">
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M8 6v6" /><path d="M16 6v6" /><path d="M2 12h20" /><rect x="4" y="3" width="16" height="16" rx="3" /><circle cx="8" cy="16" r="1" /><circle cx="16" cy="16" r="1" /><path d="M4 19l-2 3" /><path d="M20 19l2 3" />
+                <div className="mb-5 h-[90px] w-[90px] opacity-40">
+                  <svg viewBox="0 0 90 90" fill="none">
+                    <circle cx="45" cy="45" r="40" stroke="#7c3aed" strokeWidth="0.75" strokeDasharray="3 5" opacity="0.2" style={{ transformOrigin: '45px 45px', animation: 'tm-spin-rev 24s linear infinite' }} />
+                    <circle cx="45" cy="45" r="28" fill="url(#catGrad4)" />
+                    <rect x="35" y="35" width="20" height="16" rx="3" stroke="white" strokeWidth="1.5" fill="none" />
+                    <path d="M35 45h20" stroke="white" strokeWidth="1" />
+                    <circle cx="39" cy="49" r="1.5" fill="white" /><circle cx="51" cy="49" r="1.5" fill="white" />
+                    <path d="M35 51l-2 4" stroke="white" strokeWidth="1" strokeLinecap="round" />
+                    <path d="M55 51l2 4" stroke="white" strokeWidth="1" strokeLinecap="round" />
+                    <circle cx="45" cy="5" r="2" fill="#7c3aed" opacity="0.3" />
+                    <circle cx="85" cy="45" r="1.5" fill="#8b5cf6" opacity="0.3" />
+                    <defs><radialGradient id="catGrad4"><stop offset="0%" stopColor="#a78bfa" /><stop offset="100%" stopColor="#7c3aed" /></radialGradient></defs>
                   </svg>
                 </div>
                 <div className="flex items-center justify-between">
@@ -366,9 +404,16 @@ export default function Home() {
 
               {/* Restaurants — Soon */}
               <div className="group rounded-2xl border border-dashed border-border/40 p-7 transition-all hover:border-border/60">
-                <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-100 to-rose-50 opacity-60">
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#e11d48" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2" /><path d="M7 2v20" /><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3zm0 0v7" />
+                <div className="mb-5 h-[90px] w-[90px] opacity-40">
+                  <svg viewBox="0 0 90 90" fill="none">
+                    <circle cx="45" cy="45" r="40" stroke="#e11d48" strokeWidth="0.75" strokeDasharray="4 4" opacity="0.2" style={{ transformOrigin: '45px 45px', animation: 'tm-spin 26s linear infinite' }} />
+                    <circle cx="45" cy="45" r="28" fill="url(#catGrad5)" />
+                    <path d="M37 33v10c0 1.5 1 3 3 3h2v11" stroke="white" strokeWidth="1.5" strokeLinecap="round" fill="none" />
+                    <path d="M33 33v4c0 1.5 1.5 3 3 3h5" stroke="white" strokeWidth="1.2" strokeLinecap="round" fill="none" />
+                    <path d="M55 50V33a6 6 0 0 0-6 6v7c0 1.5 1 3 3 3h3zm0 0v7" stroke="white" strokeWidth="1.5" strokeLinecap="round" fill="none" />
+                    <circle cx="45" cy="5" r="2" fill="#e11d48" opacity="0.3" />
+                    <circle cx="85" cy="45" r="1.5" fill="#f43f5e" opacity="0.3" />
+                    <defs><radialGradient id="catGrad5"><stop offset="0%" stopColor="#fb7185" /><stop offset="100%" stopColor="#e11d48" /></radialGradient></defs>
                   </svg>
                 </div>
                 <div className="flex items-center justify-between">
@@ -380,9 +425,15 @@ export default function Home() {
 
               {/* Walking Tours — Soon */}
               <div className="group rounded-2xl border border-dashed border-border/40 p-7 transition-all hover:border-border/60">
-                <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-lime-100 to-lime-50 opacity-60">
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#65a30d" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" />
+                <div className="mb-5 h-[90px] w-[90px] opacity-40">
+                  <svg viewBox="0 0 90 90" fill="none">
+                    <circle cx="45" cy="45" r="40" stroke="#65a30d" strokeWidth="0.75" strokeDasharray="5 3" opacity="0.2" style={{ transformOrigin: '45px 45px', animation: 'tm-spin-rev 20s linear infinite' }} />
+                    <circle cx="45" cy="45" r="28" fill="url(#catGrad6)" />
+                    <path d="M55 43c0 6-10 15-10 15s-10-9-10-15a10 10 0 0 1 20 0z" stroke="white" strokeWidth="1.5" fill="none" />
+                    <circle cx="45" cy="43" r="3.5" stroke="white" strokeWidth="1.2" fill="none" />
+                    <circle cx="45" cy="5" r="2" fill="#65a30d" opacity="0.3" />
+                    <circle cx="85" cy="45" r="1.5" fill="#84cc16" opacity="0.3" />
+                    <defs><radialGradient id="catGrad6"><stop offset="0%" stopColor="#a3e635" /><stop offset="100%" stopColor="#65a30d" /></radialGradient></defs>
                   </svg>
                 </div>
                 <div className="flex items-center justify-between">
