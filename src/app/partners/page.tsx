@@ -148,71 +148,28 @@ export default function PartnersPage() {
                 </div>
               </div>
 
-              {/* Animated partner visual */}
-              <div className="flex items-center justify-center">
-                <svg viewBox="0 0 400 360" fill="none" className="w-full max-w-md">
-                  {/* Outer ring */}
-                  <circle cx="200" cy="180" r="160" stroke="#f59e0b" strokeWidth="1" strokeDasharray="8 6" opacity="0.15" style={{ transformOrigin: '200px 180px', animation: 'tm-spin 30s linear infinite' }} />
-                  {/* Middle ring */}
-                  <circle cx="200" cy="180" r="120" stroke="#2563eb" strokeWidth="0.75" strokeDasharray="5 5" opacity="0.12" style={{ transformOrigin: '200px 180px', animation: 'tm-spin-rev 22s linear infinite' }} />
-                  {/* Inner ring */}
-                  <circle cx="200" cy="180" r="80" stroke="#10b981" strokeWidth="0.75" strokeDasharray="4 4" opacity="0.1" style={{ transformOrigin: '200px 180px', animation: 'tm-spin 18s linear infinite' }} />
-
-                  {/* Center — TM logo */}
-                  <circle cx="200" cy="180" r="45" fill="url(#partnerGrad)" />
-                  <text x="200" y="175" textAnchor="middle" fill="white" fontSize="16" fontWeight="bold" fontFamily="system-ui">Ticket</text>
-                  <text x="200" y="195" textAnchor="middle" fill="white" fontSize="16" fontWeight="bold" fontFamily="system-ui">Match</text>
-
-                  {/* Supplier nodes on outer ring */}
-                  {/* Museum */}
-                  <circle cx="200" cy="20" r="28" fill="white" stroke="#f59e0b" strokeWidth="1" />
-                  <text x="200" y="25" textAnchor="middle" fontSize="20">🏛️</text>
-                  {/* Attraction */}
-                  <circle cx="360" cy="100" r="24" fill="white" stroke="#2563eb" strokeWidth="1" />
-                  <text x="360" y="105" textAnchor="middle" fontSize="16">🎡</text>
-                  {/* Cruise */}
-                  <circle cx="370" cy="240" r="22" fill="white" stroke="#0891b2" strokeWidth="1" />
-                  <text x="370" y="245" textAnchor="middle" fontSize="14">⛵</text>
-                  {/* Restaurant */}
-                  <circle cx="280" cy="330" r="24" fill="white" stroke="#e11d48" strokeWidth="1" />
-                  <text x="280" y="335" textAnchor="middle" fontSize="16">🍽️</text>
-                  {/* Walking */}
-                  <circle cx="120" cy="330" r="22" fill="white" stroke="#65a30d" strokeWidth="1" />
-                  <text x="120" y="335" textAnchor="middle" fontSize="14">🚶</text>
-                  {/* Transport */}
-                  <circle cx="30" cy="240" r="24" fill="white" stroke="#7c3aed" strokeWidth="1" />
-                  <text x="30" y="245" textAnchor="middle" fontSize="16">🚃</text>
-                  {/* Theater */}
-                  <circle cx="40" cy="100" r="22" fill="white" stroke="#ec4899" strokeWidth="1" />
-                  <text x="40" y="105" textAnchor="middle" fontSize="14">🎭</text>
-
-                  {/* Connecting lines */}
-                  <line x1="200" y1="48" x2="200" y2="135" stroke="#f59e0b" strokeWidth="0.5" strokeDasharray="3 3" opacity="0.25" />
-                  <line x1="336" y1="108" x2="245" y2="165" stroke="#2563eb" strokeWidth="0.5" strokeDasharray="3 3" opacity="0.25" />
-                  <line x1="348" y1="235" x2="240" y2="200" stroke="#0891b2" strokeWidth="0.5" strokeDasharray="3 3" opacity="0.2" />
-                  <line x1="262" y1="318" x2="225" y2="215" stroke="#e11d48" strokeWidth="0.5" strokeDasharray="3 3" opacity="0.2" />
-                  <line x1="138" y1="318" x2="175" y2="215" stroke="#65a30d" strokeWidth="0.5" strokeDasharray="3 3" opacity="0.2" />
-                  <line x1="54" y1="235" x2="160" y2="200" stroke="#7c3aed" strokeWidth="0.5" strokeDasharray="3 3" opacity="0.25" />
-                  <line x1="62" y1="108" x2="155" y2="165" stroke="#ec4899" strokeWidth="0.5" strokeDasharray="3 3" opacity="0.2" />
-
-                  {/* Pulsing dots on connections */}
-                  <circle cx="200" cy="90" r="3" fill="#f59e0b" style={{ animation: 'tm-pulse 2s ease-in-out infinite' }} />
-                  <circle cx="290" cy="136" r="2.5" fill="#2563eb" style={{ animation: 'tm-dot-pulse 2.5s ease-in-out 0.4s infinite' }} />
-                  <circle cx="295" cy="218" r="2.5" fill="#0891b2" style={{ animation: 'tm-dot-pulse 2.5s ease-in-out 0.8s infinite' }} />
-                  <circle cx="243" cy="267" r="2.5" fill="#e11d48" style={{ animation: 'tm-dot-pulse 2.5s ease-in-out 1.2s infinite' }} />
-                  <circle cx="157" cy="267" r="2.5" fill="#65a30d" style={{ animation: 'tm-dot-pulse 2.5s ease-in-out 1.6s infinite' }} />
-                  <circle cx="107" cy="218" r="2.5" fill="#7c3aed" style={{ animation: 'tm-dot-pulse 2.5s ease-in-out 2s infinite' }} />
-                  <circle cx="108" cy="136" r="2.5" fill="#ec4899" style={{ animation: 'tm-dot-pulse 2.5s ease-in-out 2.4s infinite' }} />
-
-                  {/* Floating sparkles */}
-                  <circle cx="320" cy="60" r="2" fill="#fbbf24" style={{ animation: 'tm-float 3s ease-in-out infinite' }} />
-                  <circle cx="80" cy="310" r="1.5" fill="#86efac" style={{ animation: 'tm-float 4s ease-in-out 1s infinite' }} />
-                  <circle cx="350" cy="300" r="1.5" fill="#93c5fd" style={{ animation: 'tm-float 3.5s ease-in-out 0.5s infinite' }} />
-
-                  <defs>
-                    <radialGradient id="partnerGrad"><stop offset="0%" stopColor="#3b82f6" /><stop offset="100%" stopColor="#1e40af" /></radialGradient>
-                  </defs>
-                </svg>
+              {/* Partner hero image */}
+              <div className="relative overflow-hidden rounded-3xl shadow-2xl shadow-black/10">
+                <img
+                  src="/images/partners-hero.jpg"
+                  alt="VIP group arriving at the Rijksmuseum Amsterdam with a luxury minivan"
+                  className="w-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+                <div className="absolute bottom-6 left-6 flex gap-3">
+                  <div className="rounded-xl bg-black/20 px-3.5 py-2 backdrop-blur-md">
+                    <p className="text-lg font-bold text-white">B2B</p>
+                    <p className="text-[10px] text-white/70">Group travel</p>
+                  </div>
+                  <div className="rounded-xl bg-black/20 px-3.5 py-2 backdrop-blur-md">
+                    <p className="text-lg font-bold text-white">VIP</p>
+                    <p className="text-[10px] text-white/70">Experiences</p>
+                  </div>
+                  <div className="rounded-xl bg-black/20 px-3.5 py-2 backdrop-blur-md">
+                    <p className="text-lg font-bold text-white">75+</p>
+                    <p className="text-[10px] text-white/70">Venues</p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
