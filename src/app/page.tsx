@@ -540,12 +540,14 @@ export default function Home() {
                       {/* Card grid */}
                       <div className="grid grid-cols-3 gap-2">
                         {[
-                          { color: "from-purple-400 to-indigo-500", name: "AMAZE", price: "22.70" },
-                          { color: "from-blue-400 to-cyan-500", name: "Moco Museum", price: "17.95" },
-                          { color: "from-amber-400 to-orange-500", name: "Fabrique", price: "16.20" },
+                          { image: "https://cdn.prod.website-files.com/6690fa96f0b41bbabcfbee64/68e50425db84cd19c37464bf_Business_events_AMAZE.jpg", name: "AMAZE", price: "22.70" },
+                          { image: "https://app.thefeedfactory.nl/api/assets/65436991ff0fb235ff2e1b37/StudioIrma_DiamondMatrix.webp", name: "Moco Museum", price: "17.95" },
+                          { image: "https://www.fabrique-lumieres.com/sites/default/files/styles/380x380/public/2025-08/immersive_experience_monet_bridge.jpg.webp", name: "Fabrique", price: "16.20" },
                         ].map((card) => (
                           <div key={card.name} className="overflow-hidden rounded-lg border border-border/40">
-                            <div className={`h-12 bg-gradient-to-br ${card.color}`} />
+                            <div className="h-12 overflow-hidden bg-gray-100">
+                              <img src={card.image} alt={card.name} className="h-full w-full object-cover" />
+                            </div>
                             <div className="p-1.5">
                               <div className="text-[7px] font-semibold">{card.name}</div>
                               <div className="mt-0.5 text-[9px] font-bold text-accent">&euro; {card.price}</div>
