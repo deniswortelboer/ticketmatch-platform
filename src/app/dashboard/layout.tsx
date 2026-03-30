@@ -49,16 +49,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           .eq("id", authUser.id)
           .single();
 
-        if (profile) {
-          const name = profile.full_name || authUser.email || "";
-          const companies = profile.companies as unknown as { name: string } | { name: string }[] | null;
-          const company = Array.isArray(companies) ? companies[0]?.name || "" : companies?.name || "";
-          const parts = name.split(" ");
-          const initials = parts.length >= 2
-            ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
-            : name.substring(0, 2).toUpperCase();
-          setUser({ name, company, initials });
-        }
+        const name = profile?.full_name || authUser.user_metadata?.full_name || authUser.email || "";
+        const companies = profile?.companies as unknown as { name: string } | { name: string }[] | null;
+        const company = Array.isArray(companies) ? companies[0]?.name || "" : companies?.name || authUser.user_metadata?.company_name || "";
+        const parts = name.split(" ").filter(Boolean);
+        const initials = parts.length >= 2
+          ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+          : name.substring(0, 2).toUpperCase();
+        setUser({ name, company, initials });
       }
     };
     loadUser();
