@@ -109,15 +109,10 @@ export default function Home() {
                   <AIChat />
                 </div>
 
-                {/* Amsterdam mini card — floating top-right (desktop) */}
-                <div className="absolute -right-4 -top-4 z-10 hidden overflow-hidden rounded-2xl shadow-xl lg:block">
-                  <div className="relative h-[120px] w-[160px]">
-                    <img src="/images/hero-amsterdam.jpg" alt="Amsterdam canals" className="h-full w-full object-cover" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-                    <div className="absolute bottom-2 left-2.5">
-                      <p className="text-[10px] text-white/70">Top destination</p>
-                      <p className="text-sm font-bold text-white">Amsterdam</p>
-                    </div>
+                {/* AI Assistant portrait — floating top-right (desktop) */}
+                <div className="absolute -right-4 -top-4 z-10 hidden overflow-hidden rounded-2xl shadow-xl ring-4 ring-white lg:block">
+                  <div className="relative h-[160px] w-[200px]">
+                    <img src="/images/hero-assistant.jpg" alt="Your AI travel assistant" className="h-full w-full object-cover object-top" />
                   </div>
                 </div>
               </div>
