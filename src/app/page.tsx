@@ -23,6 +23,13 @@ const cities = [
 export default function Home() {
   return (
     <>
+      {/* Mobile: fullscreen chat app */}
+      <div className="fixed inset-0 z-50 flex flex-col md:hidden">
+        <AIChat fullscreen />
+      </div>
+
+      {/* Desktop: normal landing page */}
+      <div className="hidden md:flex md:flex-col md:min-h-full">
       <Header />
       <main className="flex-1">
 
@@ -453,6 +460,7 @@ export default function Home() {
 
       </main>
       <Footer />
+      </div>
     </>
   );
 }

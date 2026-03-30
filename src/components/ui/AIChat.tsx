@@ -27,7 +27,7 @@ function getSessionId() {
   return id;
 }
 
-export default function AIChat() {
+export default function AIChat({ fullscreen = false }: { fullscreen?: boolean }) {
   const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
@@ -88,30 +88,39 @@ export default function AIChat() {
   };
 
   return (
-    <div className="flex h-[380px] w-[340px] flex-col overflow-hidden rounded-2xl border border-white/20 bg-white/95 shadow-2xl shadow-black/20 backdrop-blur-xl">
+    <div className={`flex flex-col overflow-hidden ${
+      fullscreen
+        ? "h-full w-full bg-white"
+        : "h-[380px] w-[340px] rounded-2xl border border-white/20 bg-white/95 shadow-2xl shadow-black/20 backdrop-blur-xl"
+    }`}>
       {/* Header */}
-      <div className="flex items-center gap-2.5 border-b border-border/40 px-4 py-3">
-        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-accent to-blue-700">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <div className={`flex items-center gap-2.5 border-b border-border/40 ${
+        fullscreen ? "px-5 py-4 bg-gradient-to-r from-accent to-blue-700" : "px-4 py-3"
+      }`}>
+        <div className={`flex items-center justify-center rounded-lg ${
+          fullscreen ? "h-9 w-9 bg-white/20" : "h-7 w-7 bg-gradient-to-br from-accent to-blue-700"
+        }`}>
+          <svg width={fullscreen ? "16" : "12"} height={fullscreen ? "16" : "12"} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M12 2L2 7l10 5 10-5-10-5z" />
             <path d="M2 17l10 5 10-5" />
             <path d="M2 12l10 5 10-5" />
           </svg>
         </div>
         <div className="flex-1">
-          <p className="text-xs font-semibold">TicketMatch AI</p>
+          <p className={`font-semibold ${fullscreen ? "text-sm text-white" : "text-xs"}`}>TicketMatch AI</p>
+          {fullscreen && <p className="text-[11px] text-white/70">Your B2B travel assistant</p>}
         </div>
-        <div className="flex h-1.5 w-1.5 rounded-full bg-emerald-400" />
-        <span className="text-[10px] text-emerald-600">Online</span>
+        <div className={`flex rounded-full ${fullscreen ? "h-2 w-2 bg-emerald-300" : "h-1.5 w-1.5 bg-emerald-400"}`} />
+        <span className={`${fullscreen ? "text-[11px] text-emerald-200" : "text-[10px] text-emerald-600"}`}>Online</span>
       </div>
 
       {/* Messages */}
-      <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-3">
+      <div ref={scrollRef} className={`flex-1 space-y-3 overflow-y-auto ${fullscreen ? "px-5 py-4" : "px-4 py-3"}`}>
         {messages.map((msg, i) => (
           <div key={i} className={`chat-msg flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-            <div className="max-w-[90%]">
+            <div className={fullscreen ? "max-w-[85%]" : "max-w-[90%]"}>
               <div
-                className={`rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed ${
+                className={`rounded-2xl px-3.5 py-2.5 leading-relaxed ${fullscreen ? "text-[15px]" : "text-[13px]"} ${
                   msg.role === "user"
                     ? "bg-accent text-white rounded-br-md"
                     : "bg-gray-100 text-foreground rounded-bl-md"
@@ -156,7 +165,7 @@ export default function AIChat() {
       </div>
 
       {/* Input */}
-      <div className="border-t border-border/40 px-3 py-2.5">
+      <div className={`border-t border-border/40 ${fullscreen ? "px-4 py-3 pb-[env(safe-area-inset-bottom,12px)]" : "px-3 py-2.5"}`}>
         <div className="flex items-center gap-2">
           <input
             type="text"
@@ -164,14 +173,14 @@ export default function AIChat() {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSend()}
             placeholder="Ask about your group trip..."
-            className="flex-1 bg-transparent py-1 text-[13px] outline-none placeholder:text-muted/40"
+            className={`flex-1 bg-transparent outline-none placeholder:text-muted/40 ${fullscreen ? "py-2 text-[15px]" : "py-1 text-[13px]"}`}
           />
           <button
             onClick={handleSend}
             disabled={!input.trim() || isTyping}
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-accent text-white transition-all hover:brightness-110 disabled:opacity-30"
+            className={`flex shrink-0 items-center justify-center rounded-lg bg-accent text-white transition-all hover:brightness-110 disabled:opacity-30 ${fullscreen ? "h-10 w-10" : "h-7 w-7"}`}
           >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg width={fullscreen ? "16" : "12"} height={fullscreen ? "16" : "12"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M22 2L11 13" />
               <path d="M22 2L15 22L11 13L2 9L22 2Z" />
             </svg>
