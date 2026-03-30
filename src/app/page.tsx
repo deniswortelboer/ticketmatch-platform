@@ -218,21 +218,20 @@ export default function Home() {
                 { name: "Restaurants", img: "/images/cat-restaurants.jpg", desc: "Group dining, food tours, culinary experiences and restaurant reservations.", status: "soon" },
                 { name: "Walking Tours", img: "/images/cat-walking.jpg", desc: "Guided tours, pub crawls, themed city walks and architectural highlights.", status: "soon" },
               ].map((cat) => (
-                <div key={cat.name} className="group relative overflow-hidden rounded-2xl transition-all hover:shadow-xl">
+                <div key={cat.name} className="group overflow-hidden rounded-2xl border border-border/60 bg-white transition-all hover:shadow-xl">
                   {/* Photo */}
-                  <div className="relative h-[200px]">
+                  <div className="relative h-[160px] overflow-hidden">
                     <img src={cat.img} alt={cat.name} className={`h-full w-full object-cover transition-transform duration-500 group-hover:scale-105 ${cat.status === "soon" ? "grayscale-[40%]" : ""}`} />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
                     {/* Status badge */}
-                    <span className={`absolute right-3 top-3 rounded-full px-2.5 py-0.5 text-[11px] font-semibold backdrop-blur-sm ${cat.status === "live" ? "bg-emerald-500/90 text-white" : "bg-white/20 text-white/90"}`}>
+                    <span className={`absolute right-3 top-3 rounded-full px-2.5 py-0.5 text-[11px] font-semibold backdrop-blur-sm ${cat.status === "live" ? "bg-emerald-500/90 text-white" : "bg-black/30 text-white/90"}`}>
                       {cat.status === "live" ? "Live" : "Soon"}
                     </span>
-                    {/* Title + info overlay */}
-                    <div className="absolute bottom-0 left-0 right-0 p-5">
-                      <h3 className="text-lg font-bold text-white">{cat.name}</h3>
-                      <p className="mt-1 text-[13px] leading-relaxed text-white/80">{cat.desc}</p>
-                      {cat.venues && <p className="mt-2 text-[12px] font-semibold text-white/90">{cat.venues}</p>}
-                    </div>
+                  </div>
+                  {/* Text below photo */}
+                  <div className="p-5">
+                    <h3 className="text-[15px] font-bold">{cat.name}</h3>
+                    <p className="mt-1.5 text-[13px] leading-relaxed text-muted">{cat.desc}</p>
+                    {cat.venues && <p className="mt-2 text-[12px] font-semibold text-accent">{cat.venues}</p>}
                   </div>
                 </div>
               ))}
