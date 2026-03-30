@@ -122,7 +122,7 @@ export default function PartnersPage() {
                 </p>
                 <div className="mt-8 flex items-center gap-4">
                   <a
-                    href="mailto:hello@ticketmatch.ai"
+                    href="/auth/register"
                     className="inline-flex items-center gap-2 rounded-full bg-foreground px-7 py-3.5 text-sm font-semibold text-white transition-all hover:bg-gray-800"
                   >
                     Contact us to join
@@ -295,7 +295,7 @@ export default function PartnersPage() {
                 </p>
                 <div className="mt-8">
                   <a
-                    href="mailto:hello@ticketmatch.ai"
+                    href="/auth/register"
                     className="inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-sm font-semibold text-foreground transition-all hover:bg-gray-100"
                   >
                     Get in touch
