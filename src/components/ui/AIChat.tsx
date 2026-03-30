@@ -8,7 +8,7 @@ type Message = {
   suggestions?: { name: string; price: string; tag: string }[];
 };
 
-const AGENT_URL = process.env.NEXT_PUBLIC_AGENT_URL || "http://localhost:3070";
+const AGENT_URL = "/api/agent";
 
 const INITIAL_MESSAGES: Message[] = [
   {
@@ -53,7 +53,7 @@ export default function AIChat() {
         .filter((m) => m !== INITIAL_MESSAGES[0])
         .map((m) => ({ role: m.role, content: m.content }));
 
-      const res = await fetch(`${AGENT_URL}/chat`, {
+      const res = await fetch(AGENT_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
