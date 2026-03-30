@@ -71,10 +71,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     router.refresh();
   };
 
+  const mobileNavItems = [
+    { href: "/dashboard", label: "Home", icon: "grid" },
+    { href: "/dashboard/catalog", label: "Catalog", icon: "search" },
+    { href: "/dashboard/bookings", label: "Bookings", icon: "ticket" },
+    { href: "/dashboard/groups", label: "Groups", icon: "users" },
+    { href: "/dashboard/profile", label: "Profile", icon: "building" },
+  ];
+
   return (
     <div className="flex h-screen bg-background">
-      {/* Sidebar */}
-      <aside className="flex w-64 flex-col border-r border-border/60 bg-white">
+      {/* Sidebar — hidden on mobile */}
+      <aside className="hidden md:flex w-64 flex-col border-r border-border/60 bg-white">
         {/* Logo */}
         <div className="flex h-[72px] items-center px-6">
           <Link href="/" className="flex items-center gap-2.5">
@@ -133,12 +141,61 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
       </aside>
 
+      {/* Mobile header */}
+      <div className="fixed top-0 left-0 right-0 z-40 flex h-14 items-center justify-between border-b border-border/60 bg-white px-4 md:hidden">
+        <Link href="/dashboard" className="flex items-center gap-2">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-accent to-blue-800">
+            <span className="text-xs font-bold text-white">TM</span>
+          </div>
+          <span className="text-sm font-semibold tracking-tight">
+            Ticket<span className="text-accent">Match</span>
+          </span>
+        </Link>
+        <div className="flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent/10 text-xs font-semibold text-accent">
+            {user.initials || "?"}
+          </div>
+          <button
+            onClick={handleLogout}
+            className="rounded-lg p-1.5 text-muted hover:bg-gray-100 hover:text-foreground transition-colors"
+            title="Sign out"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
       {/* Main content */}
-      <main className="flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-6xl px-8 py-8">
+      <main className="flex-1 overflow-y-auto pt-14 pb-16 md:pt-0 md:pb-0">
+        <div className="mx-auto max-w-6xl px-4 py-6 md:px-8 md:py-8">
           {children}
         </div>
       </main>
+
+      {/* Mobile bottom navigation */}
+      <nav className="fixed bottom-0 left-0 right-0 z-40 flex items-center justify-around border-t border-border/60 bg-white md:hidden"
+        style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+      >
+        {mobileNavItems.map((item) => {
+          const isActive = pathname === item.href;
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`flex flex-col items-center gap-0.5 px-2 py-2 ${
+                isActive ? "text-accent" : "text-muted"
+              }`}
+            >
+              <NavIcon type={item.icon} />
+              <span className="text-[10px] font-medium">{item.label}</span>
+            </Link>
+          );
+        })}
+      </nav>
     </div>
   );
 }
