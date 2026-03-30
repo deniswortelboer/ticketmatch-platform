@@ -76,44 +76,20 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Right — Hero visuals */}
-              <div className="relative">
-                {/* Main booker image */}
-                <div className="relative overflow-hidden rounded-3xl shadow-2xl shadow-black/10">
-                  <img
-                    src="/images/hero-booker.jpg"
-                    alt="Travel professional booking city experiences on her laptop"
-                    className="h-full w-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
-
-                  {/* Stats overlay */}
-                  <div className="absolute bottom-5 left-5 flex gap-2.5">
-                    <div className="rounded-xl bg-black/20 px-3 py-1.5 backdrop-blur-md">
-                      <p className="text-lg font-bold text-white">45+</p>
-                      <p className="text-[9px] text-white/70">Venues</p>
-                    </div>
-                    <div className="rounded-xl bg-black/20 px-3 py-1.5 backdrop-blur-md">
-                      <p className="text-lg font-bold text-white">B2B</p>
-                      <p className="text-[9px] text-white/70">Rates</p>
-                    </div>
-                    <div className="rounded-xl bg-black/20 px-3 py-1.5 backdrop-blur-md">
-                      <p className="text-lg font-bold text-white">24h</p>
-                      <p className="text-[9px] text-white/70">Access</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* AI Chat — floating overlay bottom-left (desktop) */}
-                <div className="absolute -bottom-6 -left-4 z-10 hidden lg:block">
+              {/* Right — AI Chat + Assistant portrait side by side */}
+              <div className="relative flex items-end gap-4 lg:gap-6">
+                {/* AI Chat (desktop) */}
+                <div className="hidden lg:block">
                   <AIChat />
                 </div>
 
-                {/* AI Assistant portrait — floating top-right (desktop) */}
-                <div className="absolute -right-4 -top-4 z-10 hidden overflow-hidden rounded-2xl shadow-xl ring-4 ring-white lg:block">
-                  <div className="relative h-[160px] w-[200px]">
-                    <img src="/images/hero-assistant.jpg" alt="Your AI travel assistant" className="h-full w-full object-cover object-top" />
-                  </div>
+                {/* Assistant portrait */}
+                <div className="overflow-hidden rounded-3xl shadow-2xl shadow-black/10 ring-4 ring-white/80">
+                  <img
+                    src="/images/hero-assistant.jpg"
+                    alt="Your AI travel assistant"
+                    className="h-[320px] w-[260px] object-cover object-top lg:h-[380px] lg:w-[300px]"
+                  />
                 </div>
               </div>
 
