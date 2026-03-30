@@ -76,48 +76,50 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Right — Hero image with AI Chat overlay */}
+              {/* Right — Hero visuals */}
               <div className="relative">
-                {/* Main hero image container */}
-                <div className="relative aspect-[16/9] overflow-hidden rounded-3xl shadow-2xl shadow-black/10">
+                {/* Main booker image */}
+                <div className="relative overflow-hidden rounded-3xl shadow-2xl shadow-black/10">
                   <img
-                    src="/images/hero-amsterdam.jpg"
-                    alt="Amsterdam canals at golden hour — aerial view of historic canal houses, bridges and boats"
-                    className="absolute inset-0 h-full w-full object-cover"
+                    src="/images/hero-booker.jpg"
+                    alt="Travel professional booking city experiences on her laptop"
+                    className="h-full w-full object-cover"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
-
-                  {/* Text overlay */}
-                  <div className="absolute left-6 top-6">
-                    <div className="rounded-xl bg-black/20 px-4 py-2 backdrop-blur-md">
-                      <p className="text-[11px] font-medium text-white/80">Most popular destination</p>
-                      <p className="text-lg font-bold text-white">Amsterdam</p>
-                    </div>
-                  </div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
 
                   {/* Stats overlay */}
-                  <div className="absolute bottom-6 left-6 flex gap-3">
-                    <div className="rounded-xl bg-black/20 px-3.5 py-2 backdrop-blur-md">
-                      <p className="text-xl font-bold text-white">45+</p>
-                      <p className="text-[10px] text-white/70">Venues</p>
+                  <div className="absolute bottom-5 left-5 flex gap-2.5">
+                    <div className="rounded-xl bg-black/20 px-3 py-1.5 backdrop-blur-md">
+                      <p className="text-lg font-bold text-white">45+</p>
+                      <p className="text-[9px] text-white/70">Venues</p>
                     </div>
-                    <div className="rounded-xl bg-black/20 px-3.5 py-2 backdrop-blur-md">
-                      <p className="text-xl font-bold text-white">B2B</p>
-                      <p className="text-[10px] text-white/70">Rates</p>
+                    <div className="rounded-xl bg-black/20 px-3 py-1.5 backdrop-blur-md">
+                      <p className="text-lg font-bold text-white">B2B</p>
+                      <p className="text-[9px] text-white/70">Rates</p>
                     </div>
-                    <div className="rounded-xl bg-black/20 px-3.5 py-2 backdrop-blur-md">
-                      <p className="text-xl font-bold text-white">24h</p>
-                      <p className="text-[10px] text-white/70">Access</p>
+                    <div className="rounded-xl bg-black/20 px-3 py-1.5 backdrop-blur-md">
+                      <p className="text-lg font-bold text-white">24h</p>
+                      <p className="text-[9px] text-white/70">Access</p>
                     </div>
                   </div>
                 </div>
 
-                {/* AI Chat — floating overlay bottom-left */}
+                {/* AI Chat — floating overlay bottom-left (desktop) */}
                 <div className="absolute -bottom-6 -left-4 z-10 hidden lg:block">
                   <AIChat />
                 </div>
 
-                {/* AI Chat on mobile: use the AI Agent button in the bottom bar */}
+                {/* Amsterdam mini card — floating top-right (desktop) */}
+                <div className="absolute -right-4 -top-4 z-10 hidden overflow-hidden rounded-2xl shadow-xl lg:block">
+                  <div className="relative h-[120px] w-[160px]">
+                    <img src="/images/hero-amsterdam.jpg" alt="Amsterdam canals" className="h-full w-full object-cover" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                    <div className="absolute bottom-2 left-2.5">
+                      <p className="text-[10px] text-white/70">Top destination</p>
+                      <p className="text-sm font-bold text-white">Amsterdam</p>
+                    </div>
+                  </div>
+                </div>
               </div>
 
             </div>
