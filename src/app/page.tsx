@@ -301,142 +301,32 @@ export default function Home() {
             </p>
 
             <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {/* Museums — Live */}
-              <div className="group rounded-2xl border border-border/60 bg-background p-7 transition-all hover:border-amber-300/40 hover:shadow-xl hover:shadow-amber-500/5">
-                <div className="mb-5 h-[90px] w-[90px]">
-                  <svg viewBox="0 0 90 90" fill="none">
-                    <circle cx="45" cy="45" r="40" stroke="#b45309" strokeWidth="0.75" strokeDasharray="4 3" opacity="0.15" style={{ transformOrigin: '45px 45px', animation: 'tm-spin 18s linear infinite' }} />
-                    <circle cx="45" cy="45" r="28" fill="url(#catGrad1)" />
-                    <path d="M33 57h24" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
-                    <path d="M33 42l12-6 12 6" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M37 42v15" stroke="white" strokeWidth="1.2" /><path d="M53 42v15" stroke="white" strokeWidth="1.2" />
-                    <rect x="42" y="46" width="6" height="8" rx="1" stroke="white" strokeWidth="1" fill="none" />
-                    <circle cx="45" cy="5" r="2.5" fill="#b45309" style={{ animation: 'tm-pulse 2.5s ease-in-out infinite' }} />
-                    <circle cx="85" cy="45" r="2" fill="#d97706" style={{ animation: 'tm-dot-pulse 3s ease-in-out 0.5s infinite' }} />
-                    <circle cx="45" cy="85" r="2.5" fill="#b45309" style={{ animation: 'tm-pulse 2.5s ease-in-out 1s infinite' }} />
-                    <circle cx="5" cy="45" r="2" fill="#d97706" style={{ animation: 'tm-dot-pulse 3s ease-in-out 1.5s infinite' }} />
-                    <defs><radialGradient id="catGrad1"><stop offset="0%" stopColor="#fbbf24" /><stop offset="100%" stopColor="#b45309" /></radialGradient></defs>
-                  </svg>
+              {[
+                { name: "Museums", img: "/images/cat-museums.jpg", desc: "World-class art, history and iconic collections. From the Rijksmuseum to Moco and everything in between.", status: "live", venues: "12 venues" },
+                { name: "Attractions", img: "/images/cat-attractions.jpg", desc: "AMAZE, The Upside Down, Fabrique des Lumières — immersive must-see landmarks and experiences.", status: "live", venues: "18 venues" },
+                { name: "Canal Cruises", img: "/images/cat-cruises.jpg", desc: "Scenic boat tours, dinner cruises and waterway experiences across city canals.", status: "soon" },
+                { name: "Public Transport", img: "/images/cat-transport.jpg", desc: "GVB passes, metro cards, hop-on-hop-off buses and multi-day travel cards.", status: "soon" },
+                { name: "Restaurants", img: "/images/cat-restaurants.jpg", desc: "Group dining, food tours, culinary experiences and restaurant reservations.", status: "soon" },
+                { name: "Walking Tours", img: "/images/cat-walking.jpg", desc: "Guided tours, pub crawls, themed city walks and architectural highlights.", status: "soon" },
+              ].map((cat) => (
+                <div key={cat.name} className="group relative overflow-hidden rounded-2xl transition-all hover:shadow-xl">
+                  {/* Photo */}
+                  <div className="relative h-[200px]">
+                    <img src={cat.img} alt={cat.name} className={`h-full w-full object-cover transition-transform duration-500 group-hover:scale-105 ${cat.status === "soon" ? "grayscale-[40%]" : ""}`} />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                    {/* Status badge */}
+                    <span className={`absolute right-3 top-3 rounded-full px-2.5 py-0.5 text-[11px] font-semibold backdrop-blur-sm ${cat.status === "live" ? "bg-emerald-500/90 text-white" : "bg-white/20 text-white/90"}`}>
+                      {cat.status === "live" ? "Live" : "Soon"}
+                    </span>
+                    {/* Title + info overlay */}
+                    <div className="absolute bottom-0 left-0 right-0 p-5">
+                      <h3 className="text-lg font-bold text-white">{cat.name}</h3>
+                      <p className="mt-1 text-[13px] leading-relaxed text-white/80">{cat.desc}</p>
+                      {cat.venues && <p className="mt-2 text-[12px] font-semibold text-white/90">{cat.venues}</p>}
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <h3 className="text-[15px] font-bold">Museums</h3>
-                  <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-600">Live</span>
-                </div>
-                <p className="mt-2 text-[13px] leading-relaxed text-muted">World-class art, history and iconic collections. From the Rijksmuseum to Moco and everything in between.</p>
-                <p className="mt-3 text-[12px] font-semibold text-accent">12 venues</p>
-              </div>
-
-              {/* Attractions — Live */}
-              <div className="group rounded-2xl border border-border/60 bg-background p-7 transition-all hover:border-blue-300/40 hover:shadow-xl hover:shadow-blue-500/5">
-                <div className="mb-5 h-[90px] w-[90px]">
-                  <svg viewBox="0 0 90 90" fill="none">
-                    <circle cx="45" cy="45" r="40" stroke="#1d4ed8" strokeWidth="0.75" strokeDasharray="5 4" opacity="0.15" style={{ transformOrigin: '45px 45px', animation: 'tm-spin-rev 20s linear infinite' }} />
-                    <circle cx="45" cy="45" r="28" fill="url(#catGrad2)" />
-                    <circle cx="45" cy="45" r="5" stroke="white" strokeWidth="1.5" fill="none" />
-                    <path d="M45 33v5" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
-                    <path d="M45 52v5" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
-                    <path d="M33 45h5" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
-                    <path d="M52 45h5" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
-                    <path d="M37 37l3.5 3.5" stroke="white" strokeWidth="1.2" strokeLinecap="round" />
-                    <path d="M49.5 49.5L53 53" stroke="white" strokeWidth="1.2" strokeLinecap="round" />
-                    <circle cx="45" cy="5" r="2.5" fill="#1d4ed8" style={{ animation: 'tm-pulse 2s ease-in-out infinite' }} />
-                    <circle cx="85" cy="45" r="2" fill="#3b82f6" style={{ animation: 'tm-dot-pulse 2.5s ease-in-out 0.6s infinite' }} />
-                    <circle cx="45" cy="85" r="2.5" fill="#1d4ed8" style={{ animation: 'tm-pulse 2s ease-in-out 1.2s infinite' }} />
-                    <circle cx="5" cy="45" r="2" fill="#3b82f6" style={{ animation: 'tm-dot-pulse 2.5s ease-in-out 1.8s infinite' }} />
-                    <defs><radialGradient id="catGrad2"><stop offset="0%" stopColor="#60a5fa" /><stop offset="100%" stopColor="#1d4ed8" /></radialGradient></defs>
-                  </svg>
-                </div>
-                <div className="flex items-center justify-between">
-                  <h3 className="text-[15px] font-bold">Attractions</h3>
-                  <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-600">Live</span>
-                </div>
-                <p className="mt-2 text-[13px] leading-relaxed text-muted">AMAZE, The Upside Down, Fabrique des Lumières — immersive must-see landmarks and experiences.</p>
-                <p className="mt-3 text-[12px] font-semibold text-accent">18 venues</p>
-              </div>
-
-              {/* Canal Cruises — Soon */}
-              <div className="group rounded-2xl border border-dashed border-border/40 p-7 transition-all hover:border-border/60">
-                <div className="mb-5 h-[90px] w-[90px] opacity-40">
-                  <svg viewBox="0 0 90 90" fill="none">
-                    <circle cx="45" cy="45" r="40" stroke="#0891b2" strokeWidth="0.75" strokeDasharray="4 5" opacity="0.2" style={{ transformOrigin: '45px 45px', animation: 'tm-spin 22s linear infinite' }} />
-                    <circle cx="45" cy="45" r="28" fill="url(#catGrad3)" />
-                    <path d="M30 55c3-1.5 6-1.5 9 0s6 1.5 9 0 6-1.5 9 0" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
-                    <path d="M35 50l4-8.5a1 1 0 0 1 1.8 0l3 6 3-6a1 1 0 0 1 1.8 0L53 50" stroke="white" strokeWidth="1.2" strokeLinecap="round" fill="none" />
-                    <circle cx="45" cy="5" r="2" fill="#0891b2" opacity="0.3" />
-                    <circle cx="85" cy="45" r="1.5" fill="#06b6d4" opacity="0.3" />
-                    <defs><radialGradient id="catGrad3"><stop offset="0%" stopColor="#67e8f9" /><stop offset="100%" stopColor="#0891b2" /></radialGradient></defs>
-                  </svg>
-                </div>
-                <div className="flex items-center justify-between">
-                  <h3 className="text-[15px] font-bold text-muted">Canal Cruises</h3>
-                  <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-[11px] font-medium text-muted">Soon</span>
-                </div>
-                <p className="mt-2 text-[13px] leading-relaxed text-muted/70">Scenic boat tours, dinner cruises and waterway experiences across city canals.</p>
-              </div>
-
-              {/* Public Transport — Soon */}
-              <div className="group rounded-2xl border border-dashed border-border/40 p-7 transition-all hover:border-border/60">
-                <div className="mb-5 h-[90px] w-[90px] opacity-40">
-                  <svg viewBox="0 0 90 90" fill="none">
-                    <circle cx="45" cy="45" r="40" stroke="#7c3aed" strokeWidth="0.75" strokeDasharray="3 5" opacity="0.2" style={{ transformOrigin: '45px 45px', animation: 'tm-spin-rev 24s linear infinite' }} />
-                    <circle cx="45" cy="45" r="28" fill="url(#catGrad4)" />
-                    <rect x="35" y="35" width="20" height="16" rx="3" stroke="white" strokeWidth="1.5" fill="none" />
-                    <path d="M35 45h20" stroke="white" strokeWidth="1" />
-                    <circle cx="39" cy="49" r="1.5" fill="white" /><circle cx="51" cy="49" r="1.5" fill="white" />
-                    <path d="M35 51l-2 4" stroke="white" strokeWidth="1" strokeLinecap="round" />
-                    <path d="M55 51l2 4" stroke="white" strokeWidth="1" strokeLinecap="round" />
-                    <circle cx="45" cy="5" r="2" fill="#7c3aed" opacity="0.3" />
-                    <circle cx="85" cy="45" r="1.5" fill="#8b5cf6" opacity="0.3" />
-                    <defs><radialGradient id="catGrad4"><stop offset="0%" stopColor="#a78bfa" /><stop offset="100%" stopColor="#7c3aed" /></radialGradient></defs>
-                  </svg>
-                </div>
-                <div className="flex items-center justify-between">
-                  <h3 className="text-[15px] font-bold text-muted">Public Transport</h3>
-                  <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-[11px] font-medium text-muted">Soon</span>
-                </div>
-                <p className="mt-2 text-[13px] leading-relaxed text-muted/70">GVB passes, metro cards, hop-on-hop-off buses and multi-day travel cards.</p>
-              </div>
-
-              {/* Restaurants — Soon */}
-              <div className="group rounded-2xl border border-dashed border-border/40 p-7 transition-all hover:border-border/60">
-                <div className="mb-5 h-[90px] w-[90px] opacity-40">
-                  <svg viewBox="0 0 90 90" fill="none">
-                    <circle cx="45" cy="45" r="40" stroke="#e11d48" strokeWidth="0.75" strokeDasharray="4 4" opacity="0.2" style={{ transformOrigin: '45px 45px', animation: 'tm-spin 26s linear infinite' }} />
-                    <circle cx="45" cy="45" r="28" fill="url(#catGrad5)" />
-                    <path d="M37 33v10c0 1.5 1 3 3 3h2v11" stroke="white" strokeWidth="1.5" strokeLinecap="round" fill="none" />
-                    <path d="M33 33v4c0 1.5 1.5 3 3 3h5" stroke="white" strokeWidth="1.2" strokeLinecap="round" fill="none" />
-                    <path d="M55 50V33a6 6 0 0 0-6 6v7c0 1.5 1 3 3 3h3zm0 0v7" stroke="white" strokeWidth="1.5" strokeLinecap="round" fill="none" />
-                    <circle cx="45" cy="5" r="2" fill="#e11d48" opacity="0.3" />
-                    <circle cx="85" cy="45" r="1.5" fill="#f43f5e" opacity="0.3" />
-                    <defs><radialGradient id="catGrad5"><stop offset="0%" stopColor="#fb7185" /><stop offset="100%" stopColor="#e11d48" /></radialGradient></defs>
-                  </svg>
-                </div>
-                <div className="flex items-center justify-between">
-                  <h3 className="text-[15px] font-bold text-muted">Restaurants</h3>
-                  <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-[11px] font-medium text-muted">Soon</span>
-                </div>
-                <p className="mt-2 text-[13px] leading-relaxed text-muted/70">Group dining, food tours, culinary experiences and restaurant reservations.</p>
-              </div>
-
-              {/* Walking Tours — Soon */}
-              <div className="group rounded-2xl border border-dashed border-border/40 p-7 transition-all hover:border-border/60">
-                <div className="mb-5 h-[90px] w-[90px] opacity-40">
-                  <svg viewBox="0 0 90 90" fill="none">
-                    <circle cx="45" cy="45" r="40" stroke="#65a30d" strokeWidth="0.75" strokeDasharray="5 3" opacity="0.2" style={{ transformOrigin: '45px 45px', animation: 'tm-spin-rev 20s linear infinite' }} />
-                    <circle cx="45" cy="45" r="28" fill="url(#catGrad6)" />
-                    <path d="M55 43c0 6-10 15-10 15s-10-9-10-15a10 10 0 0 1 20 0z" stroke="white" strokeWidth="1.5" fill="none" />
-                    <circle cx="45" cy="43" r="3.5" stroke="white" strokeWidth="1.2" fill="none" />
-                    <circle cx="45" cy="5" r="2" fill="#65a30d" opacity="0.3" />
-                    <circle cx="85" cy="45" r="1.5" fill="#84cc16" opacity="0.3" />
-                    <defs><radialGradient id="catGrad6"><stop offset="0%" stopColor="#a3e635" /><stop offset="100%" stopColor="#65a30d" /></radialGradient></defs>
-                  </svg>
-                </div>
-                <div className="flex items-center justify-between">
-                  <h3 className="text-[15px] font-bold text-muted">Walking Tours</h3>
-                  <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-[11px] font-medium text-muted">Soon</span>
-                </div>
-                <p className="mt-2 text-[13px] leading-relaxed text-muted/70">Guided tours, pub crawls, themed city walks and architectural highlights.</p>
-              </div>
+              ))}
             </div>
           </div>
         </section>
