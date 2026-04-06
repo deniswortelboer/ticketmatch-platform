@@ -21,6 +21,10 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://ticketmatch.ai"),
+  alternates: {
+    canonical: "/",
+  },
   title: "TicketMatch.ai | B2B City Access Platform",
   description:
     "The smart procurement platform for tour operators, DMCs and group travel. Book museums, attractions, cruises and transport — all in one place.",

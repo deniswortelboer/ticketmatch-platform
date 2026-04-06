@@ -5,7 +5,7 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: "*",
       allow: "/",
-      disallow: ["/dashboard/", "/api/"],
+      disallow: ["/dashboard/", "/api/", "/auth/"],
     },
     sitemap: "https://ticketmatch.ai/sitemap.xml",
   };

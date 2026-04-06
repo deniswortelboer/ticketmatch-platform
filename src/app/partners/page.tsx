@@ -1,6 +1,16 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+
+export const metadata: Metadata = {
+  title: "Partners | TicketMatch.ai",
+  description:
+    "Join TicketMatch.ai as a supplier. Connect your venues to tour operators, DMCs and travel agencies across Europe.",
+  alternates: {
+    canonical: "/partners",
+  },
+};
 
 function IconCheck() {
   return (
