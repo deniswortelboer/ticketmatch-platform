@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase";
 import { useCurrency } from "@/components/CurrencySelector";
 import { CURRENCIES } from "@/lib/currency";
+import UpgradeLock from "@/components/UpgradeLock";
 
 type Profile = {
   full_name: string;
@@ -149,6 +150,62 @@ export default function SettingsPage() {
     whatsapp_number: "",
   });
 
+  // White Label state
+  const [whitelabel, setWhitelabel] = useState({
+    logo: "" as string,
+    primaryColor: "#2563EB",
+    secondaryColor: "#1E40AF",
+    customDomain: "",
+    emailFromName: "",
+    emailReplyTo: "",
+    emailLogoEnabled: false,
+    showTicketMatchBranding: true,
+    showPoweredBy: true,
+    welcomeMessage: "Welcome! Here is your itinerary.",
+  });
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [logoDragOver, setLogoDragOver] = useState(false);
+
+  // Load whitelabel settings from localStorage
+  useEffect(() => {
+    const stored = localStorage.getItem("tm_whitelabel");
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        setWhitelabel(prev => ({ ...prev, ...parsed }));
+        if (parsed.logo) setLogoPreview(parsed.logo);
+      } catch {}
+    }
+  }, []);
+
+  const handleLogoDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setLogoDragOver(false);
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith("image/")) {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const dataUrl = ev.target?.result as string;
+        setLogoPreview(dataUrl);
+        setWhitelabel(prev => ({ ...prev, logo: dataUrl }));
+      };
+      reader.readAsDataURL(file);
+    }
+  }, []);
+
+  const handleLogoSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && file.type.startsWith("image/")) {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const dataUrl = ev.target?.result as string;
+        setLogoPreview(dataUrl);
+        setWhitelabel(prev => ({ ...prev, logo: dataUrl }));
+      };
+      reader.readAsDataURL(file);
+    }
+  }, []);
+
   useEffect(() => {
     const load = async () => {
       const supabase = createClient();
@@ -213,6 +270,11 @@ export default function SettingsPage() {
   const showSaved = () => {
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
+  };
+
+  const handleSaveWhitelabel = () => {
+    localStorage.setItem("tm_whitelabel", JSON.stringify(whitelabel));
+    showSaved();
   };
 
   const handleSaveProfile = async () => {
@@ -310,6 +372,7 @@ export default function SettingsPage() {
     { id: "notifications", label: "Notifications", icon: "M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0" },
     { id: "api", label: "API Access", icon: "M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" },
     { id: "security", label: "Security", icon: "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" },
+    { id: "whitelabel", label: "White Label", icon: "M12 2a10 10 0 1 0 0 20 2 2 0 0 1 0-4 2 2 0 0 1 0-4 10 10 0 0 0 0-12zM7.5 13a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm2-5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm2 5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z" },
   ];
 
   const selectedCountry = COUNTRIES.find(c => c.code === country);
@@ -991,6 +1054,356 @@ export default function SettingsPage() {
                   Delete Account
                 </button>
               </div>
+            </div>
+          )}
+
+          {/* ─── WHITE LABEL ─── */}
+          {activeTab === "whitelabel" && (
+            <div className="space-y-6">
+
+              {/* Header */}
+              <div className="rounded-2xl border border-border/60 bg-gradient-to-br from-white to-blue-50/30 p-6 shadow-sm">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h2 className="text-lg font-semibold">White Label Branding</h2>
+                    <p className="mt-1 text-sm text-muted">Customize how your brand appears on shared itineraries and client-facing pages.</p>
+                  </div>
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-accent/10 px-3 py-1 text-xs font-semibold text-accent">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>
+                    Premium Feature
+                  </span>
+                </div>
+              </div>
+
+              {/* ─── BRANDING SECTION ─── */}
+              <div className="rounded-2xl border border-border/60 bg-white p-6 shadow-sm">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="font-semibold">Branding</h3>
+                    <p className="text-sm text-muted mt-0.5">Upload your logo and set brand colors</p>
+                  </div>
+                  <span className="rounded-full bg-green-50 px-2.5 py-0.5 text-[10px] font-semibold text-green-700 border border-green-200">All Plans</span>
+                </div>
+
+                {/* Logo Upload */}
+                <div className="mb-6">
+                  <label className="block text-sm font-medium mb-2">Company Logo</label>
+                  <div
+                    onDragOver={(e) => { e.preventDefault(); setLogoDragOver(true); }}
+                    onDragLeave={() => setLogoDragOver(false)}
+                    onDrop={handleLogoDrop}
+                    className={`relative flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 transition-colors cursor-pointer ${logoDragOver ? "border-accent bg-accent/5" : "border-border/60 hover:border-accent/40 hover:bg-gray-50/50"}`}
+                  >
+                    {logoPreview ? (
+                      <div className="flex flex-col items-center gap-3">
+                        <img src={logoPreview} alt="Logo preview" className="h-16 max-w-[200px] object-contain rounded-lg" />
+                        <button
+                          onClick={() => { setLogoPreview(null); setWhitelabel(prev => ({ ...prev, logo: "" })); }}
+                          className="text-xs text-red-500 hover:text-red-700 font-medium"
+                        >
+                          Remove logo
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-muted/40 mb-2">
+                          <rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" />
+                        </svg>
+                        <p className="text-sm text-muted">Drag & drop your logo here, or <span className="text-accent font-medium">browse</span></p>
+                        <p className="text-xs text-muted/60 mt-1">PNG, JPG, or SVG. Max 2MB.</p>
+                      </>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleLogoSelect}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    />
+                  </div>
+                </div>
+
+                {/* Color Pickers */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Primary Brand Color</label>
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="h-10 w-10 rounded-xl border border-border/60 shadow-sm flex-shrink-0"
+                        style={{ backgroundColor: whitelabel.primaryColor }}
+                      />
+                      <input
+                        type="text"
+                        value={whitelabel.primaryColor}
+                        onChange={e => setWhitelabel(prev => ({ ...prev, primaryColor: e.target.value }))}
+                        placeholder="#2563EB"
+                        className="flex-1 rounded-xl border border-border/60 bg-white px-4 py-2.5 text-sm focus:border-accent focus:ring-1 focus:ring-accent/20 outline-none font-mono"
+                      />
+                      <input
+                        type="color"
+                        value={whitelabel.primaryColor}
+                        onChange={e => setWhitelabel(prev => ({ ...prev, primaryColor: e.target.value }))}
+                        className="h-10 w-10 rounded-lg border border-border/60 cursor-pointer bg-transparent p-0.5"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Secondary Color</label>
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="h-10 w-10 rounded-xl border border-border/60 shadow-sm flex-shrink-0"
+                        style={{ backgroundColor: whitelabel.secondaryColor }}
+                      />
+                      <input
+                        type="text"
+                        value={whitelabel.secondaryColor}
+                        onChange={e => setWhitelabel(prev => ({ ...prev, secondaryColor: e.target.value }))}
+                        placeholder="#1E40AF"
+                        className="flex-1 rounded-xl border border-border/60 bg-white px-4 py-2.5 text-sm focus:border-accent focus:ring-1 focus:ring-accent/20 outline-none font-mono"
+                      />
+                      <input
+                        type="color"
+                        value={whitelabel.secondaryColor}
+                        onChange={e => setWhitelabel(prev => ({ ...prev, secondaryColor: e.target.value }))}
+                        className="h-10 w-10 rounded-lg border border-border/60 cursor-pointer bg-transparent p-0.5"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Branding Preview */}
+                <div>
+                  <label className="block text-sm font-medium mb-2">Preview</label>
+                  <div className="rounded-xl border border-border/40 bg-gray-50/50 p-5 max-w-md">
+                    <div className="rounded-lg bg-white border border-border/40 shadow-sm overflow-hidden">
+                      {/* Preview Header */}
+                      <div className="px-4 py-3 flex items-center gap-3" style={{ backgroundColor: whitelabel.primaryColor }}>
+                        {logoPreview ? (
+                          <img src={logoPreview} alt="Logo" className="h-6 max-w-[80px] object-contain rounded" style={{ filter: "brightness(0) invert(1)" }} />
+                        ) : (
+                          <div className="h-6 w-20 rounded bg-white/20" />
+                        )}
+                        <span className="text-xs text-white/80 font-medium ml-auto">Shared Itinerary</span>
+                      </div>
+                      {/* Preview Body */}
+                      <div className="p-4 space-y-2">
+                        <div className="h-3 w-3/4 rounded bg-gray-200" />
+                        <div className="h-3 w-1/2 rounded bg-gray-100" />
+                        <div className="mt-3 flex gap-2">
+                          <div className="h-8 flex-1 rounded-lg flex items-center justify-center text-[10px] font-semibold text-white" style={{ backgroundColor: whitelabel.primaryColor }}>
+                            View Details
+                          </div>
+                          <div className="h-8 flex-1 rounded-lg flex items-center justify-center text-[10px] font-semibold border" style={{ borderColor: whitelabel.secondaryColor, color: whitelabel.secondaryColor }}>
+                            Download PDF
+                          </div>
+                        </div>
+                      </div>
+                      {/* Preview Footer */}
+                      {whitelabel.showPoweredBy && (
+                        <div className="px-4 py-2 border-t border-border/40 text-center">
+                          <span className="text-[9px] text-muted/50">Powered by TicketMatch.ai</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* ─── CUSTOM DOMAIN ─── */}
+              <UpgradeLock feature="Custom Domain" plan="Enterprise" locked={company.plan !== "enterprise"}>
+                <div className="rounded-2xl border border-border/60 bg-white p-6 shadow-sm">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h3 className="font-semibold">Custom Domain</h3>
+                      <p className="text-sm text-muted mt-0.5">Use your own domain for client-facing pages</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="rounded-full bg-purple-50 px-2.5 py-0.5 text-[10px] font-semibold text-purple-700 border border-purple-200">Enterprise</span>
+                      <span className="rounded-full bg-amber-50 px-2.5 py-0.5 text-[10px] font-semibold text-amber-700 border border-amber-200">Coming Soon</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Custom Domain</label>
+                      <input
+                        type="text"
+                        value={whitelabel.customDomain}
+                        onChange={e => setWhitelabel(prev => ({ ...prev, customDomain: e.target.value }))}
+                        placeholder="bookings.mycompany.com"
+                        className="w-full max-w-md rounded-xl border border-border/60 bg-white px-4 py-2.5 text-sm focus:border-accent focus:ring-1 focus:ring-accent/20 outline-none"
+                      />
+                    </div>
+                    <div className="rounded-xl bg-blue-50/50 border border-blue-100 p-4 max-w-md">
+                      <div className="flex items-start gap-2.5">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500 mt-0.5 flex-shrink-0"><circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" /></svg>
+                        <div>
+                          <p className="text-xs font-medium text-blue-800">DNS Configuration</p>
+                          <p className="text-xs text-blue-600 mt-1">Point a CNAME record for your subdomain to <code className="bg-blue-100 px-1.5 py-0.5 rounded text-[11px] font-mono">custom.ticketmatch.ai</code></p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </UpgradeLock>
+
+              {/* ─── EMAIL BRANDING ─── */}
+              <UpgradeLock feature="Email Branding" plan="Pro" locked={company.plan === "free"}>
+                <div className="rounded-2xl border border-border/60 bg-white p-6 shadow-sm">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h3 className="font-semibold">Email Branding</h3>
+                      <p className="text-sm text-muted mt-0.5">Customize outgoing emails with your brand</p>
+                    </div>
+                    <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-[10px] font-semibold text-blue-700 border border-blue-200">Pro + Enterprise</span>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-2">From Name</label>
+                      <input
+                        type="text"
+                        value={whitelabel.emailFromName}
+                        onChange={e => setWhitelabel(prev => ({ ...prev, emailFromName: e.target.value }))}
+                        placeholder="MyCompany via TicketMatch"
+                        className="w-full max-w-md rounded-xl border border-border/60 bg-white px-4 py-2.5 text-sm focus:border-accent focus:ring-1 focus:ring-accent/20 outline-none"
+                      />
+                      <p className="text-xs text-muted mt-1">This name appears as the sender in client emails</p>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Reply-to Email</label>
+                      <input
+                        type="email"
+                        value={whitelabel.emailReplyTo}
+                        onChange={e => setWhitelabel(prev => ({ ...prev, emailReplyTo: e.target.value }))}
+                        placeholder="bookings@mycompany.com"
+                        className="w-full max-w-md rounded-xl border border-border/60 bg-white px-4 py-2.5 text-sm focus:border-accent focus:ring-1 focus:ring-accent/20 outline-none"
+                      />
+                      <p className="text-xs text-muted mt-1">Client replies go to this address</p>
+                    </div>
+
+                    <div className="flex items-center justify-between max-w-md rounded-xl border border-border/40 px-4 py-3">
+                      <div>
+                        <p className="text-sm font-medium">Logo in Email Headers</p>
+                        <p className="text-xs text-muted mt-0.5">Show your logo at the top of all outgoing emails</p>
+                      </div>
+                      <button
+                        onClick={() => setWhitelabel(prev => ({ ...prev, emailLogoEnabled: !prev.emailLogoEnabled }))}
+                        className={`relative h-6 w-11 rounded-full transition-colors ${whitelabel.emailLogoEnabled ? "bg-accent" : "bg-gray-200"}`}
+                      >
+                        <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${whitelabel.emailLogoEnabled ? "left-[22px]" : "left-0.5"}`} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </UpgradeLock>
+
+              {/* ─── SHAREABLE PAGE BRANDING ─── */}
+              <div className="rounded-2xl border border-border/60 bg-white p-6 shadow-sm">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="font-semibold">Shareable Page Branding</h3>
+                    <p className="text-sm text-muted mt-0.5">Control branding on pages shared with your clients</p>
+                  </div>
+                  <span className="rounded-full bg-green-50 px-2.5 py-0.5 text-[10px] font-semibold text-green-700 border border-green-200">All Plans</span>
+                </div>
+
+                <div className="space-y-4">
+                  {/* Show TicketMatch Branding Toggle */}
+                  <div className="flex items-center justify-between max-w-md rounded-xl border border-border/40 px-4 py-3">
+                    <div>
+                      <p className="text-sm font-medium">Show TicketMatch Branding</p>
+                      <p className="text-xs text-muted mt-0.5">Display TicketMatch branding on shared itineraries</p>
+                    </div>
+                    <UpgradeLock feature="Remove TicketMatch Branding" plan="Pro" locked={company.plan === "free" && !whitelabel.showTicketMatchBranding}>
+                      <button
+                        onClick={() => {
+                          if (company.plan === "free" && whitelabel.showTicketMatchBranding) return;
+                          setWhitelabel(prev => ({ ...prev, showTicketMatchBranding: !prev.showTicketMatchBranding }));
+                        }}
+                        className={`relative h-6 w-11 rounded-full transition-colors ${whitelabel.showTicketMatchBranding ? "bg-accent" : "bg-gray-200"}`}
+                      >
+                        <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${whitelabel.showTicketMatchBranding ? "left-[22px]" : "left-0.5"}`} />
+                      </button>
+                    </UpgradeLock>
+                  </div>
+
+                  {/* Show Powered By Footer Toggle */}
+                  <div className="flex items-center justify-between max-w-md rounded-xl border border-border/40 px-4 py-3">
+                    <div>
+                      <p className="text-sm font-medium">&ldquo;Powered by TicketMatch&rdquo; Footer</p>
+                      <p className="text-xs text-muted mt-0.5">Show footer attribution on shared pages</p>
+                    </div>
+                    <UpgradeLock feature="Remove Powered By Footer" plan="Pro" locked={company.plan === "free" && !whitelabel.showPoweredBy}>
+                      <button
+                        onClick={() => {
+                          if (company.plan === "free" && whitelabel.showPoweredBy) return;
+                          setWhitelabel(prev => ({ ...prev, showPoweredBy: !prev.showPoweredBy }));
+                        }}
+                        className={`relative h-6 w-11 rounded-full transition-colors ${whitelabel.showPoweredBy ? "bg-accent" : "bg-gray-200"}`}
+                      >
+                        <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${whitelabel.showPoweredBy ? "left-[22px]" : "left-0.5"}`} />
+                      </button>
+                    </UpgradeLock>
+                  </div>
+
+                  {/* Welcome Message */}
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Custom Welcome Message</label>
+                    <textarea
+                      value={whitelabel.welcomeMessage}
+                      onChange={e => setWhitelabel(prev => ({ ...prev, welcomeMessage: e.target.value }))}
+                      placeholder="Welcome! Here is your personalized itinerary..."
+                      rows={3}
+                      className="w-full max-w-md rounded-xl border border-border/60 bg-white px-4 py-2.5 text-sm focus:border-accent focus:ring-1 focus:ring-accent/20 outline-none resize-none"
+                    />
+                    <p className="text-xs text-muted mt-1">Shown at the top of shared itinerary pages</p>
+                  </div>
+
+                  {/* Live Preview */}
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Live Preview</label>
+                    <div className="rounded-xl border border-border/40 bg-gray-50/50 p-5 max-w-md">
+                      <div className="rounded-lg bg-white border border-border/40 shadow-sm overflow-hidden">
+                        <div className="px-4 py-3 flex items-center gap-3" style={{ backgroundColor: whitelabel.primaryColor }}>
+                          {logoPreview ? (
+                            <img src={logoPreview} alt="Logo" className="h-5 max-w-[70px] object-contain" style={{ filter: "brightness(0) invert(1)" }} />
+                          ) : (
+                            <div className="h-5 w-16 rounded bg-white/20" />
+                          )}
+                          {!whitelabel.showTicketMatchBranding ? null : (
+                            <span className="text-[9px] text-white/60 ml-auto">via TicketMatch.ai</span>
+                          )}
+                        </div>
+                        <div className="p-4">
+                          <p className="text-xs text-muted italic">{whitelabel.welcomeMessage || "Welcome message..."}</p>
+                          <div className="mt-3 space-y-1.5">
+                            <div className="h-2.5 w-full rounded bg-gray-100" />
+                            <div className="h-2.5 w-4/5 rounded bg-gray-100" />
+                            <div className="h-2.5 w-3/5 rounded bg-gray-50" />
+                          </div>
+                        </div>
+                        {whitelabel.showPoweredBy && (
+                          <div className="px-4 py-2 border-t border-border/40 text-center">
+                            <span className="text-[8px] text-muted/40">Powered by TicketMatch.ai</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* ─── SAVE BUTTON ─── */}
+              <div className="flex justify-end">
+                <button
+                  onClick={handleSaveWhitelabel}
+                  className="rounded-xl bg-accent px-8 py-3 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 transition-colors"
+                >
+                  {saving ? "Saving..." : "Save White Label Settings"}
+                </button>
+              </div>
+
             </div>
           )}
         </div>
