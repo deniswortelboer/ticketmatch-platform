@@ -147,20 +147,21 @@ export function generateInvoicePDF(options: InvoiceOptions): ArrayBuffer {
   doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(...NAVY);
-  doc.text("TicketMatch B.V.", colLeft, y);
+  doc.text("TicketMatch AI", colLeft, y);
   y += 5;
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.setTextColor(...GRAY);
   const fromLines = [
-    "Keizersgracht 520",
-    "1017 EK Amsterdam",
+    "Oosterhoutlaan 15",
+    "1181 AL Amstelveen",
     "The Netherlands",
     "",
-    "KVK: 90123456",
-    "BTW: NL864532109B01",
-    "info@ticketmatch.ai",
+    "BTW: NL003707467B94",
+    "IBAN: NL02KNAB0406813892",
+    "hello@ticketmatch.ai",
+    "+31 6 2797 3800",
   ];
   fromLines.forEach((line) => {
     if (line === "") {
@@ -477,7 +478,7 @@ function addFooter(doc: jsPDF, pageWidth: number, pageHeight: number, margin: nu
   doc.setFontSize(7);
   doc.setTextColor(150, 170, 200);
   doc.text(
-    "TicketMatch B.V.  |  Keizersgracht 520, 1017 EK Amsterdam  |  info@ticketmatch.ai  |  www.ticketmatch.ai",
+    "TicketMatch AI  |  Oosterhoutlaan 15, 1181 AL Amstelveen  |  hello@ticketmatch.ai  |  www.ticketmatch.ai",
     pageWidth / 2,
     pageHeight - 11,
     { align: "center" }
