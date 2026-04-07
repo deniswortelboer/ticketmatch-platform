@@ -128,13 +128,19 @@ export default function AdminDashboard() {
   const confirmedBookings = bookings.filter((b) => b.status === "confirmed").length;
   const pendingBookings = bookings.filter((b) => b.status === "pending").length;
 
+  // Parse extra data from message JSON
+  const parseMsg = (msg: string | null) => {
+    if (!msg) return null;
+    try { return JSON.parse(msg); } catch { return null; }
+  };
+
   // Companies pending account approval (based on message JSON)
   const pendingApprovalCompanies = companies.filter((c) => {
-    const msg = parseMessage(c.message);
+    const msg = parseMsg(c.message);
     return msg && msg.approved === false;
   });
   const approvedCompanies = companies.filter((c) => {
-    const msg = parseMessage(c.message);
+    const msg = parseMsg(c.message);
     return !msg || msg.approved !== false; // existing accounts without the flag are considered approved
   });
 
@@ -163,11 +169,7 @@ export default function AdminDashboard() {
     );
   };
 
-  // Parse extra data from message JSON
-  const parseMessage = (msg: string | null) => {
-    if (!msg) return null;
-    try { return JSON.parse(msg); } catch { return null; }
-  };
+  const parseMessage = parseMsg;
 
   return (
     <>
