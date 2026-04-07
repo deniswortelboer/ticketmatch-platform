@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useCurrency } from "@/components/CurrencySelector";
 
 interface Booking {
   id: string;
@@ -38,6 +39,8 @@ export default function BookingsPage() {
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
   const [invoiceLoading, setInvoiceLoading] = useState(false);
   const [invoiceError, setInvoiceError] = useState("");
+  const { currency, format } = useCurrency();
+  const isConverted = currency.code !== "EUR";
 
   useEffect(() => {
     Promise.all([
@@ -147,7 +150,7 @@ export default function BookingsPage() {
         </div>
         <div className="rounded-2xl border border-border/60 bg-white p-5">
           <p className="text-sm text-muted">Total Value</p>
-          <p className="mt-1 text-2xl font-bold text-accent">&euro; {totalValue.toFixed(2)}</p>
+          <p className="mt-1 text-2xl font-bold text-accent">{format(totalValue)}</p>
         </div>
       </div>
 
@@ -193,8 +196,11 @@ export default function BookingsPage() {
                 </div>
                 <div className="ml-4 flex items-center gap-3">
                   <div className="text-right">
-                    <p className="text-lg font-bold text-accent">&euro; {Number(booking.total_price).toFixed(2)}</p>
-                    <p className="text-xs text-muted">&euro; {Number(booking.unit_price).toFixed(2)} p.p.</p>
+                    <p className="text-lg font-bold text-accent">{format(Number(booking.total_price))}</p>
+                    <p className="text-xs text-muted">{format(Number(booking.unit_price))} p.p.</p>
+                    {isConverted && (
+                      <p className="text-[10px] text-muted/60 mt-0.5">&euro; {Number(booking.total_price).toFixed(2)} EUR</p>
+                    )}
                   </div>
                   <button
                     onClick={() => handleDelete(booking.id)}
@@ -256,7 +262,7 @@ export default function BookingsPage() {
                       <p className="text-xs text-muted">{groupBookingCount} booking{groupBookingCount !== 1 ? "s" : ""} &middot; {g.number_of_guests} guests</p>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="text-sm font-bold text-accent">&euro; {groupTotal.toFixed(2)}</span>
+                      <span className="text-sm font-bold text-accent">{format(groupTotal)}</span>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-muted">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                         <polyline points="7 10 12 15 17 10" />

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import CurrencySelector, { useCurrency } from "@/components/CurrencySelector";
 
 interface Stats {
   totalBookings: number;
@@ -34,6 +35,7 @@ export default function DashboardOverview() {
   const [companyName, setCompanyName] = useState("");
   const [loading, setLoading] = useState(true);
   const [allBookings, setAllBookings] = useState<Booking[]>([]);
+  const { currency, format } = useCurrency();
 
   useEffect(() => {
     // Load company name
@@ -116,8 +118,11 @@ export default function DashboardOverview() {
           <p className="mt-2 text-3xl font-bold text-amber-600">{stats.pendingBookings}</p>
         </div>
         <div className="rounded-2xl border border-border/60 bg-white p-6 shadow-sm">
-          <p className="text-xs font-medium uppercase tracking-wider text-muted">Total Value</p>
-          <p className="mt-2 text-3xl font-bold text-accent">&euro; {stats.totalValue.toFixed(2)}</p>
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-medium uppercase tracking-wider text-muted">Total Value</p>
+            <CurrencySelector compact />
+          </div>
+          <p className="mt-2 text-3xl font-bold text-accent">{format(stats.totalValue)}</p>
         </div>
       </div>
 
@@ -161,7 +166,7 @@ export default function DashboardOverview() {
                   </svg>
                   <p className="text-xs font-medium text-emerald-600">Group Rate Discount</p>
                 </div>
-                <p className="text-2xl font-bold text-emerald-800">&euro; {ticketSavings.toFixed(0)}</p>
+                <p className="text-2xl font-bold text-emerald-800">{format(ticketSavings)}</p>
                 <p className="text-[11px] text-emerald-500 mt-0.5">vs. individual walk-in prices</p>
               </div>
               <div className="rounded-xl bg-white/70 p-4 border border-emerald-100">
@@ -171,7 +176,7 @@ export default function DashboardOverview() {
                   </svg>
                   <p className="text-xs font-medium text-emerald-600">Time Saved</p>
                 </div>
-                <p className="text-2xl font-bold text-emerald-800">&euro; {adminSavings.toFixed(0)}</p>
+                <p className="text-2xl font-bold text-emerald-800">{format(adminSavings)}</p>
                 <p className="text-[11px] text-emerald-500 mt-0.5">{stats.totalBookings} bookings × no manual work</p>
               </div>
               <div className="rounded-xl bg-emerald-600 p-4 text-white">
@@ -181,7 +186,7 @@ export default function DashboardOverview() {
                   </svg>
                   <p className="text-xs font-medium text-emerald-200">Total Savings</p>
                 </div>
-                <p className="text-2xl font-bold">&euro; {totalSavings.toFixed(0)}</p>
+                <p className="text-2xl font-bold">{format(totalSavings)}</p>
                 <p className="text-[11px] text-emerald-200 mt-0.5">across {stats.totalBookings} bookings</p>
               </div>
             </div>
@@ -199,8 +204,8 @@ export default function DashboardOverview() {
                 />
               </div>
               <div className="flex items-center justify-between text-xs mt-1.5">
-                <span className="font-bold text-emerald-800">&euro; {stats.totalValue.toFixed(0)}</span>
-                <span className="text-emerald-400">&euro; {(walkInTotal + adminSavings).toFixed(0)}</span>
+                <span className="font-bold text-emerald-800">{format(stats.totalValue)}</span>
+                <span className="text-emerald-400">{format(walkInTotal + adminSavings)}</span>
               </div>
             </div>
           </div>
@@ -246,7 +251,7 @@ export default function DashboardOverview() {
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="font-semibold text-accent">&euro; {Number(booking.total_price).toFixed(2)}</p>
+                  <p className="font-semibold text-accent">{format(Number(booking.total_price))}</p>
                   <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                     booking.status === "confirmed" ? "bg-green-100 text-green-700" :
                     booking.status === "cancelled" ? "bg-red-100 text-red-700" :

@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase";
+import { useCurrency } from "@/components/CurrencySelector";
+import { CURRENCIES } from "@/lib/currency";
 
 type Profile = {
   full_name: string;
@@ -134,6 +136,7 @@ export default function SettingsPage() {
   const [inviteRole, setInviteRole] = useState("member");
   const [inviting, setInviting] = useState(false);
   const [inviteMsg, setInviteMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const { currency, setCurrency: setCurrencyPref } = useCurrency();
   const [notifications, setNotifications] = useState({
     booking_confirmations: true,
     booking_reminders: true,
@@ -385,6 +388,21 @@ export default function SettingsPage() {
                     className="h-12 w-full rounded-xl border border-border bg-gray-50 px-4 text-sm text-muted cursor-not-allowed"
                   />
                   <p className="mt-1 text-xs text-muted">Email cannot be changed. Contact support if needed.</p>
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium">Preferred Currency</label>
+                  <select
+                    value={currency.code}
+                    onChange={(e) => setCurrencyPref(e.target.value)}
+                    className="h-12 w-full rounded-xl border border-border bg-white px-4 text-sm outline-none transition-colors focus:border-accent focus:ring-2 focus:ring-accent/10"
+                  >
+                    {CURRENCIES.map((c) => (
+                      <option key={c.code} value={c.code}>
+                        {c.flag} {c.code} - {c.name}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="mt-1 text-xs text-muted">All prices will be shown in this currency. Database values remain in EUR.</p>
                 </div>
                 <button
                   onClick={handleSaveProfile}
