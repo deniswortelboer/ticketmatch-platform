@@ -60,6 +60,14 @@ export default function GroupsPage() {
   const [uploadContactPerson, setUploadContactPerson] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Rebook state
+  const [showRebookModal, setShowRebookModal] = useState(false);
+  const [rebookGroup, setRebookGroup] = useState<Group | null>(null);
+  const [rebookName, setRebookName] = useState("");
+  const [rebookDate, setRebookDate] = useState("");
+  const [rebooking, setRebooking] = useState(false);
+  const [rebookSuccess, setRebookSuccess] = useState("");
+
   const loadGroups = async () => {
     const res = await fetch("/api/groups");
     const data = await res.json();
@@ -104,6 +112,42 @@ export default function GroupsPage() {
     if (res.ok) {
       setGroups((prev) => prev.filter((g) => g.id !== id));
     }
+  };
+
+  const openRebook = (group: Group) => {
+    setRebookGroup(group);
+    setRebookName(`${group.name} (Rebooked)`);
+    setRebookDate("");
+    setRebookSuccess("");
+    setShowRebookModal(true);
+  };
+
+  const handleRebook = async () => {
+    if (!rebookGroup) return;
+    setRebooking(true);
+    try {
+      const res = await fetch("/api/groups/rebook", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          groupId: rebookGroup.id,
+          newName: rebookName.trim() || undefined,
+          newTravelDate: rebookDate || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setRebookSuccess(data.message);
+        await loadGroups();
+        setTimeout(() => {
+          setShowRebookModal(false);
+          setRebookSuccess("");
+        }, 2000);
+      }
+    } catch (err) {
+      console.error("Rebook failed:", err);
+    }
+    setRebooking(false);
   };
 
   // File upload handling
@@ -511,15 +555,27 @@ export default function GroupsPage() {
                     <p className="mt-2 text-sm text-muted/80 whitespace-pre-line line-clamp-3">{group.notes}</p>
                   )}
                 </div>
-                <button
-                  onClick={() => handleDelete(group.id)}
-                  className="ml-4 rounded-lg p-2 text-muted hover:bg-red-50 hover:text-red-600 transition-colors"
-                  title="Delete group"
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6" /><path d="M14 11v6" />
-                  </svg>
-                </button>
+                <div className="ml-4 flex items-center gap-1">
+                  <button
+                    onClick={() => openRebook(group)}
+                    className="rounded-lg p-2 text-muted hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                    title="Rebook this trip"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="23 4 23 10 17 10" />
+                      <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => handleDelete(group.id)}
+                    className="rounded-lg p-2 text-muted hover:bg-red-50 hover:text-red-600 transition-colors"
+                    title="Delete group"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                      <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6" /><path d="M14 11v6" />
+                    </svg>
+                  </button>
+                </div>
               </div>
             </div>
           ))}
@@ -534,6 +590,109 @@ export default function GroupsPage() {
             </p>
           </div>
         </>
+      )}
+      {/* Rebook Modal */}
+      {showRebookModal && rebookGroup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => !rebooking && setShowRebookModal(false)}>
+          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            {rebookSuccess ? (
+              <div className="flex flex-col items-center gap-3 py-4">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-green-100 text-green-600">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                </div>
+                <p className="text-center text-sm font-medium text-green-700">{rebookSuccess}</p>
+              </div>
+            ) : (
+              <>
+                <div className="mb-5 flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-100 text-blue-600">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="23 4 23 10 17 10" />
+                      <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold">Rebook Trip</h3>
+                    <p className="text-sm text-muted">Duplicate &quot;{rebookGroup.name}&quot; with all activities</p>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="rounded-xl bg-blue-50 p-4">
+                    <div className="flex items-center gap-4 text-sm">
+                      <div>
+                        <p className="text-xs text-blue-500 font-medium">Original trip</p>
+                        <p className="font-semibold text-blue-900">{rebookGroup.name}</p>
+                      </div>
+                      <div className="text-blue-300">→</div>
+                      <div>
+                        <p className="text-xs text-blue-500 font-medium">Guests</p>
+                        <p className="font-semibold text-blue-900">{rebookGroup.number_of_guests}</p>
+                      </div>
+                      <div className="text-blue-300">→</div>
+                      <div>
+                        <p className="text-xs text-blue-500 font-medium">Date</p>
+                        <p className="font-semibold text-blue-900">{formatDate(rebookGroup.travel_date)}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium">New group name</label>
+                    <input
+                      type="text"
+                      value={rebookName}
+                      onChange={(e) => setRebookName(e.target.value)}
+                      className="h-11 w-full rounded-xl border border-border bg-white px-4 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/10"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium">New travel date</label>
+                    <input
+                      type="date"
+                      value={rebookDate}
+                      onChange={(e) => setRebookDate(e.target.value)}
+                      className="h-11 w-full rounded-xl border border-border bg-white px-4 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/10"
+                    />
+                    <p className="mt-1 text-xs text-muted">All activity dates will shift automatically to match the new travel date.</p>
+                  </div>
+                </div>
+
+                <div className="mt-6 flex gap-3 justify-end">
+                  <button
+                    onClick={() => setShowRebookModal(false)}
+                    className="rounded-xl border border-border px-5 py-2.5 text-sm font-medium text-muted hover:bg-gray-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleRebook}
+                    disabled={rebooking}
+                    className="rounded-xl bg-accent px-6 py-2.5 text-sm font-semibold text-white transition-all hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {rebooking ? (
+                      <>
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                        Rebooking...
+                      </>
+                    ) : (
+                      <>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="23 4 23 10 17 10" />
+                          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+                        </svg>
+                        Rebook Trip
+                      </>
+                    )}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
       )}
     </>
   );
