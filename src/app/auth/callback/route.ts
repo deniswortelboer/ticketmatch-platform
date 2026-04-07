@@ -59,7 +59,7 @@ export async function GET(request: Request) {
         // Create company + profile in Supabase
         const { data: company } = await adminSupabase
           .from("companies")
-          .insert({ name: `${fullName}'s Company`, company_type: "unknown" })
+          .insert({ name: `${fullName}'s Company`, company_type: "unknown", message: JSON.stringify({ approved: false }) })
           .select("id")
           .single();
 

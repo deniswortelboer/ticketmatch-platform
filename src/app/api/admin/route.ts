@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { sendBookingStatusEmail } from "@/lib/email";
+import { sendBookingStatusEmail, sendApprovalEmail } from "@/lib/email";
 
 const ADMIN_EMAILS = ["wortelboerdenis@gmail.com", "patekrolexvc@gmail.com"];
 
@@ -108,9 +108,45 @@ export async function PATCH(request: Request) {
       }).catch((err) => console.error("Email send error:", err));
     }
   } else if (type === "company") {
+    // Get the current company to merge message JSON
+    const { data: company } = await admin
+      .from("companies")
+      .select("message, name")
+      .eq("id", id)
+      .single();
+
+    // Update the status column
     const { error } = await admin.from("companies").update({ status }).eq("id", id);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+    // Update the approved flag in the message JSON
+    let messageObj: Record<string, unknown> = {};
+    try { messageObj = company?.message ? JSON.parse(company.message) : {}; } catch {}
+    messageObj.approved = status === "approved";
+    const { error: msgError } = await admin
+      .from("companies")
+      .update({ message: JSON.stringify(messageObj) })
+      .eq("id", id);
+    if (msgError) console.error("Failed to update message JSON:", msgError);
+
+    // Send approval email to all team members when approved
+    if (status === "approved") {
+      const { data: teamMembers } = await admin
+        .from("profiles")
+        .select("email")
+        .eq("company_id", id)
+        .not("email", "is", null);
+
+      const emails = (teamMembers || [])
+        .map((m: { email: string | null }) => m.email)
+        .filter(Boolean) as string[];
+
+      sendApprovalEmail({
+        to: emails,
+        companyName: company?.name || "Your company",
+      }).catch((err) => console.error("Approval email error:", err));
+    }
   }
 
-  return NextResponse.json({ success: true, emailSent: type === "booking" });
+  return NextResponse.json({ success: true, emailSent: type === "booking" || (type === "company" && status === "approved") });
 }

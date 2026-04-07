@@ -70,10 +70,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         // Check if this is a supplier account
         let isSupplier = false;
+        let isApproved = true; // Default to true for existing accounts
         try {
           const msg = comp?.message ? JSON.parse(comp.message) : {};
           isSupplier = msg.role === "supplier";
+          // Only unapproved if explicitly set to false
+          if (msg.approved === false) {
+            isApproved = false;
+          }
         } catch {}
+
+        // Redirect unapproved users (unless they are admins or already on the pending page)
+        if (!isApproved && !ADMIN_EMAILS.includes(authUser.email || "") && pathname !== "/dashboard/pending") {
+          router.push("/dashboard/pending");
+          return;
+        }
 
         const parts = name.split(" ").filter(Boolean);
         const initials = parts.length >= 2
@@ -83,7 +94,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       }
     };
     loadUser();
-  }, []);
+  }, [pathname, router]);
 
   const handleLogout = async () => {
     const supabase = createClient();
@@ -105,6 +116,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         { href: "/dashboard/groups", label: "Groups", icon: "users" },
         { href: "/dashboard/settings", label: "Settings", icon: "settings" },
       ];
+
+  // Pending page renders standalone — no sidebar/nav
+  if (pathname === "/dashboard/pending") {
+    return <>{children}</>;
+  }
 
   return (
     <div className="flex h-screen bg-background">

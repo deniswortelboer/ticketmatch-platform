@@ -128,6 +128,16 @@ export default function AdminDashboard() {
   const confirmedBookings = bookings.filter((b) => b.status === "confirmed").length;
   const pendingBookings = bookings.filter((b) => b.status === "pending").length;
 
+  // Companies pending account approval (based on message JSON)
+  const pendingApprovalCompanies = companies.filter((c) => {
+    const msg = parseMessage(c.message);
+    return msg && msg.approved === false;
+  });
+  const approvedCompanies = companies.filter((c) => {
+    const msg = parseMessage(c.message);
+    return !msg || msg.approved !== false; // existing accounts without the flag are considered approved
+  });
+
   const tabs: { key: Tab; label: string; count: number }[] = [
     { key: "overview", label: "Overview", count: 0 },
     { key: "companies", label: "Companies", count: companies.length },
@@ -201,6 +211,63 @@ export default function AdminDashboard() {
       {/* Overview Tab */}
       {tab === "overview" && (
         <>
+          {/* Pending Approvals Banner */}
+          {pendingApprovalCompanies.length > 0 && (
+            <div className="mb-6">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-100">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-600">
+                    <circle cx="12" cy="12" r="10" />
+                    <polyline points="12 6 12 12 16 14" />
+                  </svg>
+                </div>
+                <h2 className="text-lg font-semibold">Pending Approvals ({pendingApprovalCompanies.length})</h2>
+              </div>
+              <div className="rounded-2xl border-2 border-amber-200 bg-amber-50/50 divide-y divide-amber-100 shadow-sm">
+                {pendingApprovalCompanies.map((c) => {
+                  const extra = parseMessage(c.message);
+                  const companyProfiles = profiles.filter((p) => p.company_id === c.id);
+                  return (
+                    <div key={c.id} className="flex items-center justify-between px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-100 text-sm font-semibold text-amber-700">
+                          {(c.name || "?").substring(0, 2).toUpperCase()}
+                        </div>
+                        <div>
+                          <p className="font-medium">{c.name || "Unnamed"}</p>
+                          <p className="text-xs text-muted">
+                            {c.company_type || "Unknown type"}
+                            {companyProfiles.length > 0 && ` \u00B7 ${companyProfiles.map(p => p.email).join(", ")}`}
+                            {` \u00B7 ${formatDate(c.created_at)}`}
+                          </p>
+                          {extra?.group_volume && (
+                            <p className="text-xs text-muted">Volume: {extra.group_volume}</p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => updateStatus("company", c.id, "approved")}
+                          disabled={updating === c.id}
+                          className="rounded-lg bg-green-600 px-4 py-2 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50 transition-colors"
+                        >
+                          {updating === c.id ? "..." : "Approve"}
+                        </button>
+                        <button
+                          onClick={() => updateStatus("company", c.id, "rejected")}
+                          disabled={updating === c.id}
+                          className="rounded-lg bg-red-600 px-4 py-2 text-xs font-medium text-white hover:bg-red-700 disabled:opacity-50 transition-colors"
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div className="rounded-2xl border border-border/60 bg-white p-6 shadow-sm">
               <p className="text-xs font-medium uppercase tracking-wider text-muted">Companies</p>

@@ -11,6 +11,14 @@ export async function POST(request: Request) {
     const { userId, companyName, companyType, phone, message, contactName, email } =
       await request.json();
 
+    // Merge approval flag into the message JSON
+    let messageObj: Record<string, unknown> = {};
+    if (message) {
+      try { messageObj = typeof message === "string" ? JSON.parse(message) : message; } catch { messageObj = { text: message }; }
+    }
+    messageObj.approved = false;
+    const messageStr = JSON.stringify(messageObj);
+
     // 1. Create company record (bypasses RLS with service role)
     const { data: company, error: companyError } = await supabaseAdmin
       .from("companies")
@@ -18,7 +26,7 @@ export async function POST(request: Request) {
         name: companyName,
         company_type: companyType,
         phone,
-        message,
+        message: messageStr,
       })
       .select()
       .single();
