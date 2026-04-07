@@ -403,9 +403,9 @@ export function generateInvoicePDF(options: InvoiceOptions): ArrayBuffer {
   doc.setTextColor(...GRAY);
 
   const paymentLines = [
-    "Bank: ABN AMRO Bank N.V.",
-    "IBAN: NL91 ABNA 0417 1643 00",
-    "BIC/SWIFT: ABNANL2A",
+    "Bank: Knab (a.s.r. bank N.V.)",
+    "IBAN: NL02 KNAB 0406 8138 92",
+    "BIC/SWIFT: KNABNL2H",
     `Reference: ${invoiceNumber}`,
   ];
 
@@ -487,7 +487,7 @@ function addFooter(doc: jsPDF, pageWidth: number, pageHeight: number, margin: nu
   doc.setFontSize(6);
   doc.setTextColor(100, 120, 150);
   doc.text(
-    "KVK: 90123456  |  BTW: NL864532109B01  |  IBAN: NL91 ABNA 0417 1643 00",
+    "BTW: NL003707467B94  |  IBAN: NL02 KNAB 0406 8138 92  |  +31 6 2797 3800",
     pageWidth / 2,
     pageHeight - 7,
     { align: "center" }
