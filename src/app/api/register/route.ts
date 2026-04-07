@@ -42,7 +42,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: profileError.message }, { status: 500 });
     }
 
-    // 3. Notify via n8n webhook (non-blocking)
+    // 3. Sync to HubSpot (non-blocking)
+    const origin = request.headers.get("origin") || process.env.NEXT_PUBLIC_SITE_URL || "https://ticketmatch.ai";
+    fetch(`${origin}/api/hubspot`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        companyName,
+        contactName,
+        email,
+        phone,
+        companyType,
+        message,
+      }),
+    }).catch(() => {});
+
+    // 4. Notify via n8n webhook (non-blocking)
     const webhookUrl = process.env.N8N_REGISTER_WEBHOOK_URL;
     if (webhookUrl) {
       fetch(webhookUrl, {
