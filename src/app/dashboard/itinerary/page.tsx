@@ -29,6 +29,10 @@ export default function ItineraryPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [selectedGroup, setSelectedGroup] = useState("");
   const [loading, setLoading] = useState(true);
+  const [shareUrl, setShareUrl] = useState("");
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [shareLoading, setShareLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -43,6 +47,45 @@ export default function ItineraryPage() {
       setLoading(false);
     });
   }, []);
+
+  const handleShare = async () => {
+    if (!selectedGroup) return;
+    setShareLoading(true);
+    try {
+      const res = await fetch("/api/itinerary/share", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ groupId: selectedGroup }),
+      });
+      const data = await res.json();
+      if (data.shareUrl) {
+        setShareUrl(data.shareUrl);
+        setShowShareModal(true);
+      }
+    } catch (err) {
+      console.error("Failed to generate share link:", err);
+    } finally {
+      setShareLoading(false);
+    }
+  };
+
+  const copyToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Fallback for older browsers
+      const input = document.createElement("input");
+      input.value = shareUrl;
+      document.body.appendChild(input);
+      input.select();
+      document.execCommand("copy");
+      document.body.removeChild(input);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
   const group = groups.find((g) => g.id === selectedGroup);
   const groupBookings = bookings.filter((b) => b.group_id === selectedGroup);
@@ -117,17 +160,33 @@ export default function ItineraryPage() {
         </div>
         <div className="flex gap-2">
           {group && groupBookings.length > 0 && (
-            <button
-              onClick={() => generateItineraryPDF(group, groupBookings)}
-              className="rounded-xl border border-border bg-white px-5 py-2.5 text-sm font-medium transition-all hover:bg-gray-50 flex items-center gap-2"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <polyline points="7 10 12 15 17 10" />
-                <line x1="12" y1="15" x2="12" y2="3" />
-              </svg>
-              Export PDF
-            </button>
+            <>
+              <button
+                onClick={handleShare}
+                disabled={shareLoading}
+                className="rounded-xl border border-border bg-white px-5 py-2.5 text-sm font-medium transition-all hover:bg-gray-50 flex items-center gap-2 disabled:opacity-50"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="18" cy="5" r="3" />
+                  <circle cx="6" cy="12" r="3" />
+                  <circle cx="18" cy="19" r="3" />
+                  <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+                  <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+                </svg>
+                {shareLoading ? "Generating..." : "Share"}
+              </button>
+              <button
+                onClick={() => generateItineraryPDF(group, groupBookings)}
+                className="rounded-xl border border-border bg-white px-5 py-2.5 text-sm font-medium transition-all hover:bg-gray-50 flex items-center gap-2"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                Export PDF
+              </button>
+            </>
           )}
           <Link
             href="/dashboard/catalog"
@@ -264,6 +323,61 @@ export default function ItineraryPage() {
             <div>
               <p className="text-sm text-muted">Total ({group.number_of_guests} guests)</p>
               <p className="mt-1 text-2xl font-bold text-accent">&euro; {totalAll.toFixed(2)}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Share Modal */}
+      {showShareModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setShowShareModal(false)}>
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-lg font-bold">Share Itinerary</h3>
+              <button
+                onClick={() => setShowShareModal(false)}
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-muted hover:bg-gray-100 transition-colors"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+            <p className="mb-4 text-sm text-muted">
+              Share this link with your group members so they can view the itinerary. They won&apos;t need to log in, and prices are hidden.
+            </p>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                readOnly
+                value={shareUrl}
+                className="h-11 flex-1 rounded-xl border border-border bg-gray-50 px-4 text-sm outline-none"
+              />
+              <button
+                onClick={copyToClipboard}
+                className={`flex h-11 items-center gap-2 rounded-xl px-5 text-sm font-semibold text-white transition-all ${
+                  copied ? "bg-emerald-600" : "bg-accent hover:bg-accent-dark"
+                }`}
+              >
+                {copied ? (
+                  <>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                    </svg>
+                    Copy
+                  </>
+                )}
+              </button>
+            </div>
+            <div className="mt-4 rounded-xl bg-blue-50 p-3 text-xs text-blue-700">
+              <strong>Tip:</strong> This link is permanent for this group. Anyone with the link can view the itinerary (without prices).
             </div>
           </div>
         </div>
