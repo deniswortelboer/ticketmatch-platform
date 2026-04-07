@@ -8,6 +8,7 @@ interface Stats {
   activeGroups: number;
   totalValue: number;
   pendingBookings: number;
+  totalGuests: number;
 }
 
 interface Booking {
@@ -28,10 +29,11 @@ const quickActions = [
 ];
 
 export default function DashboardOverview() {
-  const [stats, setStats] = useState<Stats>({ totalBookings: 0, activeGroups: 0, totalValue: 0, pendingBookings: 0 });
+  const [stats, setStats] = useState<Stats>({ totalBookings: 0, activeGroups: 0, totalValue: 0, pendingBookings: 0, totalGuests: 0 });
   const [recentBookings, setRecentBookings] = useState<Booking[]>([]);
   const [companyName, setCompanyName] = useState("");
   const [loading, setLoading] = useState(true);
+  const [allBookings, setAllBookings] = useState<Booking[]>([]);
 
   useEffect(() => {
     // Load company name
@@ -56,12 +58,15 @@ export default function DashboardOverview() {
       const bookings = b.bookings || [];
       const totalValue = bookings.reduce((sum: number, bk: Booking) => sum + Number(bk.total_price), 0);
 
+      const totalGuests = groups.reduce((sum: number, gr: { number_of_guests: number }) => sum + (gr.number_of_guests || 0), 0);
       setStats({
         totalBookings: bookings.length,
         activeGroups: groups.length,
         totalValue,
         pendingBookings: bookings.filter((bk: Booking) => bk.status === "pending").length,
+        totalGuests,
       });
+      setAllBookings(bookings);
       setRecentBookings(bookings.slice(0, 5));
       setLoading(false);
     });
@@ -115,6 +120,92 @@ export default function DashboardOverview() {
           <p className="mt-2 text-3xl font-bold text-accent">&euro; {stats.totalValue.toFixed(2)}</p>
         </div>
       </div>
+
+      {/* Savings Calculator */}
+      {stats.totalBookings > 0 && (() => {
+        // Calculate savings: group rate vs individual walk-in prices
+        // TicketMatch offers ~15-25% discount vs walk-in individual prices
+        const discountRate = 0.20; // average 20% group discount
+        const adminSavingsPerBooking = 12.50; // saved time per booking (manual emails, calls, etc.)
+        const walkInTotal = stats.totalValue / (1 - discountRate); // what they'd pay at walk-in rates
+        const ticketSavings = walkInTotal - stats.totalValue;
+        const adminSavings = stats.totalBookings * adminSavingsPerBooking;
+        const totalSavings = ticketSavings + adminSavings;
+        const savingsPercentage = ((totalSavings / (walkInTotal + adminSavings)) * 100).toFixed(0);
+
+        return (
+          <div className="mb-8 rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-green-50 p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-emerald-900">Your Savings with TicketMatch</h2>
+                  <p className="text-xs text-emerald-600">Compared to individual walk-in pricing & manual booking</p>
+                </div>
+              </div>
+              <div className="hidden sm:block text-right">
+                <p className="text-3xl font-bold text-emerald-700">{savingsPercentage}%</p>
+                <p className="text-xs text-emerald-500 font-medium">total saved</p>
+              </div>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div className="rounded-xl bg-white/70 p-4 border border-emerald-100">
+                <div className="flex items-center gap-2 mb-1">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-emerald-500">
+                    <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" />
+                  </svg>
+                  <p className="text-xs font-medium text-emerald-600">Group Rate Discount</p>
+                </div>
+                <p className="text-2xl font-bold text-emerald-800">&euro; {ticketSavings.toFixed(0)}</p>
+                <p className="text-[11px] text-emerald-500 mt-0.5">vs. individual walk-in prices</p>
+              </div>
+              <div className="rounded-xl bg-white/70 p-4 border border-emerald-100">
+                <div className="flex items-center gap-2 mb-1">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-emerald-500">
+                    <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+                  </svg>
+                  <p className="text-xs font-medium text-emerald-600">Time Saved</p>
+                </div>
+                <p className="text-2xl font-bold text-emerald-800">&euro; {adminSavings.toFixed(0)}</p>
+                <p className="text-[11px] text-emerald-500 mt-0.5">{stats.totalBookings} bookings × no manual work</p>
+              </div>
+              <div className="rounded-xl bg-emerald-600 p-4 text-white">
+                <div className="flex items-center gap-2 mb-1">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-emerald-200">
+                    <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" /><polyline points="17 6 23 6 23 12" />
+                  </svg>
+                  <p className="text-xs font-medium text-emerald-200">Total Savings</p>
+                </div>
+                <p className="text-2xl font-bold">&euro; {totalSavings.toFixed(0)}</p>
+                <p className="text-[11px] text-emerald-200 mt-0.5">across {stats.totalBookings} bookings</p>
+              </div>
+            </div>
+
+            {/* Savings bar */}
+            <div className="mt-4 rounded-lg bg-white/50 p-3 border border-emerald-100">
+              <div className="flex items-center justify-between text-xs mb-1.5">
+                <span className="text-emerald-600 font-medium">You paid</span>
+                <span className="text-emerald-400">Walk-in price would be</span>
+              </div>
+              <div className="h-3 rounded-full bg-emerald-100 overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all duration-1000"
+                  style={{ width: `${100 - parseFloat(savingsPercentage)}%` }}
+                />
+              </div>
+              <div className="flex items-center justify-between text-xs mt-1.5">
+                <span className="font-bold text-emerald-800">&euro; {stats.totalValue.toFixed(0)}</span>
+                <span className="text-emerald-400">&euro; {(walkInTotal + adminSavings).toFixed(0)}</span>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Quick actions */}
       <div className="mb-8">
