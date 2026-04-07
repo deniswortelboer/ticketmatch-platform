@@ -67,3 +67,13 @@ body {
 .chat-msg {
   animation: slideIn 0.3s ease-out both;
 }
+
+/* Print styles for itinerary export */
+@media print {
+  body { background: white !important; }
+  aside, nav, .print\\:hidden { display: none !important; }
+  main { padding: 0 !important; margin: 0 !important; }
+  main > div { max-width: 100% !important; padding: 0 !important; }
+  .rounded-2xl { border-radius: 8px !important; }
+  @page { margin: 1.5cm; size: A4; }
+}

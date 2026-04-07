@@ -220,6 +220,223 @@ export default function PartnersPage() {
           </div>
         </section>
 
+        {/* ════════════ HOW WE INTEGRATE ════════════ */}
+        <section className="py-24">
+          <div className="mx-auto max-w-7xl px-6">
+            <div className="mb-16 max-w-2xl">
+              <p className="mb-3 text-sm font-semibold uppercase tracking-wider text-accent">
+                How we integrate
+              </p>
+              <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
+                Plug in once, reach every tour operator.
+              </h2>
+              <p className="mt-4 text-[15px] leading-relaxed text-muted">
+                Our adapter architecture makes integration simple. You provide
+                your API — we handle the rest. Your products appear in the
+                dashboard of every travel professional on our platform.
+              </p>
+            </div>
+
+            {/* Integration flow */}
+            <div className="grid gap-4 md:grid-cols-4">
+              {[
+                {
+                  step: "1",
+                  title: "Your API",
+                  desc: "Share your API documentation and credentials. We support REST, GraphQL or custom formats.",
+                  color: "from-blue-600 to-blue-800",
+                  icon: "M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z",
+                },
+                {
+                  step: "2",
+                  title: "We build the adapter",
+                  desc: "Our team writes a dedicated adapter that translates your data into our universal format.",
+                  color: "from-amber-500 to-orange-600",
+                  icon: "M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4",
+                },
+                {
+                  step: "3",
+                  title: "Live in the catalog",
+                  desc: "Your venues, pricing and availability appear in real-time in every operator's dashboard.",
+                  color: "from-emerald-500 to-emerald-700",
+                  icon: "M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z",
+                },
+                {
+                  step: "4",
+                  title: "Bookings come in",
+                  desc: "Tour operators book, you receive confirmed reservations. Track everything from your supplier panel.",
+                  color: "from-violet-500 to-purple-700",
+                  icon: "M13 7h8m0 0v8m0-8l-8 8-4-4-6 6",
+                },
+              ].map((s, i) => (
+                <div
+                  key={s.step}
+                  className={`group relative overflow-hidden rounded-2xl bg-gradient-to-br ${s.color} p-6 text-white transition-all hover:shadow-xl hover:scale-[1.02]`}
+                >
+                  <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-white/10" />
+                  <div className="absolute -bottom-4 -left-4 h-16 w-16 rounded-full bg-white/5" />
+                  <div className="relative flex items-center gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
+                      <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="white"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d={s.icon} />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-medium uppercase tracking-wider text-white/60">
+                        Step {s.step}
+                      </p>
+                      <h3 className="text-lg font-bold">{s.title}</h3>
+                    </div>
+                  </div>
+                  <p className="relative mt-3 text-[13px] leading-relaxed text-white/80">
+                    {s.desc}
+                  </p>
+                  {i < 3 && (
+                    <div className="absolute -right-3 top-1/2 z-10 hidden -translate-y-1/2 md:block">
+                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-white shadow-md">
+                        <svg
+                          width="12"
+                          height="12"
+                          viewBox="0 0 16 16"
+                          fill="none"
+                        >
+                          <path
+                            d="M3 8h10M9 4l4 4-4 4"
+                            stroke="#2563eb"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Architecture diagram */}
+            <div className="mt-16 overflow-hidden rounded-2xl border border-border/60 bg-white p-8 md:p-12">
+              <div className="mb-8 text-center">
+                <p className="text-sm font-semibold uppercase tracking-wider text-accent">
+                  Platform architecture
+                </p>
+                <h3 className="mt-2 text-xl font-bold">
+                  One platform, multiple suppliers
+                </h3>
+              </div>
+
+              {/* Visual diagram */}
+              <div className="flex flex-col items-center gap-6">
+                {/* Tour Operators */}
+                <div className="w-full max-w-md rounded-xl border-2 border-accent/20 bg-accent/5 px-6 py-4 text-center">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-accent">
+                    Tour operators &amp; DMCs
+                  </p>
+                  <p className="mt-1 text-sm font-bold">
+                    TicketMatch Dashboard
+                  </p>
+                  <p className="mt-1 text-xs text-muted">
+                    Catalog &bull; Itinerary Builder &bull; Bookings &bull;
+                    Groups
+                  </p>
+                </div>
+
+                {/* Arrow down */}
+                <div className="flex flex-col items-center">
+                  <div className="h-6 w-px bg-border" />
+                  <div className="h-0 w-0 border-l-[6px] border-r-[6px] border-t-[8px] border-l-transparent border-r-transparent border-t-border" />
+                </div>
+
+                {/* Service layer */}
+                <div className="w-full max-w-lg rounded-xl border-2 border-amber-500/30 bg-amber-50 px-6 py-4 text-center">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-amber-600">
+                    Catalog Service
+                  </p>
+                  <p className="mt-1 text-sm font-bold text-amber-900">
+                    Universal API layer
+                  </p>
+                  <p className="mt-1 text-xs text-amber-700/70">
+                    Translates every supplier into one standard format
+                  </p>
+                </div>
+
+                {/* Arrow down */}
+                <div className="flex flex-col items-center">
+                  <div className="h-6 w-px bg-border" />
+                  <div className="h-0 w-0 border-l-[6px] border-r-[6px] border-t-[8px] border-l-transparent border-r-transparent border-t-border" />
+                </div>
+
+                {/* Adapters */}
+                <div className="grid w-full max-w-2xl grid-cols-2 gap-3 md:grid-cols-4">
+                  {[
+                    {
+                      name: "Combitiq",
+                      status: "Ready",
+                      color: "border-emerald-500/40 bg-emerald-50",
+                      text: "text-emerald-700",
+                      badge: "bg-emerald-100 text-emerald-700",
+                    },
+                    {
+                      name: "GetYourGuide",
+                      status: "Open",
+                      color: "border-blue-500/20 bg-blue-50/50",
+                      text: "text-blue-700",
+                      badge: "bg-blue-100 text-blue-600",
+                    },
+                    {
+                      name: "Tiqets",
+                      status: "Open",
+                      color: "border-orange-500/20 bg-orange-50/50",
+                      text: "text-orange-700",
+                      badge: "bg-orange-100 text-orange-600",
+                    },
+                    {
+                      name: "Viator",
+                      status: "Open",
+                      color: "border-purple-500/20 bg-purple-50/50",
+                      text: "text-purple-700",
+                      badge: "bg-purple-100 text-purple-600",
+                    },
+                  ].map((a) => (
+                    <div
+                      key={a.name}
+                      className={`rounded-xl border-2 ${a.color} px-4 py-3 text-center`}
+                    >
+                      <p className={`text-sm font-bold ${a.text}`}>{a.name}</p>
+                      <span
+                        className={`mt-1.5 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${a.badge}`}
+                      >
+                        {a.status}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Your venue CTA */}
+                <div className="mt-4 rounded-xl border-2 border-dashed border-accent/30 bg-accent/5 px-8 py-4 text-center">
+                  <p className="text-sm font-bold text-accent">
+                    Your platform here?
+                  </p>
+                  <p className="mt-1 text-xs text-muted">
+                    We build a dedicated adapter for your API — zero effort on
+                    your side.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* Photo gallery — experiences */}
         <section className="py-24">
           <div className="mx-auto max-w-7xl px-6">
