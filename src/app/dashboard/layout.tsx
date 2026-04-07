@@ -14,6 +14,7 @@ const navItems = [
   { href: "/dashboard/groups", label: "Groups", icon: "users" },
   { href: "/dashboard/itinerary", label: "Itinerary", icon: "calendar" },
   { href: "/dashboard/pricing", label: "Plans", icon: "zap" },
+  { href: "/dashboard/affiliate", label: "Refer & Earn", icon: "gift" },
   { href: "/dashboard/settings", label: "Settings", icon: "settings" },
 ];
 
@@ -34,6 +35,7 @@ function NavIcon({ type }: { type: string }) {
     case "building": return <svg {...props}><path d="M3 21h18" /><path d="M5 21V7l7-4 7 4v14" /><path d="M9 21v-6h6v6" /></svg>;
     case "settings": return <svg {...props}><circle cx="12" cy="12" r="3" /><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72 1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" /></svg>;
     case "zap": return <svg {...props}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>;
+    case "gift": return <svg {...props}><polyline points="20 12 20 22 4 22 4 12" /><rect x="2" y="7" width="20" height="5" /><line x1="12" y1="22" x2="12" y2="7" /><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z" /><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" /></svg>;
     case "shield": return <svg {...props}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>;
     default: return null;
   }
