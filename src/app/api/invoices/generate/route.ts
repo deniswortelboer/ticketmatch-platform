@@ -123,42 +123,77 @@ export async function POST(request: Request) {
 
   // Create Mollie payment link so customer can pay online
   let paymentUrl: string | undefined;
-  if (process.env.MOLLIE_API_KEY) {
+  const mollieKey = process.env.MOLLIE_API_KEY;
+  if (mollieKey) {
     try {
       const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://ticketmatch.ai";
+
+      // First try Payment Links API (reusable, doesn't expire quickly)
+      const paymentLinkBody = {
+        description: `Invoice ${invoiceNumber} - ${group.name}`,
+        amount: {
+          currency: "EUR",
+          value: grandTotal.toFixed(2),
+        },
+        redirectUrl: `${siteUrl}/pay/success?invoice=${invoiceNumber}`,
+        webhookUrl: `${siteUrl}/api/mollie/invoice-webhook`,
+      };
+
+      console.log("Creating Mollie payment link:", JSON.stringify(paymentLinkBody));
+
       const mollieRes = await fetch("https://api.mollie.com/v2/payment-links", {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${process.env.MOLLIE_API_KEY}`,
+          "Authorization": `Bearer ${mollieKey}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          description: `Invoice ${invoiceNumber} — ${group.name}`,
-          amount: {
-            currency: "EUR",
-            value: grandTotal.toFixed(2),
-          },
-          redirectUrl: `${siteUrl}/pay/success?invoice=${invoiceNumber}`,
-          webhookUrl: `${siteUrl}/api/mollie/invoice-webhook`,
-          expiresAt: dueDateObj.toISOString().split("T")[0],
-          metadata: JSON.stringify({
-            invoiceNumber,
-            groupId: group.id,
-            companyId: profile.company_id,
-            companyName: company?.name || "",
-          }),
-        }),
+        body: JSON.stringify(paymentLinkBody),
       });
 
       const paymentLink = await mollieRes.json();
+      console.log("Mollie response status:", mollieRes.status, "body:", JSON.stringify(paymentLink));
+
       if (mollieRes.ok && paymentLink._links?.paymentLink?.href) {
         paymentUrl = paymentLink._links.paymentLink.href;
+        console.log("Mollie payment URL created:", paymentUrl);
       } else {
-        console.error("Mollie payment link error:", paymentLink);
+        // Fallback: try regular Payments API
+        console.log("Payment Links failed, trying regular Payments API...");
+        const paymentRes = await fetch("https://api.mollie.com/v2/payments", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${mollieKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            amount: { currency: "EUR", value: grandTotal.toFixed(2) },
+            description: `Invoice ${invoiceNumber} - ${group.name}`,
+            redirectUrl: `${siteUrl}/pay/success?invoice=${invoiceNumber}`,
+            webhookUrl: `${siteUrl}/api/mollie/invoice-webhook`,
+            metadata: JSON.stringify({
+              invoiceNumber,
+              groupId: group.id,
+              companyId: profile.company_id,
+              companyName: company?.name || "",
+            }),
+          }),
+        });
+
+        const payment = await paymentRes.json();
+        console.log("Mollie payment response:", paymentRes.status, JSON.stringify(payment));
+
+        if (paymentRes.ok && payment._links?.checkout?.href) {
+          paymentUrl = payment._links.checkout.href;
+          console.log("Mollie checkout URL created:", paymentUrl);
+        } else {
+          console.error("Both Mollie APIs failed:", JSON.stringify(payment));
+        }
       }
     } catch (err) {
       console.error("Failed to create Mollie payment link:", err);
     }
+  } else {
+    console.log("No MOLLIE_API_KEY set, skipping payment link");
   }
 
   // Generate PDF with real payment link
