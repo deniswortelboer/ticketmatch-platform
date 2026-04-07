@@ -116,7 +116,52 @@ export async function POST(request: Request) {
   dueDateObj.setDate(dueDateObj.getDate() + 30);
   const dueDate = dueDateObj.toISOString().split("T")[0];
 
-  // Generate PDF
+  // Calculate total for Mollie payment
+  const subtotal = bookings.reduce((sum, b) => sum + Number(b.total_price), 0);
+  const vatAmount = subtotal * 0.21;
+  const grandTotal = subtotal + vatAmount;
+
+  // Create Mollie payment link so customer can pay online
+  let paymentUrl: string | undefined;
+  if (process.env.MOLLIE_API_KEY) {
+    try {
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://ticketmatch.ai";
+      const mollieRes = await fetch("https://api.mollie.com/v2/payment-links", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${process.env.MOLLIE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          description: `Invoice ${invoiceNumber} — ${group.name}`,
+          amount: {
+            currency: "EUR",
+            value: grandTotal.toFixed(2),
+          },
+          redirectUrl: `${siteUrl}/pay/success?invoice=${invoiceNumber}`,
+          webhookUrl: `${siteUrl}/api/mollie/invoice-webhook`,
+          expiresAt: dueDateObj.toISOString().split("T")[0],
+          metadata: JSON.stringify({
+            invoiceNumber,
+            groupId: group.id,
+            companyId: profile.company_id,
+            companyName: company?.name || "",
+          }),
+        }),
+      });
+
+      const paymentLink = await mollieRes.json();
+      if (mollieRes.ok && paymentLink._links?.paymentLink?.href) {
+        paymentUrl = paymentLink._links.paymentLink.href;
+      } else {
+        console.error("Mollie payment link error:", paymentLink);
+      }
+    } catch (err) {
+      console.error("Failed to create Mollie payment link:", err);
+    }
+  }
+
+  // Generate PDF with real payment link
   const pdfBuffer = generateInvoicePDF({
     invoiceNumber,
     invoiceDate,
@@ -148,6 +193,7 @@ export async function POST(request: Request) {
       website: companyMessage.website || undefined,
       phone: company?.phone || undefined,
     },
+    paymentUrl,
   });
 
   const fileName = `invoice-${invoiceNumber}-${group.name.replace(/[^a-zA-Z0-9]/g, "-").toLowerCase()}.pdf`;

@@ -37,6 +37,7 @@ interface InvoiceOptions {
   group: Group;
   bookings: Booking[];
   company: CompanyInfo;
+  paymentUrl?: string;
 }
 
 const NAVY = [15, 23, 41] as const;       // #0f1729
@@ -76,7 +77,7 @@ function formatShortDate(dateStr: string | null): string {
 }
 
 export function generateInvoicePDF(options: InvoiceOptions): ArrayBuffer {
-  const { invoiceNumber, invoiceDate, dueDate, group, bookings, company } = options;
+  const { invoiceNumber, invoiceDate, dueDate, group, bookings, company, paymentUrl } = options;
 
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   const pageWidth = 210;
@@ -415,10 +416,15 @@ export function generateInvoicePDF(options: InvoiceOptions): ArrayBuffer {
   });
 
   y += 2;
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(8);
-  doc.setTextColor(...BLUE);
-  doc.text("Online payment: https://pay.ticketmatch.ai/invoice/" + invoiceNumber, margin + 8, y);
+  if (paymentUrl) {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.setTextColor(...BLUE);
+    doc.text("Pay online: " + paymentUrl, margin + 8, y);
+    // Make the link clickable
+    const linkWidth = doc.getTextWidth("Pay online: " + paymentUrl);
+    doc.link(margin + 8, y - 3, linkWidth, 5, { url: paymentUrl });
+  }
 
   y += 12;
 
