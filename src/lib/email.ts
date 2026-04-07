@@ -4,7 +4,9 @@ const resend = process.env.RESEND_API_KEY
   ? new Resend(process.env.RESEND_API_KEY)
   : null;
 
-const FROM_EMAIL = "TicketMatch <notifications@ticketmatch.ai>";
+// Use Resend's default domain until ticketmatch.ai DNS is fully verified
+// Once verified, switch back to: "TicketMatch <notifications@ticketmatch.ai>"
+const FROM_EMAIL = "TicketMatch <onboarding@resend.dev>";
 
 // ─── Status config ────────────────────────────────────────────
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: string; description: string }> = {
