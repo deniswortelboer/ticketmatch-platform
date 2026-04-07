@@ -33,6 +33,7 @@ export default function ItineraryPage() {
   const [showShareModal, setShowShareModal] = useState(false);
   const [shareLoading, setShareLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [invoiceLoading, setInvoiceLoading] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -66,6 +67,34 @@ export default function ItineraryPage() {
       console.error("Failed to generate share link:", err);
     } finally {
       setShareLoading(false);
+    }
+  };
+
+  const handleInvoice = async () => {
+    if (!selectedGroup) return;
+    setInvoiceLoading(true);
+    try {
+      const res = await fetch("/api/invoices/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ groupId: selectedGroup }),
+      });
+      if (!res.ok) return;
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const disposition = res.headers.get("Content-Disposition");
+      const match = disposition?.match(/filename="(.+)"/);
+      a.download = match?.[1] || "invoice.pdf";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Failed to generate invoice:", err);
+    } finally {
+      setInvoiceLoading(false);
     }
   };
 
@@ -185,6 +214,20 @@ export default function ItineraryPage() {
                   <line x1="12" y1="15" x2="12" y2="3" />
                 </svg>
                 Export PDF
+              </button>
+              <button
+                onClick={handleInvoice}
+                disabled={invoiceLoading}
+                className="rounded-xl border border-border bg-white px-5 py-2.5 text-sm font-medium transition-all hover:bg-gray-50 flex items-center gap-2 disabled:opacity-50"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14 2 14 8 20 8" />
+                  <line x1="16" y1="13" x2="8" y2="13" />
+                  <line x1="16" y1="17" x2="8" y2="17" />
+                  <polyline points="10 9 9 9 8 9" />
+                </svg>
+                {invoiceLoading ? "Generating..." : "Invoice"}
               </button>
             </>
           )}
