@@ -47,9 +47,23 @@ function RegisterPageInner() {
   // Fetch dynamic Viator images for photo grid
   const [viatorImages, setViatorImages] = useState<Record<string, string[]>>({});
   useEffect(() => {
-    fetch("/api/viator-images?categories=museums,food,attractions,water,outdoor,tours&count=4")
+    fetch("/api/viator-images?categories=museums,food,water,outdoor,tickets,tours&count=6")
       .then((res) => (res.ok ? res.json() : {}))
-      .then((data) => setViatorImages(data))
+      .then((data) => {
+        // Deduplicate: ensure no image URL appears in multiple categories
+        const used = new Set<string>();
+        const deduped: Record<string, string[]> = {};
+        for (const cat of Object.keys(data)) {
+          deduped[cat] = [];
+          for (const url of data[cat] || []) {
+            if (!used.has(url)) {
+              used.add(url);
+              deduped[cat].push(url);
+            }
+          }
+        }
+        setViatorImages(deduped);
+      })
       .catch(() => {});
   }, []);
 
@@ -467,7 +481,7 @@ function RegisterPageInner() {
                 {[
                   { key: "museums", fallback: "/images/register-museum.jpg", alt: "Museum experience", label: "Museums" },
                   { key: "food", fallback: "/images/register-dining.jpg", alt: "Group dining", label: "Dining" },
-                  { key: "attractions", fallback: "/images/register-attraction.jpg", alt: "Immersive attraction", label: "Attractions" },
+                  { key: "tickets", fallback: "/images/register-attraction.jpg", alt: "Tickets & shows", label: "Tickets" },
                   { key: "water", fallback: "/images/partners-canal.jpg", alt: "Canal cruise", label: "Cruises" },
                   { key: "outdoor", fallback: "/images/partners-tulips.jpg", alt: "Day trips", label: "Day Trips" },
                   { key: "tours", fallback: "/images/hero-amsterdam.jpg", alt: "City tours", label: "City Tours" },
