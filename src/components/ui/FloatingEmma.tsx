@@ -506,6 +506,25 @@ export default function FloatingEmma() {
     return () => clearTimeout(timer);
   }, [hidden, hasBeenOpened]);
 
+  // When Emma opens on homepage, pick up any HeroChat conversation
+  useEffect(() => {
+    if (!isOpen || !isHomepage) return;
+    try {
+      const saved = sessionStorage.getItem("tm_hero_messages");
+      if (saved) {
+        const heroMsgs = JSON.parse(saved) as Message[];
+        if (heroMsgs.length > 0) {
+          // Merge: keep greeting + add hero conversation
+          setMessages([
+            { role: "assistant", content: pageContext.greeting },
+            ...heroMsgs,
+          ]);
+          sessionStorage.removeItem("tm_hero_messages"); // only inject once
+        }
+      }
+    } catch {}
+  }, [isOpen, isHomepage, pageContext.greeting]);
+
   // Listen for custom event from MobileBottomBar to open Emma
   useEffect(() => {
     const handler = () => {
