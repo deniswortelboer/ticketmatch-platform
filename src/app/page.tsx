@@ -2,7 +2,7 @@ import Link from "next/link";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import HeroChat from "@/components/ui/HeroChat";
-import { getHeroCarouselImages } from "@/lib/viator-images";
+import { getHeroCarouselImages, getAllCategoryImages, getAllCityImages } from "@/lib/viator-images";
 import ImageSlider from "@/components/ui/ImageSlider";
 import AnimatedCounters from "@/components/ui/AnimatedCounters";
 import LiveActivityFeed from "@/components/ui/LiveActivityFeed";
@@ -40,7 +40,11 @@ function FiBell() { return <svg width="22" height="22" viewBox="0 0 24 24" fill=
 /* ───── page ───── */
 export default async function Home() {
   // Fetch real Viator images (cached 1 hour)
-  const heroImages = await getHeroCarouselImages(["museums", "attractions"], 16).catch(() => [] as string[]);
+  const [heroImages, categoryImages, cityImages] = await Promise.all([
+    getHeroCarouselImages(["museums", "attractions"], 16).catch(() => [] as string[]),
+    getAllCategoryImages().catch(() => ({} as Record<string, string>)),
+    getAllCityImages(["amsterdam", "rotterdam", "the hague", "utrecht", "barcelona", "paris", "london", "rome", "prague", "lisbon"]).catch(() => ({} as Record<string, string>)),
+  ]);
 
   return (
     <>
@@ -164,6 +168,138 @@ export default async function Home() {
         <LiveActivityFeed />
 
         <TrendingDestinations />
+
+        {/* ════════════ EXPLORE BY CATEGORY — Photo Cards ════════════ */}
+        <section className="py-20 md:py-28 bg-surface transition-colors">
+          <ScrollReveal>
+          <div className="mx-auto max-w-7xl px-6">
+            <div className="mx-auto max-w-3xl text-center mb-12">
+              <p className="text-[13px] font-medium uppercase tracking-[0.15em] text-accent">Explore by Category</p>
+              <h2 className="mt-3 text-3xl font-extrabold tracking-tight md:text-[2.5rem]">
+                Every type of experience. One platform.
+              </h2>
+              <p className="mt-4 text-[15px] leading-relaxed text-muted">
+                From museum tours to boat cruises, food walks to outdoor adventures — browse 300,000+ experiences across 12 categories.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+              {[
+                { key: "museums", label: "Museums", icon: "🏛️", count: "45K+" },
+                { key: "tours", label: "Tours", icon: "🚶", count: "85K+" },
+                { key: "food", label: "Food & Drink", icon: "🍽️", count: "35K+" },
+                { key: "water", label: "Boats & Water", icon: "⛵", count: "28K+" },
+                { key: "outdoor", label: "Outdoor", icon: "🌿", count: "32K+" },
+                { key: "tickets", label: "Tickets", icon: "🎫", count: "55K+" },
+              ].map((cat) => (
+                <div key={cat.key} className="group relative overflow-hidden rounded-2xl bg-card-bg border border-card-border transition-all hover:shadow-xl hover:scale-[1.02]">
+                  <div className="relative h-36 sm:h-40 overflow-hidden">
+                    {categoryImages[cat.key] ? (
+                      <img
+                        src={categoryImages[cat.key]}
+                        alt={cat.label}
+                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-accent/10 to-accent/5">
+                        <span className="text-4xl">{cat.icon}</span>
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+                    <div className="absolute top-2 right-2 rounded-full bg-white/90 dark:bg-gray-800/90 px-2 py-0.5 text-[9px] font-bold text-accent shadow-sm">
+                      {cat.count}
+                    </div>
+                  </div>
+                  <div className="px-3 py-2.5">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm">{cat.icon}</span>
+                      <h3 className="text-[13px] font-bold truncate">{cat.label}</h3>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          </ScrollReveal>
+        </section>
+
+        {/* ════════════ POPULAR CITIES — Photo Grid ════════════ */}
+        <section className="py-20 md:py-28 bg-background transition-colors">
+          <ScrollReveal>
+          <div className="mx-auto max-w-7xl px-6">
+            <div className="mx-auto max-w-3xl text-center mb-12">
+              <p className="text-[13px] font-medium uppercase tracking-[0.15em] text-accent">Popular Destinations</p>
+              <h2 className="mt-3 text-3xl font-extrabold tracking-tight md:text-[2.5rem]">
+                3,000+ cities. Starting in the Netherlands.
+              </h2>
+              <p className="mt-4 text-[15px] leading-relaxed text-muted">
+                We&apos;re launching in Dutch cities first, then expanding across Europe. Here are some of the most popular destinations on TicketMatch.
+              </p>
+            </div>
+
+            {/* Featured cities — large cards */}
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+              {[
+                { key: "amsterdam", label: "Amsterdam", country: "🇳🇱", featured: true },
+                { key: "rotterdam", label: "Rotterdam", country: "🇳🇱", featured: true },
+                { key: "the hague", label: "The Hague", country: "🇳🇱", featured: false },
+                { key: "utrecht", label: "Utrecht", country: "🇳🇱", featured: false },
+                { key: "barcelona", label: "Barcelona", country: "🇪🇸", featured: false },
+                { key: "paris", label: "Paris", country: "🇫🇷", featured: false },
+                { key: "london", label: "London", country: "🇬🇧", featured: false },
+                { key: "rome", label: "Rome", country: "🇮🇹", featured: false },
+                { key: "prague", label: "Prague", country: "🇨🇿", featured: false },
+                { key: "lisbon", label: "Lisbon", country: "🇵🇹", featured: false },
+              ].map((city) => (
+                <div
+                  key={city.key}
+                  className={`group relative overflow-hidden rounded-2xl transition-all hover:shadow-xl hover:scale-[1.02] ${
+                    city.featured ? "col-span-2 sm:col-span-1 lg:col-span-1" : ""
+                  }`}
+                >
+                  <div className="relative h-44 sm:h-52 overflow-hidden">
+                    {cityImages[city.key] ? (
+                      <img
+                        src={cityImages[city.key]}
+                        alt={city.label}
+                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-accent/15 to-accent/5">
+                        <span className="text-5xl">{city.country}</span>
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                    <div className="absolute bottom-0 left-0 right-0 p-3">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-sm">{city.country}</span>
+                        <h3 className="text-[15px] font-bold text-white">{city.label}</h3>
+                      </div>
+                    </div>
+                    {city.featured && (
+                      <div className="absolute top-2 left-2 rounded-full bg-accent/90 px-2 py-0.5 text-[9px] font-bold text-white shadow-sm">
+                        Popular
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Bottom CTA */}
+            <div className="mt-8 text-center">
+              <Link
+                href="/auth/register"
+                className="inline-flex items-center gap-2 rounded-full border border-border px-6 py-3 text-[13px] font-semibold transition-colors hover:bg-surface-alt"
+              >
+                Explore all 3,000+ cities <IconArrow />
+              </Link>
+            </div>
+          </div>
+          </ScrollReveal>
+        </section>
 
         {/* ════════════ WHAT WE DO — Ecosystem Flow ════════════ */}
         <section id="ecosystem" className="py-20 md:py-28 bg-background transition-colors">
