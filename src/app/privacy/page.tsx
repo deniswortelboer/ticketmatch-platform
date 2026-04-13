@@ -13,25 +13,25 @@ export default function PrivacyPage() {
   return (
     <>
       <main className="min-h-screen bg-background transition-colors">
-        {/* Decorative top */}
-        <div className="relative overflow-hidden bg-gradient-to-b from-[var(--hero-from)] via-background to-background pt-12 pb-8 transition-colors">
-          <div className="absolute -left-20 top-10 h-[300px] w-[300px] rounded-full bg-accent/10 blur-[80px]" />
-          <div className="absolute -right-20 top-20 h-[250px] w-[250px] rounded-full bg-cyan-500/8 blur-[60px]" />
-          <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: "radial-gradient(circle, currentColor 1px, transparent 1px)", backgroundSize: "32px 32px" }} />
+        {/* Hero header */}
+        <div className="relative overflow-hidden bg-gradient-to-b from-blue-50 via-background to-background dark:from-[#0c1a2e] dark:via-background pt-10 pb-10 transition-colors">
+          <div className="absolute -left-20 top-0 h-[400px] w-[400px] rounded-full bg-accent/20 blur-[100px]" />
+          <div className="absolute -right-20 top-10 h-[300px] w-[300px] rounded-full bg-cyan-500/15 blur-[80px]" />
+          <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: "radial-gradient(circle, currentColor 1px, transparent 1px)", backgroundSize: "32px 32px" }} />
 
           <div className="relative mx-auto max-w-3xl px-6">
-            <Link href="/" className="mb-6 inline-flex items-center gap-2.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-blue-800">
+            <Link href="/" className="mb-8 inline-flex items-center gap-2.5 group">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-blue-800 shadow-lg shadow-blue-600/20">
                 <span className="text-sm font-bold text-white">TM</span>
               </div>
-              <span className="text-lg font-semibold tracking-tight">
+              <span className="text-lg font-semibold tracking-tight group-hover:text-accent transition-colors">
                 Ticket<span className="text-accent">Match</span>
                 <span className="text-muted">.ai</span>
               </span>
             </Link>
             <Breadcrumbs items={[{ label: "Privacy Policy" }]} />
-            <h1 className="mt-2 text-3xl font-extrabold tracking-tight md:text-4xl">Privacy Policy</h1>
-            <p className="mt-2 text-sm text-muted">Last updated: April 7, 2026</p>
+            <h1 className="mt-3 text-3xl font-extrabold tracking-tight md:text-4xl">Privacy Policy</h1>
+            <p className="mt-2 text-[14px] text-muted">Last updated: April 7, 2026</p>
           </div>
         </div>
 
