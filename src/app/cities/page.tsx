@@ -36,13 +36,11 @@ function IconArrow() {
 }
 
 export default async function CitiesPage() {
-  /* Fetch one Viator image per city — only top cities to avoid API rate limits */
-  const topCitySlugs = citiesByCountry.flatMap((group) =>
-    group.cities.slice(0, 2).map((c) =>
-      c.name.toLowerCase() === "the hague" ? "the hague" : c.slug
-    )
+  /* Fetch one Viator image per city */
+  const cityNames = allCities.map((c) =>
+    c.name.toLowerCase() === "the hague" ? "the hague" : c.slug
   );
-  const cityImages = await getAllCityImages(topCitySlugs);
+  const cityImages = await getAllCityImages(cityNames);
 
   /* Total experiences across all cities */
   const totalExperiences = "350,000+";

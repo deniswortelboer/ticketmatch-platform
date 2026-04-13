@@ -207,7 +207,7 @@ export async function getCityImages(city: string, count = 3, offset = 0): Promis
         pagination: { start: 1 + offset, count: fetchCount },
         currency: "EUR",
       }),
-      next: { revalidate: 3600 }, // Next.js cache: 1 hour
+      next: { revalidate: 86400 }, // Next.js cache: 24 hours
     });
 
     if (!res.ok) return [];
@@ -436,20 +436,48 @@ export async function getHeroCarouselImages(
  * Batch fetch: get one image per city for homepage display
  */
 export async function getAllCityImages(cities: string[]): Promise<Record<string, string>> {
-  const results: Record<string, string> = {};
-  const BATCH_SIZE = 10;
+  // Check persistent cache first
+  const cacheKey = "all-city-images-v2";
+  const cached = imageCache.get(cacheKey);
+  if (cached && cached[0]?.timestamp > Date.now() - CACHE_TTL * 24) {
+    const result: Record<string, string> = {};
+    cached.forEach((c) => { result[c.caption] = c.url; });
+    return result;
+  }
 
-  // Batch requests to avoid Viator API rate limiting
+  const results: Record<string, string> = {};
+  const BATCH_SIZE = 5;
+  const DELAY_MS = 200;
+
+  // Batch requests with delay to avoid Viator API rate limiting
   for (let i = 0; i < cities.length; i += BATCH_SIZE) {
     const batch = cities.slice(i, i + BATCH_SIZE);
     await Promise.all(
       batch.map(async (city) => {
-        const images = await getCityImages(city, 1);
-        if (images.length > 0) {
-          results[city.toLowerCase()] = images[0].url;
+        try {
+          const images = await getCityImages(city, 1);
+          if (images.length > 0) {
+            results[city.toLowerCase()] = images[0].url;
+          }
+        } catch {
+          // Skip failed cities silently
         }
       })
     );
+    // Small delay between batches to avoid rate limiting
+    if (i + BATCH_SIZE < cities.length) {
+      await new Promise((r) => setTimeout(r, DELAY_MS));
+    }
+  }
+
+  // Store in persistent cache (24 hours)
+  const cacheEntries = Object.entries(results).map(([city, url]) => ({
+    url,
+    caption: city,
+    timestamp: Date.now(),
+  }));
+  if (cacheEntries.length > 0) {
+    imageCache.set(cacheKey, cacheEntries);
   }
 
   return results;
