@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Terms of Service",
   description: "Terms of service for TicketMatch.ai — usage terms, conditions, and service agreements for our B2B city experience ecosystem.",
