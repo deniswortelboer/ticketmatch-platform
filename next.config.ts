@@ -47,6 +47,22 @@ const nextConfig: NextConfig = {
           { key: "X-XSS-Protection", value: "1; mode=block" },
           // Prevent DNS prefetching leaks
           { key: "X-DNS-Prefetch-Control", value: "on" },
+          // Content Security Policy
+          {
+            key: "Content-Security-Policy",
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com https://js.mollie.com https://*.sentry.io",
+              "style-src 'self' 'unsafe-inline'",
+              "img-src 'self' data: blob: https://media.tacdn.com https://hare-media-cdn.tripadvisor.com https://www.google-analytics.com https://*.supabase.co",
+              "font-src 'self' data:",
+              "connect-src 'self' https://*.supabase.co https://www.google-analytics.com https://api.viator.com https://*.sentry.io https://*.ingest.sentry.io https://js.mollie.com",
+              "frame-src 'self' https://js.mollie.com",
+              "object-src 'none'",
+              "base-uri 'self'",
+              "form-action 'self'",
+            ].join("; "),
+          },
         ],
       },
       {
