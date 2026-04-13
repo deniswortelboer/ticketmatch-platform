@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import Breadcrumbs from "@/components/Breadcrumbs";
 
 export const metadata: Metadata = {
   title: "Partners | TicketMatch.ai",
@@ -9,6 +10,18 @@ export const metadata: Metadata = {
     "Join TicketMatch.ai as a supplier. Connect your venues to tour operators, DMCs and travel agencies across Europe.",
   alternates: {
     canonical: "/partners",
+  },
+  openGraph: {
+    title: "Become a Partner — TicketMatch.ai",
+    description:
+      "Connect your museum, attraction, cruise, or restaurant to 1,000+ tour operators and travel agencies across Europe. Join the B2B ecosystem.",
+    url: "https://ticketmatch.ai/partners",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Become a Partner — TicketMatch.ai",
+    description:
+      "Connect your venue to tour operators and travel agencies across Europe.",
   },
 };
 
@@ -112,8 +125,9 @@ export default function PartnersPage() {
       <main className="flex-1">
         {/* Hero */}
         <section className="relative overflow-hidden">
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-amber-50/50 via-white to-blue-50/30" />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-amber-50/50 via-background to-blue-50/30 dark:from-amber-950/20 dark:via-background dark:to-blue-950/20" />
           <div className="relative mx-auto max-w-7xl px-6 pb-20 pt-20 md:pb-28 md:pt-28">
+            <Breadcrumbs items={[{ label: "Partners" }]} />
             <div className="grid items-center gap-16 lg:grid-cols-2">
               <div>
                 <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-amber-500/15 bg-amber-500/5 px-4 py-1.5 text-sm font-medium text-amber-700">
@@ -161,7 +175,7 @@ export default function PartnersPage() {
               {/* Partner hero image */}
               <div className="relative overflow-hidden rounded-3xl shadow-2xl shadow-black/10">
                 <img
-                  src="/images/partners-hero.jpg"
+                  src="/images/partners-hero.webp"
                   alt="VIP group arriving at the Rijksmuseum Amsterdam with a luxury minivan"
                   className="w-full object-cover"
                 />
@@ -186,7 +200,7 @@ export default function PartnersPage() {
         </section>
 
         {/* Benefits */}
-        <section className="bg-white py-24">
+        <section className="bg-surface py-24 transition-colors">
           <div className="mx-auto max-w-7xl px-6">
             <div className="mb-16 max-w-2xl">
               <p className="mb-3 text-sm font-semibold uppercase tracking-wider text-accent">Why partner with us</p>
@@ -325,7 +339,7 @@ export default function PartnersPage() {
             </div>
 
             {/* Architecture diagram */}
-            <div className="mt-16 overflow-hidden rounded-2xl border border-border/60 bg-white p-8 md:p-12">
+            <div className="mt-16 overflow-hidden rounded-2xl border border-border/60 bg-card-bg p-8 md:p-12">
               <div className="mb-8 text-center">
                 <p className="text-sm font-semibold uppercase tracking-wider text-accent">
                   Platform architecture
@@ -358,14 +372,14 @@ export default function PartnersPage() {
                 </div>
 
                 {/* Service layer */}
-                <div className="w-full max-w-lg rounded-xl border-2 border-amber-500/30 bg-amber-50 px-6 py-4 text-center">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-amber-600">
+                <div className="w-full max-w-lg rounded-xl border-2 border-amber-500/30 bg-amber-50 dark:bg-amber-950/30 px-6 py-4 text-center">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400">
                     Catalog Service
                   </p>
-                  <p className="mt-1 text-sm font-bold text-amber-900">
+                  <p className="mt-1 text-sm font-bold text-amber-900 dark:text-amber-200">
                     Universal API layer
                   </p>
-                  <p className="mt-1 text-xs text-amber-700/70">
+                  <p className="mt-1 text-xs text-amber-700/70 dark:text-amber-300/70">
                     Translates every supplier into one standard format
                   </p>
                 </div>
@@ -380,29 +394,29 @@ export default function PartnersPage() {
                 <div className="grid w-full max-w-2xl grid-cols-2 gap-3 md:grid-cols-4">
                   {[
                     {
-                      name: "Combitiq",
-                      status: "Ready",
+                      name: "Museums & Art",
+                      status: "Live",
                       color: "border-emerald-500/40 bg-emerald-50",
                       text: "text-emerald-700",
                       badge: "bg-emerald-100 text-emerald-700",
                     },
                     {
-                      name: "GetYourGuide",
-                      status: "Open",
+                      name: "Attractions",
+                      status: "Live",
                       color: "border-blue-500/20 bg-blue-50/50",
                       text: "text-blue-700",
                       badge: "bg-blue-100 text-blue-600",
                     },
                     {
-                      name: "Tiqets",
-                      status: "Open",
+                      name: "Experiences",
+                      status: "Live",
                       color: "border-orange-500/20 bg-orange-50/50",
                       text: "text-orange-700",
                       badge: "bg-orange-100 text-orange-600",
                     },
                     {
-                      name: "Viator",
-                      status: "Open",
+                      name: "Restaurants",
+                      status: "Coming Soon",
                       color: "border-purple-500/20 bg-purple-50/50",
                       text: "text-purple-700",
                       badge: "bg-purple-100 text-purple-600",
@@ -448,7 +462,7 @@ export default function PartnersPage() {
             </div>
             <div className="grid gap-4 md:grid-cols-2">
               <div className="group relative overflow-hidden rounded-3xl">
-                <img src="/images/partners-canal.jpg" alt="VIP canal cruise through Amsterdam" className="h-[320px] w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                <img src="/images/partners-canal.webp" alt="VIP canal cruise through Amsterdam" className="h-[320px] w-full object-cover transition-transform duration-500 group-hover:scale-105" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
                 <div className="absolute bottom-6 left-6">
                   <p className="text-lg font-bold text-white">Private Canal Cruises</p>
@@ -456,7 +470,7 @@ export default function PartnersPage() {
                 </div>
               </div>
               <div className="group relative overflow-hidden rounded-3xl">
-                <img src="/images/partners-tulips.jpg" alt="Tour bus driving through Dutch tulip fields" className="h-[320px] w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                <img src="/images/partners-tulips.webp" alt="Tour bus driving through Dutch tulip fields" className="h-[320px] w-full object-cover transition-transform duration-500 group-hover:scale-105" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
                 <div className="absolute bottom-6 left-6">
                   <p className="text-lg font-bold text-white">Countryside Day Trips</p>
@@ -468,7 +482,7 @@ export default function PartnersPage() {
         </section>
 
         {/* Supplier types */}
-        <section className="bg-white py-24">
+        <section className="bg-surface py-24 transition-colors">
           <div className="mx-auto max-w-7xl px-6">
             <div className="mb-16 max-w-2xl">
               <p className="mb-3 text-sm font-semibold uppercase tracking-wider text-accent">Who can join</p>
@@ -479,7 +493,7 @@ export default function PartnersPage() {
 
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {supplierTypes.map((type) => (
-                <div key={type.name} className="group flex items-center gap-4 rounded-2xl border border-border/60 bg-white px-5 py-5 transition-all hover:border-accent/20 hover:shadow-lg hover:shadow-accent/5">
+                <div key={type.name} className="group flex items-center gap-4 rounded-2xl border border-border/60 bg-card-bg px-5 py-5 transition-all hover:border-accent/20 hover:shadow-lg hover:shadow-accent/5">
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent/5 text-lg transition-transform group-hover:scale-110">
                     {type.icon}
                   </span>
@@ -495,7 +509,7 @@ export default function PartnersPage() {
           <div className="mx-auto max-w-7xl px-6">
             <div className="relative overflow-hidden rounded-3xl bg-foreground px-8 py-16 text-center md:px-16">
               <img
-                src="/images/partners-cta.jpg"
+                src="/images/partners-cta.webp"
                 alt="Professional group walking along Amsterdam canals at golden hour"
                 className="pointer-events-none absolute inset-0 h-full w-full object-cover"
               />

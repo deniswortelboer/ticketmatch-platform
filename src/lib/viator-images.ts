@@ -13,7 +13,7 @@ const HEADERS = {
   "Content-Type": "application/json",
 };
 
-// Destination IDs (same as viator.ts)
+// Destination IDs — audited & corrected April 2026
 const DEST_IDS: Record<string, number> = {
   amsterdam: 525, rotterdam: 4211, "the hague": 5436, utrecht: 24976,
   eindhoven: 24978, haarlem: 26223, maastricht: 22820, leiden: 26505,
@@ -21,76 +21,76 @@ const DEST_IDS: Record<string, number> = {
   alkmaar: 26416, gouda: 26397, dordrecht: 26382, zaandam: 22382,
   hoorn: 26383, middelburg: 26475,
   /* German cities */
-  berlin: 488, munich: 490, hamburg: 489, frankfurt: 491,
-  cologne: 4374, dresden: 4207, dusseldorf: 4208, stuttgart: 4213,
+  berlin: 488, munich: 487, hamburg: 777, frankfurt: 489,
+  cologne: 923, dresden: 22375, dusseldorf: 5631, stuttgart: 28716,
   /* French cities */
-  paris: 479, lyon: 5630, nice: 483, marseille: 4843,
-  bordeaux: 5637, strasbourg: 23054, toulouse: 5643, avignon: 22006,
+  paris: 479, lyon: 829, nice: 478, marseille: 485,
+  bordeaux: 468, strasbourg: 5502, toulouse: 812, avignon: 483,
   /* Spanish cities */
-  barcelona: 562, madrid: 566, seville: 563, valencia: 564,
-  malaga: 956, granada: 565, bilbao: 4858, "san-sebastian": 4856,
+  barcelona: 562, madrid: 566, seville: 556, valencia: 811,
+  malaga: 956, granada: 554, bilbao: 4485, "san-sebastian": 5505,
   /* Italian cities */
-  rome: 511, florence: 512, venice: 513, milan: 514,
-  naples: 515, turin: 4947, "cinque-terre": 5765, "amalfi-coast": 4807,
+  rome: 511, florence: 519, venice: 522, milan: 512,
+  naples: 508, turin: 802, "cinque-terre": 22149, "amalfi-coast": 33601,
   /* UK cities */
-  london: 737, edinburgh: 738, manchester: 5394, liverpool: 5395,
-  oxford: 5397, cambridge: 5396, bath: 5398, york: 5399,
+  london: 737, edinburgh: 739, manchester: 4056, liverpool: 940,
+  oxford: 5537, cambridge: 22327, bath: 27175, york: 5446,
   /* Belgian cities */
-  brussels: 458, bruges: 5073, ghent: 5074, antwerp: 5072,
+  brussels: 458, bruges: 4836, ghent: 23079, antwerp: 764,
   /* Austrian cities */
-  vienna: 454, salzburg: 455, innsbruck: 456, hallstatt: 25498,
+  vienna: 454, salzburg: 451, innsbruck: 5173, hallstatt: 25793,
   /* Swiss cities */
-  zurich: 898, lucerne: 899, interlaken: 5122, geneva: 900,
+  zurich: 577, lucerne: 576, interlaken: 5011, geneva: 578,
   /* Portuguese cities */
-  lisbon: 538, porto: 5500, sintra: 30196, faro: 5502,
+  lisbon: 538, porto: 26879, sintra: 50861, faro: 23402,
   /* Czech cities */
   prague: 462,
   /* Hungarian cities */
   budapest: 499,
   /* Greek cities */
-  athens: 496, santorini: 801,
+  athens: 496, santorini: 959,
   /* Croatian cities */
-  dubrovnik: 936,
+  dubrovnik: 904,
   /* Irish cities */
   dublin: 503,
   /* Danish cities */
   copenhagen: 463,
   /* Polish cities */
-  krakow: 497,
+  krakow: 529,
   /* Swedish cities */
   stockholm: 907,
   /* Norwegian cities */
-  oslo: 910, bergen: 24498,
+  oslo: 902, bergen: 4318,
   /* Finnish cities */
-  helsinki: 917,
+  helsinki: 803,
   /* Icelandic cities */
   reykjavik: 905,
   /* Estonian cities */
-  tallinn: 4219,
+  tallinn: 4147,
   /* Latvian cities */
-  riga: 4218,
+  riga: 4480,
   /* Lithuanian cities */
-  vilnius: 4220,
+  vilnius: 5479,
   /* Turkish cities */
   istanbul: 585,
   /* Romanian cities */
-  bucharest: 4216,
+  bucharest: 22134,
   /* Bulgarian cities */
-  sofia: 4221,
+  sofia: 5630,
   /* Serbian cities */
-  belgrade: 23099,
+  belgrade: 22817,
   /* Montenegrin cities */
-  kotor: 23761,
+  kotor: 23078,
   /* Slovenian cities */
-  ljubljana: 4217,
+  ljubljana: 5257,
   /* Slovak cities */
-  bratislava: 4222,
+  bratislava: 5561,
   /* Luxembourgish cities */
-  "luxembourg-city": 24974,
+  "luxembourg-city": 36689,
   /* Maltese cities */
-  valletta: 4158,
+  valletta: 4142,
   /* Cypriot cities */
-  paphos: 5038,
+  paphos: 5629,
   /* Thai cities */
   bangkok: 343, phuket: 349, "chiang-mai": 5267,
   /* Japanese cities */

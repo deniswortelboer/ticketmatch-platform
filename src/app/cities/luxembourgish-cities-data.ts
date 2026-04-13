@@ -9,7 +9,7 @@ export const luxembourgishCities: CityData[] = [
     flag: "\u{1F1F1}\u{1F1FA}",
     experiences: "400+",
     categories: 6,
-    viatorDestId: 24974,
+    viatorDestId: 36689,
     tagline: "Fortress of Finance — UNESCO casemates, grand duchies & the heart of Europe",
     description:
       "Luxembourg City is a dramatic capital of deep gorges, soaring bridges, and centuries of fortification — a UNESCO World Heritage site where medieval casemates meet gleaming EU institutions. TicketMatch.ai provides B2B access to 400+ group experiences at exclusive rates, from underground tunnel tours to Moselle Valley wine excursions.",

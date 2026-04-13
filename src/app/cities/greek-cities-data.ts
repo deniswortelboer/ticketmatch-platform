@@ -46,7 +46,7 @@ export const greekCities: CityData[] = [
     flag: "\u{1F1EC}\u{1F1F7}",
     experiences: "1,800+",
     categories: 8,
-    viatorDestId: 801,
+    viatorDestId: 959,
     tagline: "The iconic caldera — blue domes, sunset & volcanic beauty",
     description:
       "Santorini is the world's most photographed island — a volcanic caldera of whitewashed villages, blue-domed churches, and legendary sunsets. TicketMatch.ai provides B2B access to 1,800+ group experiences at exclusive rates.",

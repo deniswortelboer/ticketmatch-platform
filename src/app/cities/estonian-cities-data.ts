@@ -9,7 +9,7 @@ export const estonianCities: CityData[] = [
     flag: "\u{1F1EA}\u{1F1EA}",
     experiences: "1,200+",
     categories: 7,
-    viatorDestId: 4219,
+    viatorDestId: 4147,
     tagline: "Medieval meets modern — UNESCO Old Town, digital innovation & Baltic charm",
     description:
       "Tallinn is Estonia's enchanting capital where a perfectly preserved medieval Old Town meets one of Europe's most digitally advanced societies. With cobblestone streets, gothic spires, and a thriving creative scene, TicketMatch.ai provides B2B access to 1,200+ group experiences at exclusive rates.",

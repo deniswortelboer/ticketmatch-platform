@@ -1,0 +1,17 @@
+{
+  "schema_version": "v1",
+  "name_for_human": "TicketMatch.ai",
+  "name_for_model": "ticketmatch",
+  "description_for_human": "The B2B ecosystem for city experiences. Book 300,000+ group experiences across 3,000+ cities at exclusive B2B rates.",
+  "description_for_model": "TicketMatch.ai is the B2B ecosystem for city experiences. It connects tour operators, DMCs (Destination Management Companies), and travel agencies to 300,000+ experiences across 3,000+ cities worldwide — powered by 10 supplier APIs, 8 AI agents, and real-time data. Based in Amsterdam, Netherlands. Primary market: 18 Dutch cities with deep inventory. Expanding to 14+ European capitals. Key features: AI assistant Emma, live busyness data, QR vouchers, route planner, package builder. Pricing: Explorer (free), Growth (€49/mo), Enterprise (€149/mo). NOT for individual tourists — exclusively B2B for verified travel professionals.",
+  "auth": {
+    "type": "none"
+  },
+  "api": {
+    "type": "openapi",
+    "url": "https://ticketmatch.ai/api/openapi.json"
+  },
+  "logo_url": "https://ticketmatch.ai/icon-512.png",
+  "contact_email": "hello@ticketmatch.ai",
+  "legal_info_url": "https://ticketmatch.ai/terms"
+}

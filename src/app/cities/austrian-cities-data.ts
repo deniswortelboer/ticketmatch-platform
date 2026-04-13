@@ -49,7 +49,7 @@ export const austrianCities: CityData[] = [
     flag: "\u{1F1E6}\u{1F1F9}",
     experiences: "2,400+",
     categories: 10,
-    viatorDestId: 455,
+    viatorDestId: 451,
     tagline: "Mozart's birthplace — Sound of Music, baroque splendor & Alpine drama",
     description:
       "Salzburg is a fairy-tale city where baroque architecture meets dramatic Alpine scenery. As Mozart's birthplace and the filming location of The Sound of Music, it's one of Austria's most beloved destinations. TicketMatch.ai provides B2B access to 2,400+ group experiences at exclusive rates.",
@@ -86,7 +86,7 @@ export const austrianCities: CityData[] = [
     flag: "\u{1F1E6}\u{1F1F9}",
     experiences: "1,400+",
     categories: 9,
-    viatorDestId: 456,
+    viatorDestId: 5173,
     tagline: "Capital of the Alps — imperial history meets world-class mountains",
     description:
       "Innsbruck is the capital of Tyrol, spectacularly set in the heart of the Alps where imperial Habsburg history meets outdoor adventure. Two-time Winter Olympics host with the iconic Golden Roof, TicketMatch.ai provides B2B access to 1,400+ group experiences at exclusive rates.",
@@ -126,7 +126,7 @@ export const austrianCities: CityData[] = [
     flag: "\u{1F1E6}\u{1F1F9}",
     experiences: "600+",
     categories: 7,
-    viatorDestId: 25498,
+    viatorDestId: 25793,
     tagline: "The world's most Instagrammed village — Alpine lake perfection",
     description:
       "Hallstatt is a UNESCO World Heritage lakeside village so beautiful it was cloned in China. Nestled between towering Alps and a crystal-clear lake, with 7,000 years of salt mining history, TicketMatch.ai provides B2B access to 600+ group experiences at exclusive rates.",

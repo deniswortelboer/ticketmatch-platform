@@ -2,6 +2,17 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { sendBookingStatusEmail } from "@/lib/email";
+import { notifyAdmin } from "@/lib/notify";
+
+// ════════════════════════════════════════════════════════════
+// SECURITY: Bookings endpoint with input validation
+// - All routes require authentication
+// - Company ownership check on all operations
+// - Group ownership verification on create
+// - Input validation (types, ranges, formats)
+// ════════════════════════════════════════════════════════════
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 async function getAuthUser() {
   const cookieStore = await cookies();
@@ -29,6 +40,11 @@ function getAdminClient() {
   );
 }
 
+function sanitize(str: unknown, maxLength = 500): string | null {
+  if (!str || typeof str !== "string") return null;
+  return str.trim().slice(0, maxLength) || null;
+}
+
 // GET: fetch bookings for current user's company
 export async function GET() {
   const user = await getAuthUser();
@@ -53,17 +69,47 @@ export async function POST(request: Request) {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await request.json();
-  const { groupId, venueName, venueCategory, venueCity, scheduledDate, numberOfGuests, unitPrice, notes } = body;
+  const groupId = sanitize(body.groupId, 36);
+  const venueName = sanitize(body.venueName, 300);
+  const venueCategory = sanitize(body.venueCategory, 100);
+  const venueCity = sanitize(body.venueCity, 100);
+  const scheduledDate = sanitize(body.scheduledDate, 10);
+  const notes = sanitize(body.notes, 2000);
 
-  if (!groupId || !venueName) {
-    return NextResponse.json({ error: "Group and venue are required" }, { status: 400 });
+  // ── Validate required fields ──
+  if (!groupId || !UUID_REGEX.test(groupId)) {
+    return NextResponse.json({ error: "Valid group ID is required" }, { status: 400 });
+  }
+  if (!venueName || venueName.length < 2) {
+    return NextResponse.json({ error: "Venue name is required" }, { status: 400 });
+  }
+
+  // ── Validate numeric fields ──
+  const numberOfGuests = Math.max(0, Math.min(10000, Math.round(Number(body.numberOfGuests) || 0)));
+  const unitPrice = Math.max(0, Math.min(100000, Number(body.unitPrice) || 0));
+
+  // ── Validate date format if provided ──
+  if (scheduledDate && !/^\d{4}-\d{2}-\d{2}$/.test(scheduledDate)) {
+    return NextResponse.json({ error: "Invalid date format (use YYYY-MM-DD)" }, { status: 400 });
   }
 
   const admin = getAdminClient();
   const { data: profile } = await admin.from("profiles").select("company_id").eq("id", user.id).single();
   if (!profile?.company_id) return NextResponse.json({ error: "No company" }, { status: 400 });
 
-  const totalPrice = (numberOfGuests || 0) * (unitPrice || 0);
+  // ── SECURITY: Verify the group belongs to this company ──
+  const { data: group } = await admin
+    .from("groups")
+    .select("id, name")
+    .eq("id", groupId)
+    .eq("company_id", profile.company_id)
+    .single();
+
+  if (!group) {
+    return NextResponse.json({ error: "Group not found or access denied" }, { status: 403 });
+  }
+
+  const totalPrice = Math.round(numberOfGuests * unitPrice * 100) / 100;
 
   const { data: booking, error } = await admin
     .from("bookings")
@@ -71,13 +117,13 @@ export async function POST(request: Request) {
       group_id: groupId,
       company_id: profile.company_id,
       venue_name: venueName,
-      venue_category: venueCategory || null,
-      venue_city: venueCity || null,
-      scheduled_date: scheduledDate || null,
-      number_of_guests: numberOfGuests || 0,
-      unit_price: unitPrice || 0,
+      venue_category: venueCategory,
+      venue_city: venueCity,
+      scheduled_date: scheduledDate,
+      number_of_guests: numberOfGuests,
+      unit_price: unitPrice,
       total_price: totalPrice,
-      notes: notes || null,
+      notes,
       status: "pending",
     })
     .select()
@@ -88,7 +134,6 @@ export async function POST(request: Request) {
   // Send confirmation email for new booking
   if (booking) {
     const { data: company } = await admin.from("companies").select("name").eq("id", profile.company_id).single();
-    const { data: group } = await admin.from("groups").select("name").eq("id", groupId).single();
     const { data: teamMembers } = await admin
       .from("profiles")
       .select("email")
@@ -103,12 +148,14 @@ export async function POST(request: Request) {
       to: emails,
       companyName: company?.name || "Your company",
       venueName: venueName,
-      groupName: group?.name || "Your group",
+      groupName: group.name || "Your group",
       scheduledDate: scheduledDate || null,
       numberOfGuests: numberOfGuests || 0,
       status: "pending",
       notes: notes || undefined,
     }).catch((err) => console.error("Email send error:", err));
+
+    notifyAdmin(`🎫 Nieuwe booking!\n\n🏢 ${company?.name || "—"}\n📍 ${venueName}${venueCity ? ` (${venueCity})` : ""}\n👥 ${numberOfGuests} gasten\n📅 ${scheduledDate || "Geen datum"}\n💰 €${totalPrice.toFixed(2)}\n\n→ ticketmatch.ai/dashboard/admin`);
   }
 
   return NextResponse.json({ booking });
@@ -121,11 +168,25 @@ export async function DELETE(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const bookingId = searchParams.get("id");
-  if (!bookingId) return NextResponse.json({ error: "Missing ID" }, { status: 400 });
+
+  if (!bookingId || !UUID_REGEX.test(bookingId)) {
+    return NextResponse.json({ error: "Valid booking ID required" }, { status: 400 });
+  }
 
   const admin = getAdminClient();
   const { data: profile } = await admin.from("profiles").select("company_id").eq("id", user.id).single();
+  if (!profile?.company_id) return NextResponse.json({ error: "No company" }, { status: 400 });
 
-  await admin.from("bookings").delete().eq("id", bookingId).eq("company_id", profile?.company_id || "");
+  // Only delete if booking belongs to user's company
+  const { count } = await admin
+    .from("bookings")
+    .delete({ count: "exact" })
+    .eq("id", bookingId)
+    .eq("company_id", profile.company_id);
+
+  if (!count) {
+    return NextResponse.json({ error: "Booking not found or access denied" }, { status: 404 });
+  }
+
   return NextResponse.json({ success: true });
 }

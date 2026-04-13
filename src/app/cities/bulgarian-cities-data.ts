@@ -9,7 +9,7 @@ export const bulgarianCities: CityData[] = [
     flag: "🇧🇬",
     experiences: "700+",
     categories: 7,
-    viatorDestId: 4221,
+    viatorDestId: 5630,
     tagline: "Ancient Crossroads Under a Mountain — 7,000 years of history at Vitosha's feet",
     description:
       "Sofia is one of Europe's oldest capitals, layering Thracian ruins, Roman baths, Ottoman mosques, and Soviet-era monuments beneath the snow-capped backdrop of Vitosha Mountain. From the golden domes of Alexander Nevsky Cathedral to the UNESCO-listed Boyana Church, TicketMatch.ai provides B2B access to 700+ group experiences at exclusive rates.",

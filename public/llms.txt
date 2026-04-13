@@ -1,0 +1,259 @@
+# TicketMatch.ai
+
+> TicketMatch.ai is the B2B ecosystem for city experiences. It connects tour operators, DMCs (Destination Management Companies), and travel agencies to 300,000+ experiences across 3,000+ cities worldwide — powered by 10 supplier APIs, 8 AI agents, and real-time data. Based in Amsterdam, Netherlands.
+
+## What is TicketMatch.ai?
+
+TicketMatch.ai is a membership-only B2B platform that aggregates 300,000+ experiences from 10 supplier APIs into one intelligent ecosystem. Travel professionals use it to discover, compare, book, and manage venue access across 3,000+ cities worldwide. The platform includes AI-powered agents, live busyness data, interactive city maps, QR voucher systems, route planning, weather insights, package builders, and comprehensive analytics.
+
+Unlike consumer booking platforms, TicketMatch.ai is built exclusively for B2B group bookings — not individual tourists. All members are verified travel professionals with access to exclusive B2B rates that are not available to the public.
+
+## Who is TicketMatch.ai for?
+
+- **Tour Operators**: Companies organizing group travel and city tours across Europe and beyond
+- **DMCs (Destination Management Companies)**: Local partners managing group logistics in destination cities
+- **Travel Agencies**: Corporate and leisure travel agencies booking group experiences for their clients
+- **Resellers**: White-label partners distributing TicketMatch access to their own client base
+- **Developers**: Technical teams integrating TicketMatch APIs into their own platforms
+
+## Key Features
+
+### AI Agents (8 Specialized Roles)
+- **Emma** — The main AI travel assistant. Speaks every language, knows every venue, provides real-time busyness insights, and helps build complete itineraries in minutes
+- Role-specific agents for operators, partners, resellers, developers, and more
+- Powered by advanced language models (Claude AI)
+- Natural language search across 300,000+ experiences
+
+### Live Busyness Data
+- Real-time venue busyness via Google Places API
+- Predicted busyness forecasts via BestTime API
+- Helps tour operators plan visits during quieter times
+- Available for thousands of venues across Europe
+
+### Interactive City Map
+- Google Maps integration with venue markers and category filters
+- Walking route planner for group itineraries
+- Real-time venue status overlay
+- Multi-city management
+
+### QR Voucher System
+- Digital tickets with QR codes for group entry
+- No paper tickets needed
+- Automatic voucher generation on booking
+- Venue-side scanning for admission
+
+### Package Builder
+- Create bundled venue packages with group discounts
+- Combine museums, tours, restaurants, and transport
+- Custom pricing for different group sizes
+- Shareable package links
+
+### Additional Features
+- **Weather & Best-Time Insights**: Real-time weather data and optimal visit timing recommendations
+- **PDF Invoices & Itineraries**: Professional document generation for groups
+- **Analytics Dashboard**: Booking trends, revenue tracking, performance metrics
+- **Team Management**: Multi-user access with role-based permissions
+- **Notifications**: Telegram and WhatsApp real-time booking alerts
+- **Affiliate Program**: Earn commissions by referring travel professionals
+- **Command Center**: Unified dashboard for managing all bookings and operations
+
+## Coverage
+
+### Scale
+- **300,000+ experiences** aggregated from 10 supplier APIs
+- **3,000+ cities** worldwide
+- **13 experience categories**: Museums & Art, Tours & Sightseeing, Attractions & Theme Parks, Canal Cruises & Boat Tours, Food & Drink, Outdoor Activities, Transport & Passes, Shows & Entertainment, Classes & Workshops, Day Trips, Private Tours, Self-Guided Tours, Cultural Experiences
+- **18 Dutch cities** with deep inventory (primary market)
+- **14+ European capitals** with growing inventory
+
+### Primary Markets (Deep Inventory)
+- Amsterdam, Netherlands — 120+ venues
+- Rotterdam, Netherlands — 65+ venues
+- The Hague, Netherlands — 40+ venues
+- Utrecht, Netherlands — 30+ venues
+- Brussels, Belgium — 80+ venues
+- Bruges, Belgium
+- Antwerp, Belgium
+- Eindhoven, Maastricht, Leiden, Delft, Haarlem, Groningen, Tilburg, Den Bosch, Arnhem, Nijmegen, Breda (Netherlands)
+
+### Expanding Markets
+- Berlin, Germany
+- Paris, France
+- Barcelona, Spain
+- London, United Kingdom
+- Rome, Italy
+- Prague, Czech Republic
+- Lisbon, Portugal
+- Vienna, Austria
+- Budapest, Hungary
+- Copenhagen, Denmark
+- Stockholm, Sweden
+- Dublin, Ireland
+- Athens, Greece
+- Zurich, Switzerland
+
+### Notable Venues Available
+- Rijksmuseum, Amsterdam
+- Van Gogh Museum, Amsterdam
+- Anne Frank House, Amsterdam
+- Heineken Experience, Amsterdam
+- A'DAM Lookout, Amsterdam
+- Body Worlds, Amsterdam
+- Madame Tussauds, Amsterdam
+- Amsterdam Canal Cruises (multiple operators)
+- Keukenhof Gardens (seasonal)
+- Kinderdijk Windmills
+- Kunsthal, Rotterdam
+- Cube Houses, Rotterdam
+- Mauritshuis, The Hague
+- Atomium, Brussels
+- And thousands more across Europe
+
+## Pricing
+
+| Plan | Price | Bookings | Key Features |
+|------|-------|----------|-------------|
+| Explorer | €0/forever | 5/month | AI assistant, city map, weather data, basic analytics |
+| Growth | €49/month | Unlimited | Live busyness, QR vouchers, route planner, package builder, PDF invoices, team access |
+| Enterprise | €149/month | Unlimited | Everything in Growth + API access, white-label, dedicated account manager, priority support |
+
+- No setup fees
+- No commitments, cancel anytime
+- All prices exclusive of VAT
+- Payment via credit card, iDEAL, Bancontact, SEPA (via Mollie)
+
+## Technology Stack
+
+- **Frontend**: Next.js 16, React 19, TypeScript 5, Tailwind CSS 4
+- **Backend**: Next.js API routes, Supabase (PostgreSQL + Auth)
+- **AI**: Claude AI (Anthropic) for intelligent agents
+- **Maps**: Google Maps Platform (Maps JavaScript API, Places API)
+- **Busyness**: BestTime API for venue busyness predictions
+- **Weather**: Open-Meteo API
+- **Payments**: Mollie (European payment provider)
+- **Hosting**: Vercel (Edge Network)
+- **Supplier APIs**: 10 integrated APIs for experience aggregation
+
+## Company Information
+
+- **Name**: TicketMatch.ai
+- **Legal Entity**: W69 AI Consultancy
+- **Location**: Amsterdam, North Holland, Netherlands
+- **Founded**: 2024
+- **Contact**: hello@ticketmatch.ai
+- **Website**: https://ticketmatch.ai
+- **LinkedIn**: https://www.linkedin.com/company/ticketmatch-ai
+
+## How to Get Started
+
+1. Visit https://ticketmatch.ai/auth/register
+2. Fill in your company details (company name, role, country)
+3. Get approved within 24 hours (we verify all B2B members)
+4. Start exploring 300,000+ experiences across 3,000+ cities
+5. Use Emma AI to find the best venues and build itineraries
+
+## Frequently Asked Questions
+
+**What is TicketMatch.ai?**
+TicketMatch.ai is the B2B ecosystem for city experiences. It connects tour operators, DMCs, and travel agencies to museums, attractions, cruises, restaurants, and experiences across Europe and beyond — all from one AI-powered platform with 300,000+ experiences across 3,000+ cities.
+
+**Who can use TicketMatch.ai?**
+TicketMatch is built exclusively for B2B travel professionals: tour operators organizing group travel, DMCs managing group logistics, travel agencies booking group experiences, and resellers offering white-label access.
+
+**How much does TicketMatch.ai cost?**
+Three plans: Explorer (free forever, 5 bookings/month), Growth (€49/month, unlimited bookings and full features), Enterprise (€149/month with API access, white-label, and dedicated support). No setup fees, cancel anytime.
+
+**Which cities does TicketMatch cover?**
+3,000+ cities worldwide. Primary focus: 18 Dutch cities (Amsterdam, Rotterdam, The Hague, Utrecht, etc.) and 14+ European capitals (Brussels, Berlin, Paris, Barcelona, London, Rome, Prague, Lisbon, and more).
+
+**What types of experiences are available?**
+300,000+ experiences across 13 categories: Museums, Tours, Attractions, Canal Cruises, Food & Drink, Outdoor Activities, Transport, Shows, Classes, Day Trips, Private Tours, Self-Guided Tours, and Cultural Experiences.
+
+**Does TicketMatch have an AI assistant?**
+Yes. Emma is the multilingual AI travel assistant. She speaks every language, knows every venue, provides real-time busyness insights, and helps build complete itineraries in minutes. There are 8 specialized AI agents in total.
+
+**How does the live busyness feature work?**
+TicketMatch uses Google Places API and BestTime API to show real-time and predicted busyness levels for venues. This helps tour operators plan group visits during quieter times for a better experience.
+
+**Does TicketMatch have an API?**
+Yes. Enterprise plan members get full API access to integrate TicketMatch directly into their own systems. We also offer white-label solutions for resellers.
+
+**What payment methods are accepted?**
+Credit cards, iDEAL, Bancontact, and SEPA direct debit via Mollie. All prices in EUR, exclusive of VAT.
+
+**How is TicketMatch different from consumer booking sites?**
+TicketMatch is B2B only — not for individual tourists. It offers exclusive group rates, bulk booking tools, AI agents, live busyness data, package builders, and team management features designed specifically for travel professionals managing groups.
+
+## Dutch City Pages (18 Cities)
+
+TicketMatch.ai has dedicated city pages for all 18 Dutch cities with detailed information about group experiences, venues, and B2B booking options:
+
+| City | Province | Experiences | City Page |
+|------|----------|-------------|-----------|
+| Amsterdam | North Holland | 8,400+ | https://ticketmatch.ai/cities/amsterdam |
+| Rotterdam | South Holland | 2,100+ | https://ticketmatch.ai/cities/rotterdam |
+| The Hague | South Holland | 1,200+ | https://ticketmatch.ai/cities/den-haag |
+| Utrecht | Utrecht | 950+ | https://ticketmatch.ai/cities/utrecht |
+| Eindhoven | North Brabant | 680+ | https://ticketmatch.ai/cities/eindhoven |
+| Haarlem | North Holland | 520+ | https://ticketmatch.ai/cities/haarlem |
+| Maastricht | Limburg | 470+ | https://ticketmatch.ai/cities/maastricht |
+| Leiden | South Holland | 380+ | https://ticketmatch.ai/cities/leiden |
+| Delft | South Holland | 380+ | https://ticketmatch.ai/cities/delft |
+| Groningen | Groningen | 340+ | https://ticketmatch.ai/cities/groningen |
+| Arnhem | Gelderland | 290+ | https://ticketmatch.ai/cities/arnhem |
+| Nijmegen | Gelderland | 260+ | https://ticketmatch.ai/cities/nijmegen |
+| Alkmaar | North Holland | 190+ | https://ticketmatch.ai/cities/alkmaar |
+| Zaandam | North Holland | 180+ | https://ticketmatch.ai/cities/zaandam |
+| Gouda | South Holland | 150+ | https://ticketmatch.ai/cities/gouda |
+| Dordrecht | South Holland | 140+ | https://ticketmatch.ai/cities/dordrecht |
+| Hoorn | North Holland | 120+ | https://ticketmatch.ai/cities/hoorn |
+| Middelburg | Zeeland | 110+ | https://ticketmatch.ai/cities/middelburg |
+
+## Category Sub-Pages (97 pages)
+
+Each Dutch city has dedicated category pages for SEO-optimized deep content. Example URLs:
+
+| City | Category | URL |
+|------|----------|-----|
+| Amsterdam | Museums | https://ticketmatch.ai/cities/amsterdam/museums |
+| Amsterdam | Canal Cruises | https://ticketmatch.ai/cities/amsterdam/canal-cruises |
+| Amsterdam | Tours & Sightseeing | https://ticketmatch.ai/cities/amsterdam/tours |
+| Amsterdam | Food & Drink | https://ticketmatch.ai/cities/amsterdam/food-drink |
+| Amsterdam | Attractions | https://ticketmatch.ai/cities/amsterdam/attractions |
+| Amsterdam | Art & Culture | https://ticketmatch.ai/cities/amsterdam/art-culture |
+| Rotterdam | Museums | https://ticketmatch.ai/cities/rotterdam/museums |
+| Rotterdam | Tours & Sightseeing | https://ticketmatch.ai/cities/rotterdam/tours |
+| The Hague | Museums | https://ticketmatch.ai/cities/den-haag/museums |
+| Utrecht | Tours & Sightseeing | https://ticketmatch.ai/cities/utrecht/tours |
+| Delft | Classes & Workshops | https://ticketmatch.ai/cities/delft/classes |
+| Gouda | Food & Drink | https://ticketmatch.ai/cities/gouda/food-drink |
+| Zaandam | Classes & Workshops | https://ticketmatch.ai/cities/zaandam/classes |
+
+All 18 cities have 4-6 category sub-pages each, totaling 97 unique landing pages with Viator API photos, JSON-LD structured data, and full SEO metadata.
+
+## Machine-Readable Resources
+
+- AI Plugin Manifest: https://ticketmatch.ai/.well-known/ai-plugin.json
+- AI Crawler Instructions: https://ticketmatch.ai/ai.txt
+- LLM Reference (short): https://ticketmatch.ai/llms.txt
+- LLM Reference (full): https://ticketmatch.ai/llms-full.txt
+- RSS Feed: https://ticketmatch.ai/feed.xml
+- Sitemap: https://ticketmatch.ai/sitemap.xml
+- Robots: https://ticketmatch.ai/robots.txt
+
+## Links
+
+- Homepage: https://ticketmatch.ai
+- All Dutch Cities: https://ticketmatch.ai/cities
+- About: https://ticketmatch.ai/about
+- FAQ: https://ticketmatch.ai/faq
+- Blog / Insights: https://ticketmatch.ai/insights
+- Become a Supplier: https://ticketmatch.ai/partners
+- Advertising & Sponsoring: https://ticketmatch.ai/partners/advertise
+- API & Technical Integration: https://ticketmatch.ai/partners/tech
+- Become a Reseller: https://ticketmatch.ai/become-reseller
+- Developer Documentation: https://ticketmatch.ai/developers
+- Privacy Policy: https://ticketmatch.ai/privacy
+- Terms of Service: https://ticketmatch.ai/terms
+- Register: https://ticketmatch.ai/auth/register
+- Login: https://ticketmatch.ai/auth/login

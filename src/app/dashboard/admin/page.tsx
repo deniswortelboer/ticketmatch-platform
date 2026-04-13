@@ -49,7 +49,18 @@ interface Group {
   companies: { name: string } | { name: string }[] | null;
 }
 
-type Tab = "overview" | "companies" | "bookings" | "groups" | "suppliers";
+interface KnowledgeEntry {
+  id: string;
+  title: string;
+  content: string;
+  category: string;
+  tier: string;
+  active: boolean;
+  created_at: string;
+  updated_at: string | null;
+}
+
+type Tab = "overview" | "companies" | "bookings" | "groups" | "suppliers" | "resellers" | "knowledge";
 
 function getCompanyName(companies: { name: string } | { name: string }[] | null): string {
   if (!companies) return "—";
@@ -66,6 +77,75 @@ export default function AdminDashboard() {
   const [error, setError] = useState("");
   const [tab, setTab] = useState<Tab>("overview");
   const [updating, setUpdating] = useState<string | null>(null);
+
+  // Knowledge Base state
+  const [kbEntries, setKbEntries] = useState<KnowledgeEntry[]>([]);
+  const [kbLoading, setKbLoading] = useState(false);
+  const [kbShowForm, setKbShowForm] = useState(false);
+  const [kbEditing, setKbEditing] = useState<string | null>(null);
+  const [kbForm, setKbForm] = useState({ title: "", content: "", category: "platform", tier: "free" });
+  const [kbSaving, setKbSaving] = useState(false);
+
+  const CATEGORIES = ["platform", "venues", "planning", "market", "trends"] as const;
+  const TIERS = ["free", "pro", "enterprise"] as const;
+
+  const loadKnowledge = () => {
+    setKbLoading(true);
+    fetch("/api/admin/knowledge")
+      .then((r) => r.json())
+      .then((data) => {
+        setKbEntries(data.entries || []);
+        setKbLoading(false);
+      })
+      .catch(() => setKbLoading(false));
+  };
+
+  const saveKbEntry = async () => {
+    setKbSaving(true);
+    const method = kbEditing ? "PATCH" : "POST";
+    const body = kbEditing ? { id: kbEditing, ...kbForm } : kbForm;
+    await fetch("/api/admin/knowledge", {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    setKbForm({ title: "", content: "", category: "platform", tier: "free" });
+    setKbEditing(null);
+    setKbShowForm(false);
+    setKbSaving(false);
+    loadKnowledge();
+  };
+
+  const toggleKbActive = async (entry: KnowledgeEntry) => {
+    await fetch("/api/admin/knowledge", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: entry.id, active: !entry.active }),
+    });
+    loadKnowledge();
+  };
+
+  const deleteKbEntry = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this entry?")) return;
+    await fetch("/api/admin/knowledge", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    loadKnowledge();
+  };
+
+  const startEditKb = (entry: KnowledgeEntry) => {
+    setKbForm({ title: entry.title, content: entry.content, category: entry.category, tier: entry.tier });
+    setKbEditing(entry.id);
+    setKbShowForm(true);
+  };
+
+  const cancelKbForm = () => {
+    setKbForm({ title: "", content: "", category: "platform", tier: "free" });
+    setKbEditing(null);
+    setKbShowForm(false);
+  };
 
   const loadData = () => {
     fetch("/api/admin")
@@ -86,7 +166,7 @@ export default function AdminDashboard() {
       });
   };
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { loadData(); loadKnowledge(); }, []);
 
   const updateStatus = async (type: "booking" | "company", id: string, status: string) => {
     setUpdating(id);
@@ -150,6 +230,8 @@ export default function AdminDashboard() {
     { key: "bookings", label: "Bookings", count: bookings.length },
     { key: "groups", label: "Groups", count: groups.length },
     { key: "suppliers", label: "Suppliers", count: companies.filter(c => { try { const m = c.message ? JSON.parse(c.message) : {}; return m.role === "supplier"; } catch { return false; } }).length },
+    { key: "resellers", label: "Resellers", count: companies.filter(c => { try { const m = c.message ? JSON.parse(c.message) : {}; return m.role === "reseller"; } catch { return false; } }).length },
+    { key: "knowledge", label: "Knowledge Base", count: kbEntries.length },
   ];
 
   const statusBadge = (status: string) => {
@@ -174,7 +256,7 @@ export default function AdminDashboard() {
   return (
     <>
       {/* Header */}
-      <div className="mb-6 rounded-2xl bg-gradient-to-r from-[#0f1729] to-[#1e3a5f] p-8 text-white shadow-xl shadow-blue-900/10">
+      <div className="mb-6 rounded-2xl bg-gradient-to-r from-[#0f1729] to-[#1e3a5f] p-5 md:p-8 text-white shadow-xl shadow-blue-900/10 overflow-hidden">
         <div className="flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/20">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-blue-300">
@@ -189,25 +271,27 @@ export default function AdminDashboard() {
       </div>
 
       {/* Tabs */}
-      <div className="mb-6 flex gap-1 rounded-xl bg-white border border-border/60 p-1 shadow-sm">
-        {tabs.map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
-            className={`flex-1 rounded-lg px-4 py-2.5 text-sm font-medium transition-all ${
-              tab === t.key
-                ? "bg-foreground text-white shadow-sm"
-                : "text-muted hover:bg-gray-50 hover:text-foreground"
-            }`}
-          >
-            {t.label}
-            {t.count > 0 && (
-              <span className={`ml-1.5 text-xs ${tab === t.key ? "text-white/60" : "text-muted"}`}>
-                ({t.count})
-              </span>
-            )}
-          </button>
-        ))}
+      <div className="mb-6 -mx-4 px-4 md:mx-0 md:px-0">
+        <div className="flex gap-1 overflow-x-auto rounded-xl bg-white border border-border/60 p-1 shadow-sm scrollbar-hide" style={{ WebkitOverflowScrolling: "touch" }}>
+          {tabs.map((t) => (
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className={`shrink-0 whitespace-nowrap rounded-lg px-3 py-2 text-xs md:px-4 md:py-2.5 md:text-sm font-medium transition-all ${
+                tab === t.key
+                  ? "bg-foreground text-white shadow-sm"
+                  : "text-muted hover:bg-gray-50 hover:text-foreground"
+              }`}
+            >
+              {t.label}
+              {t.count > 0 && (
+                <span className={`ml-1 text-[10px] md:ml-1.5 md:text-xs ${tab === t.key ? "text-white/60" : "text-muted"}`}>
+                  ({t.count})
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Overview Tab */}
@@ -270,7 +354,7 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mb-6 grid gap-3 grid-cols-2 lg:grid-cols-4">
             <div className="rounded-2xl border border-border/60 bg-white p-6 shadow-sm">
               <p className="text-xs font-medium uppercase tracking-wider text-muted">Companies</p>
               <p className="mt-2 text-3xl font-bold">{companies.length}</p>
@@ -573,43 +657,43 @@ export default function AdminDashboard() {
                   <div className="rounded-xl border border-border/40 p-4">
                     <p className="text-xs font-semibold text-muted uppercase tracking-wider mb-3">Integration Details</p>
                     <div className="grid gap-2 sm:grid-cols-2 text-xs">
-                      {integ.api_base_url && (
-                        <div><span className="text-muted">API URL:</span> <span className="font-mono font-medium">{integ.api_base_url as string}</span></div>
+                      {!!integ.api_base_url && (
+                        <div><span className="text-muted">API URL:</span> <span className="font-mono font-medium">{String(integ.api_base_url)}</span></div>
                       )}
-                      {integ.sandbox_url && (
-                        <div><span className="text-muted">Sandbox:</span> <span className="font-mono font-medium">{integ.sandbox_url as string}</span></div>
+                      {!!integ.sandbox_url && (
+                        <div><span className="text-muted">Sandbox:</span> <span className="font-mono font-medium">{String(integ.sandbox_url)}</span></div>
                       )}
-                      {integ.auth_type && (
-                        <div><span className="text-muted">Auth:</span> <span className="font-medium">{integ.auth_type as string}</span></div>
+                      {!!integ.auth_type && (
+                        <div><span className="text-muted">Auth:</span> <span className="font-medium">{String(integ.auth_type)}</span></div>
                       )}
-                      {integ.product_count && (
-                        <div><span className="text-muted">Products:</span> <span className="font-medium">{integ.product_count as string}</span></div>
+                      {!!integ.product_count && (
+                        <div><span className="text-muted">Products:</span> <span className="font-medium">{String(integ.product_count)}</span></div>
                       )}
-                      {integ.supported_cities && (
-                        <div><span className="text-muted">Cities:</span> <span className="font-medium">{integ.supported_cities as string}</span></div>
+                      {!!integ.supported_cities && (
+                        <div><span className="text-muted">Cities:</span> <span className="font-medium">{String(integ.supported_cities)}</span></div>
                       )}
-                      {integ.contact_name && (
-                        <div><span className="text-muted">Contact:</span> <span className="font-medium">{integ.contact_name as string}</span></div>
+                      {!!integ.contact_name && (
+                        <div><span className="text-muted">Contact:</span> <span className="font-medium">{String(integ.contact_name)}</span></div>
                       )}
-                      {integ.tech_contact_email && (
-                        <div><span className="text-muted">Tech Email:</span> <span className="font-medium">{integ.tech_contact_email as string}</span></div>
+                      {!!integ.tech_contact_email && (
+                        <div><span className="text-muted">Tech Email:</span> <span className="font-medium">{String(integ.tech_contact_email)}</span></div>
                       )}
                       <div>
                         <span className="text-muted">Capabilities:</span>{" "}
-                        {integ.supports_availability && <span className="inline-block mr-1 rounded bg-green-100 px-1.5 py-0.5 text-green-700">Availability</span>}
-                        {integ.supports_booking && <span className="inline-block mr-1 rounded bg-green-100 px-1.5 py-0.5 text-green-700">Booking</span>}
-                        {integ.supports_cancellation && <span className="inline-block mr-1 rounded bg-green-100 px-1.5 py-0.5 text-green-700">Cancellation</span>}
-                        {integ.supports_webhooks && <span className="inline-block mr-1 rounded bg-green-100 px-1.5 py-0.5 text-green-700">Webhooks</span>}
+                        {!!integ.supports_availability && <span className="inline-block mr-1 rounded bg-green-100 px-1.5 py-0.5 text-green-700">Availability</span>}
+                        {!!integ.supports_booking && <span className="inline-block mr-1 rounded bg-green-100 px-1.5 py-0.5 text-green-700">Booking</span>}
+                        {!!integ.supports_cancellation && <span className="inline-block mr-1 rounded bg-green-100 px-1.5 py-0.5 text-green-700">Cancellation</span>}
+                        {!!integ.supports_webhooks && <span className="inline-block mr-1 rounded bg-green-100 px-1.5 py-0.5 text-green-700">Webhooks</span>}
                         {!integ.supports_availability && !integ.supports_booking && <span className="text-muted">Not defined yet</span>}
                       </div>
                     </div>
-                    {integ.notes && (
+                    {!!integ.notes && (
                       <div className="mt-3 rounded-lg bg-amber-50 p-3">
                         <p className="text-xs text-muted font-medium mb-1">Notes:</p>
-                        <p className="text-xs">{integ.notes as string}</p>
+                        <p className="text-xs">{String(integ.notes)}</p>
                       </div>
                     )}
-                    {msg.integration_updated_at && (
+                    {!!msg.integration_updated_at && (
                       <p className="mt-2 text-[10px] text-muted">Last updated: {formatDate(msg.integration_updated_at as string)}</p>
                     )}
                   </div>
@@ -627,6 +711,312 @@ export default function AdminDashboard() {
           {companies.filter(c => { try { const m = c.message ? JSON.parse(c.message) : {}; return m.role === "supplier"; } catch { return false; } }).length === 0 && (
             <div className="rounded-2xl border border-dashed border-border/60 bg-white p-12 text-center">
               <p className="text-sm text-muted">No suppliers registered yet.</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Resellers Tab */}
+      {tab === "resellers" && (
+        <div className="space-y-4">
+          {companies.filter(c => {
+            try { const m = c.message ? JSON.parse(c.message) : {}; return m.role === "reseller"; } catch { return false; }
+          }).map((reseller) => {
+            let msg: Record<string, unknown> = {};
+            try { msg = reseller.message ? JSON.parse(reseller.message) : {}; } catch {}
+
+            const slug = (msg.reseller_slug as string) || "—";
+            const rate = (msg.commission_rate as number) || 10;
+            const website = (msg.website as string) || "";
+            const motivation = (msg.motivation as string) || "";
+
+            // Count referred agencies
+            const referredAgencies = companies.filter((c) => {
+              try {
+                const m = c.message ? JSON.parse(c.message) : {};
+                return m.referred_by === reseller.id || (m.reseller_slug === slug && c.id !== reseller.id);
+              } catch { return false; }
+            });
+
+            // Count bookings from referred agencies
+            const agencyIds = referredAgencies.map(a => a.id);
+            const agencyBookings = bookings.filter(b => {
+              const compName = getCompanyName(b.companies);
+              return referredAgencies.some(a => a.name === compName);
+            });
+            const resellerRevenue = agencyBookings.reduce((sum, b) => sum + Number(b.total_price), 0);
+
+            const contactProfiles = profiles.filter(p => p.company_id === reseller.id);
+
+            return (
+              <div key={reseller.id} className="rounded-2xl border border-border/60 bg-white p-6 shadow-sm">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-green-100">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-green-600">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
+                        <path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-lg">{reseller.name}</h3>
+                      <p className="text-xs text-muted">
+                        Slug: <span className="font-mono">{slug}</span> &middot; {rate}% commission &middot; Registered {formatDate(reseller.created_at)}
+                      </p>
+                    </div>
+                  </div>
+                  <span className={`rounded-full px-3 py-1 text-xs font-medium ${
+                    referredAgencies.length > 0 ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"
+                  }`}>
+                    {referredAgencies.length} agencies
+                  </span>
+                </div>
+
+                {/* Stats */}
+                <div className="grid grid-cols-3 gap-3 mb-4">
+                  <div className="rounded-xl bg-gray-50 p-3 text-center">
+                    <p className="text-lg font-bold">{referredAgencies.length}</p>
+                    <p className="text-xs text-muted">Agencies</p>
+                  </div>
+                  <div className="rounded-xl bg-gray-50 p-3 text-center">
+                    <p className="text-lg font-bold">&euro; {resellerRevenue.toFixed(0)}</p>
+                    <p className="text-xs text-muted">Revenue</p>
+                  </div>
+                  <div className="rounded-xl bg-green-50 p-3 text-center">
+                    <p className="text-lg font-bold text-green-600">&euro; {(resellerRevenue * rate / 100).toFixed(0)}</p>
+                    <p className="text-xs text-muted">Commission</p>
+                  </div>
+                </div>
+
+                {/* Contact info */}
+                {contactProfiles.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {contactProfiles.map(p => (
+                      <div key={p.id} className="flex items-center gap-2 rounded-lg bg-gray-50 px-3 py-2">
+                        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-green-100 text-xs font-semibold text-green-600">
+                          {(p.full_name || "?").split(" ").map(n => n[0]).join("").toUpperCase().slice(0,2)}
+                        </div>
+                        <div>
+                          <p className="text-xs font-medium">{p.full_name}</p>
+                          <p className="text-[10px] text-muted">{p.email}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Extra details */}
+                <div className="text-xs text-muted space-y-1">
+                  {website && <p>Website: <a href={website} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">{website}</a></p>}
+                  {motivation && <p>Motivation: {motivation}</p>}
+                  <p>Referral link: <span className="font-mono text-foreground">ticketmatch.ai/join/{slug}</span></p>
+                </div>
+
+                {/* Referred agencies list */}
+                {referredAgencies.length > 0 && (
+                  <div className="mt-4 rounded-xl border border-border/40 divide-y divide-border/40">
+                    <p className="px-4 py-2 text-xs font-semibold text-muted uppercase tracking-wider">Referred Agencies</p>
+                    {referredAgencies.map(a => (
+                      <div key={a.id} className="flex items-center justify-between px-4 py-2">
+                        <p className="text-sm font-medium">{a.name}</p>
+                        <p className="text-xs text-muted">{a.company_type} &middot; {formatDate(a.created_at)}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {companies.filter(c => { try { const m = c.message ? JSON.parse(c.message) : {}; return m.role === "reseller"; } catch { return false; } }).length === 0 && (
+            <div className="rounded-2xl border border-dashed border-border/60 bg-white p-12 text-center">
+              <p className="text-sm text-muted">No resellers registered yet.</p>
+              <p className="mt-1 text-xs text-muted">Share <span className="font-mono">ticketmatch.ai/become-reseller</span> to invite partners.</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Knowledge Base Tab */}
+      {tab === "knowledge" && (
+        <div className="space-y-4">
+          {/* Header with add button */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-accent">
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+              </svg>
+              <h2 className="text-lg font-semibold">Knowledge Base</h2>
+              <span className="text-sm text-muted">({kbEntries.length} entries)</span>
+            </div>
+            <button
+              onClick={() => { cancelKbForm(); setKbShowForm(true); }}
+              className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent/90 transition-colors"
+            >
+              + Add Entry
+            </button>
+          </div>
+
+          {/* Add/Edit Form */}
+          {kbShowForm && (
+            <div className="rounded-2xl border-2 border-accent/30 bg-white p-6 shadow-sm">
+              <h3 className="mb-4 text-sm font-semibold">{kbEditing ? "Edit Entry" : "New Entry"}</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-muted">Title</label>
+                  <input
+                    type="text"
+                    value={kbForm.title}
+                    onChange={(e) => setKbForm({ ...kbForm, title: e.target.value })}
+                    className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm outline-none focus:border-accent"
+                    placeholder="Entry title..."
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-muted">Content</label>
+                  <textarea
+                    value={kbForm.content}
+                    onChange={(e) => setKbForm({ ...kbForm, content: e.target.value })}
+                    rows={5}
+                    className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm outline-none focus:border-accent resize-y"
+                    placeholder="Knowledge content..."
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-muted">Category</label>
+                    <select
+                      value={kbForm.category}
+                      onChange={(e) => setKbForm({ ...kbForm, category: e.target.value })}
+                      className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm outline-none focus:border-accent"
+                    >
+                      {CATEGORIES.map((c) => (
+                        <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-muted">Tier</label>
+                    <select
+                      value={kbForm.tier}
+                      onChange={(e) => setKbForm({ ...kbForm, tier: e.target.value })}
+                      className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm outline-none focus:border-accent"
+                    >
+                      {TIERS.map((t) => (
+                        <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={saveKbEntry}
+                    disabled={kbSaving || !kbForm.title || !kbForm.content}
+                    className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent/90 disabled:opacity-50 transition-colors"
+                  >
+                    {kbSaving ? "Saving..." : kbEditing ? "Update" : "Create"}
+                  </button>
+                  <button
+                    onClick={cancelKbForm}
+                    className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-muted hover:bg-gray-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Loading */}
+          {kbLoading && (
+            <div className="flex justify-center py-12">
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+            </div>
+          )}
+
+          {/* Entries list */}
+          {!kbLoading && kbEntries.map((entry) => (
+            <div key={entry.id} className={`rounded-2xl border bg-white p-5 shadow-sm transition-all ${entry.active ? "border-border/60" : "border-border/40 opacity-60"}`}>
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="font-semibold">{entry.title}</h3>
+                    <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600">
+                      {entry.category}
+                    </span>
+                    <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                      entry.tier === "free" ? "bg-gray-100 text-gray-600" :
+                      entry.tier === "pro" ? "bg-blue-100 text-blue-700" :
+                      "bg-purple-100 text-purple-700"
+                    }`}>
+                      {entry.tier}
+                    </span>
+                    {!entry.active && (
+                      <span className="rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-600">
+                        inactive
+                      </span>
+                    )}
+                  </div>
+                  <p className="mt-2 text-sm text-muted line-clamp-3 whitespace-pre-wrap">{entry.content}</p>
+                  <p className="mt-2 text-xs text-muted">
+                    Created {formatDate(entry.created_at)}
+                    {entry.updated_at && ` · Updated ${formatDate(entry.updated_at)}`}
+                  </p>
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    onClick={() => toggleKbActive(entry)}
+                    title={entry.active ? "Deactivate" : "Activate"}
+                    className={`rounded-lg p-2 text-xs transition-colors ${
+                      entry.active ? "hover:bg-amber-50 text-amber-600" : "hover:bg-green-50 text-green-600"
+                    }`}
+                  >
+                    {entry.active ? (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" />
+                      </svg>
+                    ) : (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                        <line x1="1" y1="1" x2="23" y2="23" />
+                      </svg>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => startEditKb(entry)}
+                    title="Edit"
+                    className="rounded-lg p-2 text-muted hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => deleteKbEntry(entry.id)}
+                    title="Delete"
+                    className="rounded-lg p-2 text-muted hover:bg-red-50 hover:text-red-600 transition-colors"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="3 6 5 6 21 6" />
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {/* Empty state */}
+          {!kbLoading && kbEntries.length === 0 && (
+            <div className="rounded-2xl border border-dashed border-border/60 bg-white p-12 text-center">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="mx-auto text-muted mb-3">
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+              </svg>
+              <p className="text-sm text-muted">No knowledge base entries yet.</p>
+              <p className="mt-1 text-xs text-muted">Click &quot;+ Add Entry&quot; to create your first article.</p>
             </div>
           )}
         </div>

@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TicketMatch Layout Mockup</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; display: flex; height: 100vh; background: #f5f6fa; }
+
+  /* Sidebar */
+  .sidebar {
+    width: 240px;
+    background: linear-gradient(180deg, #0f1729, #1a2744);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 18px 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+  .logo-icon {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: linear-gradient(135deg, #60a5fa, #2563eb);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 800; color: white;
+  }
+  .logo-text { font-size: 15px; font-weight: 600; color: white; }
+  .logo-text span { color: #60a5fa; }
+
+  .nav { flex: 1; padding: 12px 10px; }
+  .nav-group { margin-bottom: 16px; }
+  .nav-group-label {
+    font-size: 9px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1.5px; color: rgba(255,255,255,0.2);
+    padding: 0 10px; margin-bottom: 6px;
+  }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px; border-radius: 10px; font-size: 13px;
+    font-weight: 500; color: rgba(255,255,255,0.45);
+    cursor: pointer; transition: all 0.15s;
+  }
+  .nav-item:hover { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.8); }
+  .nav-item.active { background: rgba(255,255,255,0.15); color: white; }
+  .nav-icon { width: 18px; text-align: center; font-size: 14px; }
+
+  .nav-divider { height: 1px; background: rgba(255,255,255,0.08); margin: 8px 10px; }
+
+  /* Admin section */
+  .nav-item.admin { color: rgba(251,191,36,0.5); }
+  .nav-item.admin:hover { background: rgba(251,191,36,0.1); color: rgba(251,191,36,0.8); }
+  .nav-item.admin.active { background: rgba(251,191,36,0.2); color: #fbbf24; }
+
+  /* Main area */
+  .main { flex: 1; display: flex; flex-direction: column; }
+
+  /* Top bar */
+  .topbar {
+    height: 56px; background: white; border-bottom: 1px solid #e5e7eb;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 24px;
+  }
+  .topbar-left { display: flex; align-items: center; gap: 8px; }
+  .breadcrumb { font-size: 13px; color: #6b7280; }
+  .breadcrumb strong { color: #1f2937; }
+
+  .topbar-right { display: flex; align-items: center; gap: 16px; }
+  .topbar-notif {
+    width: 36px; height: 36px; border-radius: 10px; border: 1px solid #e5e7eb;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; cursor: pointer; position: relative;
+  }
+  .notif-dot {
+    position: absolute; top: 6px; right: 6px;
+    width: 7px; height: 7px; border-radius: 50%;
+    background: #ef4444; border: 2px solid white;
+  }
+  .topbar-user {
+    display: flex; align-items: center; gap: 10px;
+    padding: 4px 12px 4px 4px; border-radius: 12px;
+    border: 1px solid #e5e7eb; cursor: pointer;
+  }
+  .topbar-user:hover { background: #f9fafb; }
+  .user-avatar {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: linear-gradient(135deg, #3b82f6, #6366f1);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; color: white;
+  }
+  .user-info { line-height: 1.3; }
+  .user-name { font-size: 12px; font-weight: 600; color: #1f2937; }
+  .user-company { font-size: 10px; color: #9ca3af; }
+  .user-chevron { font-size: 10px; color: #9ca3af; margin-left: 4px; }
+
+  /* Content placeholder */
+  .content { flex: 1; padding: 24px; overflow-y: auto; }
+  .content-placeholder {
+    background: white; border-radius: 16px; border: 2px dashed #e5e7eb;
+    height: 100%; display: flex; align-items: center; justify-content: center;
+    color: #9ca3af; font-size: 14px;
+  }
+
+  /* Refer badge */
+  .refer-badge {
+    margin: 0 10px 12px;
+    padding: 10px 12px;
+    background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(139,92,246,0.15));
+    border-radius: 10px;
+    text-align: center;
+  }
+  .refer-badge p { font-size: 10px; color: rgba(255,255,255,0.5); }
+  .refer-badge strong { color: rgba(255,255,255,0.8); font-size: 11px; }
+</style>
+</head>
+<body>
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="logo">
+      <div class="logo-icon">TM</div>
+      <div class="logo-text">Ticket<span>Match</span></div>
+    </div>
+
+    <div class="nav">
+      <!-- Main -->
+      <div class="nav-group">
+        <div class="nav-group-label">Main</div>
+        <div class="nav-item active"><span class="nav-icon">📊</span> Overview</div>
+        <div class="nav-item"><span class="nav-icon">🔍</span> Catalog</div>
+        <div class="nav-item"><span class="nav-icon">🎫</span> Bookings</div>
+        <div class="nav-item"><span class="nav-icon">👥</span> Groups</div>
+      </div>
+
+      <!-- Planning -->
+      <div class="nav-group">
+        <div class="nav-group-label">Planning</div>
+        <div class="nav-item"><span class="nav-icon">📅</span> Itinerary</div>
+        <div class="nav-item"><span class="nav-icon">📦</span> Packages</div>
+        <div class="nav-item"><span class="nav-icon">🗺️</span> City Map</div>
+        <div class="nav-item"><span class="nav-icon">🌤️</span> Weather</div>
+      </div>
+
+      <!-- Account -->
+      <div class="nav-group">
+        <div class="nav-group-label">Account</div>
+        <div class="nav-item"><span class="nav-icon">👥</span> Team</div>
+        <div class="nav-item"><span class="nav-icon">⚡</span> Plans</div>
+        <div class="nav-item"><span class="nav-icon">📚</span> Knowledge Base</div>
+        <div class="nav-item"><span class="nav-icon">🎁</span> Refer & Earn</div>
+        <div class="nav-item"><span class="nav-icon">⚙️</span> Settings</div>
+      </div>
+
+      <!-- Admin -->
+      <div class="nav-divider"></div>
+      <div class="nav-group">
+        <div class="nav-group-label" style="color: rgba(251,191,36,0.3);">Admin</div>
+        <div class="nav-item admin"><span class="nav-icon">🛡️</span> Admin</div>
+        <div class="nav-item admin"><span class="nav-icon">📈</span> Analytics</div>
+        <div class="nav-item admin"><span class="nav-icon">🤝</span> Resellers</div>
+        <div class="nav-item admin"><span class="nav-icon">💻</span> Developers</div>
+        <div class="nav-item admin"><span class="nav-icon">🏢</span> Partners</div>
+      </div>
+    </div>
+
+    <div class="refer-badge">
+      <strong>Refer & Earn 10%</strong>
+      <p>Invite agencies, earn commission</p>
+    </div>
+  </div>
+
+  <!-- Main content -->
+  <div class="main">
+    <!-- Top bar with user -->
+    <div class="topbar">
+      <div class="topbar-left">
+        <span class="breadcrumb">Dashboard / <strong>Overview</strong></span>
+      </div>
+      <div class="topbar-right">
+        <div class="topbar-notif">
+          🔔
+          <div class="notif-dot"></div>
+        </div>
+        <div class="topbar-user">
+          <div class="user-avatar">DW</div>
+          <div class="user-info">
+            <div class="user-name">Denis Wortelboer</div>
+            <div class="user-company">W69 AI Consultancy</div>
+          </div>
+          <span class="user-chevron">▼</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Content area -->
+    <div class="content">
+      <div class="content-placeholder">
+        Dashboard content hier...
+      </div>
+    </div>
+  </div>
+</body>
+</html>

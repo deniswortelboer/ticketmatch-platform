@@ -147,6 +147,8 @@ export default function HeroChat() {
         try {
           const toSave = next.filter((m) => m !== INITIAL_MESSAGES[0]);
           sessionStorage.setItem("tm_hero_messages", JSON.stringify(toSave));
+          // Auto-open FloatingEmma so user sees the response there too
+          window.dispatchEvent(new CustomEvent("open-emma"));
         } catch {}
         return next;
       });
@@ -186,7 +188,7 @@ export default function HeroChat() {
           </div>
 
           {/* Messages */}
-          <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-3">
+          <div ref={scrollRef} role="log" aria-live="polite" className="flex-1 space-y-3 overflow-y-auto px-4 py-3">
             {/* Welcome state with quick topics inside chat */}
             {!hasUserMessages && (
               <div className="space-y-3">
@@ -239,7 +241,7 @@ export default function HeroChat() {
                   <button
                     key={t.label}
                     onClick={() => sendMessage(t.label)}
-                    className="flex items-center gap-2 rounded-xl border border-border/60 dark:border-white/15 bg-white dark:bg-white/5 px-3 py-2.5 text-left transition-all hover:border-accent/30 hover:bg-accent/5 hover:shadow-sm"
+                    className="flex items-center gap-2 rounded-xl border border-border/60 dark:border-white/15 bg-white dark:bg-white/5 px-3 py-2.5 text-left transition-[border-color,background-color,box-shadow] hover:border-accent/30 hover:bg-accent/5 hover:shadow-sm"
                   >
                     <span className="text-lg">{t.icon}</span>
                     <span className="text-[12px] font-medium text-gray-700 dark:text-gray-200">{t.label}</span>
@@ -258,12 +260,14 @@ export default function HeroChat() {
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && sendMessage(input)}
                 placeholder="Ask Emma anything... (any language!)"
+                aria-label="Ask Emma a question"
                 className="flex-1 bg-transparent py-1 text-[13px] text-gray-800 dark:text-gray-100 outline-none placeholder:text-muted/40 dark:placeholder:text-gray-500"
               />
               <button
                 onClick={() => sendMessage(input)}
                 disabled={!input.trim() || isTyping}
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent text-white transition-all hover:brightness-110 disabled:opacity-30"
+                aria-label="Send message"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent text-white transition-[filter,opacity] hover:brightness-110 disabled:opacity-30"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M22 2L11 13" />

@@ -9,7 +9,7 @@ export const polishCities: CityData[] = [
     flag: "\u{1F1F5}\u{1F1F1}",
     experiences: "3,200+",
     categories: 10,
-    viatorDestId: 497,
+    viatorDestId: 529,
     tagline: "Poland's cultural jewel — medieval charm, Auschwitz remembrance & vibrant nightlife",
     description:
       "Krakow is Poland's most beautiful city — a UNESCO-listed medieval treasure with Europe's largest market square, Wawel Castle, and the somber legacy of Auschwitz nearby. TicketMatch.ai provides B2B access to 3,200+ group experiences at exclusive rates.",

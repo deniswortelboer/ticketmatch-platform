@@ -9,7 +9,7 @@ export const norwegianCities: CityData[] = [
     flag: "🇳🇴",
     experiences: "1,600+",
     categories: 8,
-    viatorDestId: 910,
+    viatorDestId: 902,
     tagline: "Viking heritage, fjord views & world-class museums in Scandinavia's greenest capital",
     description:
       "Oslo is Norway's vibrant capital — a city where Viking history meets cutting-edge architecture, surrounded by forests and the Oslofjord. TicketMatch.ai provides B2B access to 1,600+ group experiences at exclusive rates.",
@@ -46,7 +46,7 @@ export const norwegianCities: CityData[] = [
     flag: "🇳🇴",
     experiences: "1,200+",
     categories: 7,
-    viatorDestId: 24498,
+    viatorDestId: 4318,
     tagline: "Gateway to the fjords — UNESCO Bryggen, funiculars & dramatic Norwegian nature",
     description:
       "Bergen is Norway's gateway to the fjords — a UNESCO-listed harbour city of colorful wooden houses, dramatic mountains, and world-famous fjord scenery. TicketMatch.ai provides B2B access to 1,200+ group experiences at exclusive rates.",

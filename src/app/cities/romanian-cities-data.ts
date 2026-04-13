@@ -9,7 +9,7 @@ export const romanianCities: CityData[] = [
     flag: "🇷🇴",
     experiences: "1,000+",
     categories: 7,
-    viatorDestId: 4216,
+    viatorDestId: 22134,
     tagline: "The Little Paris of the East — belle époque elegance meets Balkan soul",
     description:
       "Bucharest blends belle époque boulevards with communist-era megastructures and a thriving creative scene. Home to the world's heaviest building — the Palace of Parliament — and a booming Old Town nightlife quarter, TicketMatch.ai provides B2B access to 1,000+ group experiences at exclusive rates.",

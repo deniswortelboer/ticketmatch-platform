@@ -9,6 +9,10 @@ export const metadata: Metadata = {
   title: "Terms of Service",
   description: "Terms of service for TicketMatch.ai — usage terms, conditions, and service agreements for our B2B city experience ecosystem.",
   alternates: { canonical: "/terms" },
+  openGraph: {
+    title: "Terms of Service — TicketMatch.ai",
+    description: "Usage terms, conditions, and service agreements for the TicketMatch.ai B2B ecosystem.",
+  },
 };
 
 export default function TermsPage() {

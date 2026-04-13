@@ -462,8 +462,12 @@ export default function FloatingEmma() {
   }, []);
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    const el = scrollRef.current;
+    if (el) {
+      // Small delay so new DOM content is rendered before scrolling
+      requestAnimationFrame(() => {
+        el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+      });
     }
   }, [messages, isTyping]);
 
@@ -605,7 +609,7 @@ export default function FloatingEmma() {
     <>
       {/* ══ Chat Window ══ */}
       <div
-        className={`fixed bottom-24 right-5 z-[9998] w-[390px] max-w-[calc(100vw-2.5rem)] transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+        className={`fixed bottom-24 right-5 z-[9998] w-[390px] max-w-[calc(100vw-2.5rem)] transition-[transform,opacity] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
           isOpen && showButton
             ? "translate-y-0 opacity-100 scale-100 pointer-events-auto"
             : "translate-y-6 opacity-0 scale-[0.92] pointer-events-none"
@@ -648,7 +652,7 @@ export default function FloatingEmma() {
               {/* Close button */}
               <button
                 onClick={toggleOpen}
-                className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/10 backdrop-blur-sm text-white/70 transition-all hover:bg-white/20 hover:text-white hover:scale-105"
+                className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/10 backdrop-blur-sm text-white/70 transition-[background-color,color,transform] hover:bg-white/20 hover:text-white hover:scale-105"
               >
                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                   <path d="M9 3L3 9M3 3l6 6" />
@@ -660,6 +664,8 @@ export default function FloatingEmma() {
           {/* ── Messages ── */}
           <div
             ref={scrollRef}
+            role="log"
+            aria-live="polite"
             className="flex-1 space-y-3 overflow-y-auto px-4 py-3 bg-gradient-to-b from-gray-50/50 to-white dark:from-[#0f1729] dark:to-[#131d33]"
           >
             {messages.map((msg, i) => (
@@ -692,7 +698,7 @@ export default function FloatingEmma() {
                       {msg.suggestions.map((s, j) => (
                         <div
                           key={j}
-                          className="flex items-center justify-between rounded-xl border border-gray-100 dark:border-white/8 bg-white dark:bg-white/5 px-3 py-2.5 transition-all hover:border-accent/30 hover:shadow-md hover:shadow-accent/5 cursor-pointer"
+                          className="flex items-center justify-between rounded-xl border border-gray-100 dark:border-white/8 bg-white dark:bg-white/5 px-3 py-2.5 transition-[border-color,box-shadow] hover:border-accent/30 hover:shadow-md hover:shadow-accent/5 cursor-pointer"
                         >
                           <div className="flex items-center gap-2">
                             <span className="rounded-md bg-gradient-to-r from-accent/10 to-blue-500/10 px-1.5 py-0.5 text-[10px] font-bold text-accent">
@@ -738,7 +744,7 @@ export default function FloatingEmma() {
                   <button
                     key={t.label}
                     onClick={() => sendMessage(t.label)}
-                    className="group flex items-center gap-2.5 rounded-2xl border border-gray-100 dark:border-white/10 bg-white dark:bg-white/5 px-3 py-3 text-left transition-all hover:border-accent/25 hover:bg-gradient-to-r hover:from-accent/5 hover:to-blue-500/5 hover:shadow-md hover:shadow-accent/5 hover:scale-[1.02] active:scale-[0.98]"
+                    className="group flex items-center gap-2.5 rounded-2xl border border-gray-100 dark:border-white/10 bg-white dark:bg-white/5 px-3 py-3 text-left transition-[border-color,background-color,box-shadow,transform] hover:border-accent/25 hover:bg-gradient-to-r hover:from-accent/5 hover:to-blue-500/5 hover:shadow-md hover:shadow-accent/5 hover:scale-[1.02] active:scale-[0.98]"
                   >
                     <span className="text-lg group-hover:scale-110 transition-transform">{t.icon}</span>
                     <span className="text-[11px] font-medium text-gray-600 dark:text-gray-300 leading-tight group-hover:text-gray-900 dark:group-hover:text-white transition-colors">
@@ -752,7 +758,7 @@ export default function FloatingEmma() {
 
           {/* ── Input ── */}
           <div className="border-t border-gray-100 dark:border-white/8 bg-white dark:bg-[#0f1729] px-4 py-3">
-            <div className="flex items-center gap-2 rounded-2xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 px-3.5 py-1.5 transition-all focus-within:border-accent/30 focus-within:ring-2 focus-within:ring-accent/10 focus-within:bg-white dark:focus-within:bg-white/8">
+            <div className="flex items-center gap-2 rounded-2xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 px-3.5 py-1.5 transition-[border-color,box-shadow,background-color] focus-within:border-accent/30 focus-within:ring-2 focus-within:ring-accent/10 focus-within:bg-white dark:focus-within:bg-white/8">
               <input
                 ref={inputRef}
                 type="text"
@@ -760,12 +766,14 @@ export default function FloatingEmma() {
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && sendMessage(input)}
                 placeholder="Ask Emma anything..."
+                aria-label="Ask Emma a question"
                 className="flex-1 bg-transparent py-1.5 text-[13px] text-gray-800 dark:text-gray-100 outline-none placeholder:text-gray-400 dark:placeholder:text-gray-500"
               />
               <button
                 onClick={() => sendMessage(input)}
                 disabled={!input.trim() || isTyping}
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-accent to-blue-600 text-white transition-all hover:shadow-lg hover:shadow-accent/25 hover:scale-105 active:scale-95 disabled:opacity-25 disabled:hover:scale-100 disabled:hover:shadow-none"
+                aria-label="Send message"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-accent to-blue-600 text-white transition-[box-shadow,transform,opacity] hover:shadow-lg hover:shadow-accent/25 hover:scale-105 active:scale-95 disabled:opacity-25 disabled:hover:scale-100 disabled:hover:shadow-none"
               >
                 <svg
                   width="14"
@@ -792,7 +800,8 @@ export default function FloatingEmma() {
       {/* ══ Floating Button ══ */}
       <button
         onClick={toggleOpen}
-        className={`fixed bottom-5 right-5 z-[9999] group transition-all duration-500 ${
+        aria-expanded={isOpen}
+        className={`fixed bottom-5 right-5 z-[9999] group transition-[transform,opacity] duration-500 ${
           showButton
             ? "translate-y-0 opacity-100 scale-100"
             : "translate-y-4 opacity-0 scale-75 pointer-events-none"
@@ -800,18 +809,18 @@ export default function FloatingEmma() {
         aria-label="Chat with Emma"
       >
         {/* Animated glow rings */}
-        <div className="absolute -inset-3 rounded-full bg-gradient-to-r from-accent via-blue-500 to-indigo-500 opacity-0 blur-xl transition-all duration-700 group-hover:opacity-50" />
+        <div className="absolute -inset-3 rounded-full bg-gradient-to-r from-accent via-blue-500 to-indigo-500 opacity-0 blur-xl transition-opacity duration-700 group-hover:opacity-50" />
         <div className="absolute -inset-1.5 rounded-full bg-gradient-to-r from-accent to-indigo-600 opacity-25 animate-[emma-pulse_3s_ease-in-out_infinite]" />
 
         {/* Button with Emma face */}
         <div
-          className={`relative flex h-[60px] w-[60px] items-center justify-center rounded-full bg-gradient-to-br from-accent via-blue-600 to-indigo-700 shadow-xl shadow-accent/30 transition-all duration-500 ${
+          className={`relative flex h-[60px] w-[60px] items-center justify-center rounded-full bg-gradient-to-br from-accent via-blue-600 to-indigo-700 shadow-xl shadow-accent/30 transition-[transform,box-shadow] duration-500 ${
             isOpen ? "scale-90 rotate-180" : "scale-100 rotate-0"
           } group-hover:scale-110 group-hover:shadow-accent/50 group-hover:shadow-2xl`}
         >
           {/* Chat → Close icon transition */}
           <div
-            className={`absolute transition-all duration-500 ${
+            className={`absolute transition-[transform,opacity] duration-500 ${
               isOpen
                 ? "rotate-180 scale-0 opacity-0"
                 : "rotate-0 scale-100 opacity-100"
@@ -820,7 +829,7 @@ export default function FloatingEmma() {
             <EmmaAvatarButton />
           </div>
           <div
-            className={`absolute transition-all duration-500 ${
+            className={`absolute transition-[transform,opacity] duration-500 ${
               isOpen
                 ? "rotate-0 scale-100 opacity-100"
                 : "rotate-180 scale-0 opacity-0"
@@ -842,7 +851,7 @@ export default function FloatingEmma() {
 
         {/* Tooltip */}
         <div
-          className={`absolute bottom-full right-0 mb-4 whitespace-nowrap rounded-2xl bg-gradient-to-r from-[#0f1729] to-[#1a2744] px-5 py-3 text-[12px] font-medium text-white shadow-2xl shadow-black/20 transition-all duration-500 ${
+          className={`absolute bottom-full right-0 mb-4 whitespace-nowrap rounded-2xl bg-gradient-to-r from-[#0f1729] to-[#1a2744] px-5 py-3 text-[12px] font-medium text-white shadow-2xl shadow-black/20 transition-[transform,opacity] duration-500 ${
             isOpen || hasBeenOpened
               ? "translate-y-2 opacity-0 pointer-events-none scale-95"
               : "translate-y-0 opacity-100 scale-100"

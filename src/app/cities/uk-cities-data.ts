@@ -49,7 +49,7 @@ export const ukCities: CityData[] = [
     flag: "\u{1F3F4}\u{E0067}\u{E0062}\u{E0073}\u{E0063}\u{E0074}\u{E007F}",
     experiences: "3,400+",
     categories: 11,
-    viatorDestId: 738,
+    viatorDestId: 739,
     tagline: "Scotland's historic capital — castles, whisky & the Royal Mile",
     description:
       "Edinburgh is one of Europe's most dramatic cities, where a medieval Old Town and elegant Georgian New Town sit beneath an ancient volcanic castle. With the world's largest arts festival, legendary whisky heritage, and Harry Potter connections, TicketMatch.ai provides B2B access to 3,400+ group experiences at exclusive rates.",
@@ -86,7 +86,7 @@ export const ukCities: CityData[] = [
     flag: "\u{1F1EC}\u{1F1E7}",
     experiences: "1,800+",
     categories: 9,
-    viatorDestId: 5394,
+    viatorDestId: 4056,
     tagline: "The original industrial city — football, music & Northern soul",
     description:
       "Manchester is a powerhouse of culture, sport, and innovation — birthplace of the Industrial Revolution, home to two Premier League clubs, and the city that gave the world Oasis, The Smiths, and Joy Division. TicketMatch.ai provides B2B access to 1,800+ group experiences at exclusive rates.",
@@ -123,7 +123,7 @@ export const ukCities: CityData[] = [
     flag: "\u{1F1EC}\u{1F1E7}",
     experiences: "1,400+",
     categories: 9,
-    viatorDestId: 5395,
+    viatorDestId: 940,
     tagline: "The Beatles' city — maritime heritage, football & cultural capital",
     description:
       "Liverpool is forever linked to The Beatles, but this UNESCO-recognized maritime city offers so much more — Premier League football, world-class museums, a revitalized waterfront, and a legendary nightlife scene. TicketMatch.ai provides B2B access to 1,400+ group experiences at exclusive rates.",
@@ -160,7 +160,7 @@ export const ukCities: CityData[] = [
     flag: "\u{1F1EC}\u{1F1E7}",
     experiences: "1,100+",
     categories: 8,
-    viatorDestId: 5397,
+    viatorDestId: 5537,
     tagline: "The City of Dreaming Spires — 900 years of academic excellence",
     description:
       "Oxford is one of the world's most prestigious university cities, with 900 years of academic history, stunning medieval colleges, and connections to Harry Potter, Alice in Wonderland, and Tolkien. TicketMatch.ai provides B2B access to 1,100+ group experiences at exclusive rates.",
@@ -199,7 +199,7 @@ export const ukCities: CityData[] = [
     flag: "\u{1F1EC}\u{1F1E7}",
     experiences: "900+",
     categories: 7,
-    viatorDestId: 5396,
+    viatorDestId: 22327,
     tagline: "Where Newton, Darwin & Hawking studied — punting & ancient colleges",
     description:
       "Cambridge is Oxford's illustrious rival — a stunning university city where Newton discovered gravity, Darwin studied, and Hawking revolutionized physics. With gorgeous medieval colleges along the River Cam, TicketMatch.ai provides B2B access to 900+ group experiences at exclusive rates.",
@@ -237,7 +237,7 @@ export const ukCities: CityData[] = [
     flag: "\u{1F1EC}\u{1F1E7}",
     experiences: "800+",
     categories: 7,
-    viatorDestId: 5398,
+    viatorDestId: 27175,
     tagline: "UNESCO Georgian gem — Roman baths, Jane Austen & the Royal Crescent",
     description:
       "Bath is one of England's most beautiful cities — a UNESCO World Heritage site famous for its Roman baths, Georgian architecture, and Jane Austen connections. With natural hot springs and the stunning Royal Crescent, TicketMatch.ai provides B2B access to 800+ group experiences at exclusive rates.",
@@ -275,7 +275,7 @@ export const ukCities: CityData[] = [
     flag: "\u{1F1EC}\u{1F1E7}",
     experiences: "1,000+",
     categories: 8,
-    viatorDestId: 5399,
+    viatorDestId: 5446,
     tagline: "Medieval walled city — Vikings, Gothic cathedral & the Shambles",
     description:
       "York is one of England's most historic cities, enclosed by medieval walls with a stunning Gothic cathedral, Viking heritage, and the Shambles (inspiration for Diagon Alley). TicketMatch.ai provides B2B access to 1,000+ group experiences at exclusive rates.",

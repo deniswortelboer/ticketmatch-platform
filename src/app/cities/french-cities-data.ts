@@ -49,7 +49,7 @@ export const frenchCities: CityData[] = [
     flag: "\u{1F1EB}\u{1F1F7}",
     experiences: "2,800+",
     categories: 10,
-    viatorDestId: 5630,
+    viatorDestId: 829,
     tagline: "France's gastronomic capital with 2,000 years of history",
     description:
       "Lyon is France's third-largest city and its undisputed culinary capital. With a UNESCO-listed old town, world-class museums, and a food scene that rivals Paris, TicketMatch.ai provides B2B access to 2,800+ group experiences at exclusive rates for tour operators, DMCs, and travel agencies.",
@@ -86,7 +86,7 @@ export const frenchCities: CityData[] = [
     flag: "\u{1F1EB}\u{1F1F7}",
     experiences: "3,200+",
     categories: 11,
-    viatorDestId: 483,
+    viatorDestId: 478,
     tagline: "The jewel of the French Riviera and gateway to Côte d'Azur",
     description:
       "Nice is the stunning capital of the French Riviera, where the Mediterranean meets Belle Époque elegance. With its famous Promenade des Anglais, vibrant old town, and easy access to Monaco and Cannes, TicketMatch.ai provides B2B access to 3,200+ group experiences at exclusive rates.",
@@ -123,7 +123,7 @@ export const frenchCities: CityData[] = [
     flag: "\u{1F1EB}\u{1F1F7}",
     experiences: "2,100+",
     categories: 10,
-    viatorDestId: 4843,
+    viatorDestId: 485,
     tagline: "France's oldest city — Mediterranean culture, calanques & bouillabaisse",
     description:
       "Marseille is France's second-largest city and its oldest, founded by the Greeks in 600 BC. With its stunning Calanques National Park, multicultural Vieux-Port, and MuCEM museum, TicketMatch.ai provides B2B access to 2,100+ group experiences at exclusive rates.",
@@ -160,7 +160,7 @@ export const frenchCities: CityData[] = [
     flag: "\u{1F1EB}\u{1F1F7}",
     experiences: "1,900+",
     categories: 9,
-    viatorDestId: 5637,
+    viatorDestId: 468,
     tagline: "World wine capital with stunning 18th-century architecture",
     description:
       "Bordeaux is the world's wine capital and a UNESCO World Heritage city renowned for its elegant 18th-century architecture. With the Cité du Vin, Saint-Émilion, and the magnificent Place de la Bourse, TicketMatch.ai provides B2B access to 1,900+ group experiences at exclusive rates.",
@@ -197,7 +197,7 @@ export const frenchCities: CityData[] = [
     flag: "\u{1F1EB}\u{1F1F7}",
     experiences: "1,400+",
     categories: 8,
-    viatorDestId: 23054,
+    viatorDestId: 5502,
     tagline: "Capital of Europe — where French and German cultures meet",
     description:
       "Strasbourg is the seat of the European Parliament and a city where French and German cultures beautifully merge. Its UNESCO-listed Grande Île, Gothic cathedral, and charming Petite France quarter make it a unique group destination. TicketMatch.ai provides B2B access to 1,400+ group experiences at exclusive rates.",
@@ -234,7 +234,7 @@ export const frenchCities: CityData[] = [
     flag: "\u{1F1EB}\u{1F1F7}",
     experiences: "1,200+",
     categories: 8,
-    viatorDestId: 5643,
+    viatorDestId: 812,
     tagline: "The Pink City — aerospace innovation meets southern French charm",
     description:
       "Toulouse is France's fourth-largest city, known as 'La Ville Rose' for its distinctive pink terracotta buildings. Home to Airbus and the European space industry, it blends aerospace innovation with medieval charm. TicketMatch.ai provides B2B access to 1,200+ group experiences at exclusive rates.",
@@ -271,7 +271,7 @@ export const frenchCities: CityData[] = [
     flag: "\u{1F1EB}\u{1F1F7}",
     experiences: "1,100+",
     categories: 8,
-    viatorDestId: 22006,
+    viatorDestId: 483,
     tagline: "City of Popes — medieval grandeur at the heart of Provence",
     description:
       "Avignon is Provence's crown jewel — a walled medieval city famous for its Palais des Papes and the legendary broken bridge. As gateway to Provence's lavender fields, wine regions, and hilltop villages, TicketMatch.ai provides B2B access to 1,100+ group experiences at exclusive rates.",

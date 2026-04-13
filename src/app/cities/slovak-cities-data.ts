@@ -9,7 +9,7 @@ export const slovakCities: CityData[] = [
     flag: "🇸🇰",
     experiences: "600+",
     categories: 7,
-    viatorDestId: 4222,
+    viatorDestId: 5561,
     tagline: "Danube charm, castle views & the smallest capital between Vienna and Budapest",
     description:
       "Bratislava is a hidden gem on the Danube — a compact, walkable capital where medieval castle ruins meet pastel-coloured Old Town streets, all just 60 km from Vienna. TicketMatch.ai provides B2B access to 600+ group experiences including Bratislava Castle tours, Danube cruises, Old Town walks, and Vienna day trips — all at exclusive group rates for tour operators, DMCs, and travel agencies.",

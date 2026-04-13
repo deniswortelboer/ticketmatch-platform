@@ -49,7 +49,7 @@ function RegisterPageInner() {
   useEffect(() => {
     fetch("/api/viator-images?categories=museums,food,water,outdoor,tickets,tours&count=6")
       .then((res) => (res.ok ? res.json() : {}))
-      .then((data) => {
+      .then((data: Record<string, string[]>) => {
         // Deduplicate: ensure no image URL appears in multiple categories
         const used = new Set<string>();
         const deduped: Record<string, string[]> = {};
@@ -479,12 +479,12 @@ function RegisterPageInner() {
               {/* 6 photo grid — dynamic Viator images with sliding */}
               <div className="max-w-lg mx-auto grid grid-cols-3 gap-1.5 mb-6">
                 {[
-                  { key: "museums", fallback: "/images/register-museum.jpg", alt: "Museum experience", label: "Museums" },
-                  { key: "food", fallback: "/images/register-dining.jpg", alt: "Group dining", label: "Dining" },
-                  { key: "tickets", fallback: "/images/register-attraction.jpg", alt: "Tickets & shows", label: "Tickets" },
-                  { key: "water", fallback: "/images/partners-canal.jpg", alt: "Canal cruise", label: "Cruises" },
-                  { key: "outdoor", fallback: "/images/partners-tulips.jpg", alt: "Day trips", label: "Day Trips" },
-                  { key: "tours", fallback: "/images/hero-amsterdam.jpg", alt: "City tours", label: "City Tours" },
+                  { key: "museums", fallback: "/images/register-museum.webp", alt: "Museum experience", label: "Museums" },
+                  { key: "food", fallback: "/images/register-dining.webp", alt: "Group dining", label: "Dining" },
+                  { key: "tickets", fallback: "/images/register-attraction.webp", alt: "Tickets & shows", label: "Tickets" },
+                  { key: "water", fallback: "/images/partners-canal.webp", alt: "Canal cruise", label: "Cruises" },
+                  { key: "outdoor", fallback: "/images/partners-tulips.webp", alt: "Day trips", label: "Day Trips" },
+                  { key: "tours", fallback: "/images/hero-amsterdam.webp", alt: "City tours", label: "City Tours" },
                 ].map((photo) => (
                   <div key={photo.label} className="group relative h-[85px] overflow-hidden rounded-xl">
                     <ImageSlider

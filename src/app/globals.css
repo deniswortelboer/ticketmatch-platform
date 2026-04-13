@@ -8,6 +8,30 @@
   --accent: #2563eb;
   --accent-dark: #1d4ed8;
   --surface: #ffffff;
+  --surface-alt: #f5f5f5;
+  --hero-from: #eff6ff80;
+  --hero-to: #ffffff;
+  --stats-from: #0f1729;
+  --stats-to: #1a2744;
+  --card-bg: #ffffff;
+  --card-border: #e5e5e560;
+}
+
+.dark {
+  --background: #0a0f1a;
+  --foreground: #f0f0f0;
+  --muted: #9ca3af;
+  --border: #1e293b;
+  --accent: #3b82f6;
+  --accent-dark: #2563eb;
+  --surface: #111827;
+  --surface-alt: #1a2332;
+  --hero-from: #0a0f1a;
+  --hero-to: #111827;
+  --stats-from: #060a12;
+  --stats-to: #0a1020;
+  --card-bg: #111827;
+  --card-border: #1e293b60;
 }
 
 @theme inline {
@@ -18,6 +42,9 @@
   --color-accent: var(--accent);
   --color-accent-dark: var(--accent-dark);
   --color-surface: var(--surface);
+  --color-surface-alt: var(--surface-alt);
+  --color-card-bg: var(--card-bg);
+  --color-card-border: var(--card-border);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -32,6 +59,9 @@ body {
   font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition-property: background-color, color;
+  transition-duration: 0.3s;
+  transition-timing-function: ease;
 }
 
 ::selection {
@@ -68,12 +98,45 @@ body {
   animation: slideIn 0.3s ease-out both;
 }
 
+/* Counter animation for stats */
+@keyframes countUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.count-up {
+  animation: countUp 0.8s ease-out both;
+}
+
+/* Glow pulse for premium elements */
+@keyframes glowPulse {
+  0%, 100% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.1); }
+  50% { box-shadow: 0 0 40px rgba(59, 130, 246, 0.2); }
+}
+.glow-pulse {
+  animation: glowPulse 3s ease-in-out infinite;
+}
+
 /* Print styles for itinerary export */
 @media print {
   body { background: white !important; }
-  aside, nav, .print\\:hidden { display: none !important; }
+  aside, nav, .print\:hidden { display: none !important; }
   main { padding: 0 !important; margin: 0 !important; }
   main > div { max-width: 100% !important; padding: 0 !important; }
   .rounded-2xl { border-radius: 8px !important; }
   @page { margin: 1.5cm; size: A4; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Hide expensive blur/glow decorations on mobile for performance */
+@media (max-width: 767px) {
+  .blur-mobile-hidden {
+    display: none !important;
+  }
 }

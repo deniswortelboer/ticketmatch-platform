@@ -56,10 +56,31 @@ export async function GET(request: Request) {
       // Only sync new users (first-time OAuth login)
       const isNewUser = !existingProfile;
       if (isNewUser) {
+        // Check for affiliate referral cookie
+        const affiliateCode = cookieStore.get("affiliate_ref")?.value || "";
+        let affiliateCompanyId = "";
+        if (affiliateCode) {
+          const { data: refProfiles } = await adminSupabase
+            .from("profiles")
+            .select("company_id")
+            .like("id", `${affiliateCode.toLowerCase()}%`)
+            .limit(1);
+          if (refProfiles && refProfiles.length > 0) {
+            affiliateCompanyId = refProfiles[0].company_id;
+          }
+        }
+
+        // Build message JSON
+        const messageObj: Record<string, unknown> = { approved: false };
+        if (affiliateCompanyId) {
+          messageObj.affiliate_referred_by = affiliateCompanyId;
+          messageObj.affiliate_code = affiliateCode;
+        }
+
         // Create company + profile in Supabase
         const { data: company } = await adminSupabase
           .from("companies")
-          .insert({ name: `${fullName}'s Company`, company_type: "unknown", message: JSON.stringify({ approved: false }) })
+          .insert({ name: `${fullName}'s Company`, company_type: "unknown", message: JSON.stringify(messageObj) })
           .select("id")
           .single();
 

@@ -48,7 +48,7 @@ export const portugueseCities: CityData[] = [
     flag: "\u{1F1F5}\u{1F1F9}",
     experiences: "2,800+",
     categories: 10,
-    viatorDestId: 5500,
+    viatorDestId: 26879,
     tagline: "Port wine capital — Douro Valley, azulejos & riverside magic",
     description:
       "Porto is Portugal's second city and the birthplace of port wine — a UNESCO-listed riverside gem of stunning azulejo-tiled buildings, medieval streets, and the magnificent Douro Valley. TicketMatch.ai provides B2B access to 2,800+ group experiences at exclusive rates.",
@@ -85,7 +85,7 @@ export const portugueseCities: CityData[] = [
     flag: "\u{1F1F5}\u{1F1F9}",
     experiences: "1,000+",
     categories: 7,
-    viatorDestId: 30196,
+    viatorDestId: 50861,
     tagline: "Fairy-tale palaces in misty hills — Portugal's most magical town",
     description:
       "Sintra is a UNESCO World Heritage cultural landscape of fairy-tale palaces, mystical gardens, and misty forested hills just 40 minutes from Lisbon. Lord Byron called it 'glorious Eden.' TicketMatch.ai provides B2B access to 1,000+ group experiences at exclusive rates.",
@@ -123,7 +123,7 @@ export const portugueseCities: CityData[] = [
     flag: "\u{1F1F5}\u{1F1F9}",
     experiences: "1,800+",
     categories: 9,
-    viatorDestId: 5502,
+    viatorDestId: 23402,
     tagline: "Golden cliffs & turquoise waters — Europe's best-kept beach secret",
     description:
       "The Algarve is Portugal's sun-drenched southern coast, famous for dramatic golden cliffs, hidden sea caves, and some of Europe's finest beaches. With Faro as its gateway, TicketMatch.ai provides B2B access to 1,800+ group experiences at exclusive rates.",

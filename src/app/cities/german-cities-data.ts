@@ -50,7 +50,7 @@ export const germanCities: CityData[] = [
     flag: "\u{1F1E9}\u{1F1EA}",
     experiences: "4,800+",
     categories: 11,
-    viatorDestId: 490,
+    viatorDestId: 487,
     tagline: "Bavaria's crown jewel — beer, culture & Alpine charm",
     description:
       "Munich (München) is the capital of Bavaria and one of Europe's most popular group travel destinations. Home to Oktoberfest, world-class art museums, and stunning Alpine day trips, TicketMatch.ai connects tour operators to 4,800+ group experiences at exclusive B2B rates.",
@@ -90,7 +90,7 @@ export const germanCities: CityData[] = [
     flag: "\u{1F1E9}\u{1F1EA}",
     experiences: "3,100+",
     categories: 10,
-    viatorDestId: 489,
+    viatorDestId: 777,
     tagline: "Germany's gateway to the world — harbour, music & Speicherstadt",
     description:
       "Hamburg is Germany's second-largest city and its gateway to the world. Known for its spectacular harbour, the UNESCO Speicherstadt warehouse district, and the stunning Elbphilharmonie concert hall, TicketMatch.ai offers B2B access to 3,100+ group experiences.",
@@ -130,7 +130,7 @@ export const germanCities: CityData[] = [
     flag: "\u{1F1E9}\u{1F1EA}",
     experiences: "2,400+",
     categories: 9,
-    viatorDestId: 491,
+    viatorDestId: 489,
     tagline: "Financial capital meets culture — the Manhattan of Europe",
     description:
       "Frankfurt am Main is Germany's financial capital and a major international hub. Beyond its skyline, Frankfurt offers world-class museums along the Museumsufer, the historic Römerberg square, and easy access to the Rhine Valley. TicketMatch.ai provides B2B access to 2,400+ group experiences.",
@@ -167,7 +167,7 @@ export const germanCities: CityData[] = [
     flag: "\u{1F1E9}\u{1F1EA}",
     experiences: "2,200+",
     categories: 9,
-    viatorDestId: 4374,
+    viatorDestId: 923,
     tagline: "2,000 years of history crowned by a Gothic masterpiece",
     description:
       "Cologne (Köln) is one of Germany's oldest cities, crowned by its spectacular Gothic cathedral — a UNESCO World Heritage Site. With a vibrant art scene, famous Kölsch beer culture, and the Rhine riverfront, TicketMatch.ai provides B2B access to 2,200+ group experiences.",
@@ -204,7 +204,7 @@ export const germanCities: CityData[] = [
     flag: "\u{1F1E9}\u{1F1EA}",
     experiences: "1,800+",
     categories: 8,
-    viatorDestId: 4207,
+    viatorDestId: 22375,
     tagline: "The Florence on the Elbe — Baroque splendour reborn",
     description:
       "Dresden is known as 'Florence on the Elbe' for its stunning baroque architecture. Rebuilt after WWII, it's home to the Zwinger Palace, Semperoper opera house, and the world-famous Green Vault treasury. TicketMatch.ai provides B2B access to 1,800+ group experiences.",
@@ -241,7 +241,7 @@ export const germanCities: CityData[] = [
     flag: "\u{1F1E9}\u{1F1EA}",
     experiences: "1,500+",
     categories: 8,
-    viatorDestId: 4208,
+    viatorDestId: 5631,
     tagline: "Fashion, art & the longest bar in the world",
     description:
       "Düsseldorf is Germany's fashion and art capital, home to the famous Königsallee shopping boulevard, a vibrant Altstadt (Old Town) known as 'the longest bar in the world', and world-class art museums. TicketMatch.ai provides B2B access to 1,500+ group experiences.",
@@ -278,7 +278,7 @@ export const germanCities: CityData[] = [
     flag: "\u{1F1E9}\u{1F1EA}",
     experiences: "1,600+",
     categories: 8,
-    viatorDestId: 4213,
+    viatorDestId: 28716,
     tagline: "Automotive capital of the world — Mercedes, Porsche & vineyards",
     description:
       "Stuttgart is the automotive capital of the world — home to Mercedes-Benz and Porsche. Surrounded by vineyards and nestled in a valley, it combines engineering excellence with Swabian culture and wine traditions. TicketMatch.ai provides B2B access to 1,600+ group experiences.",

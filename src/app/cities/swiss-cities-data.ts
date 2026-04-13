@@ -9,7 +9,7 @@ export const swissCities: CityData[] = [
     flag: "\u{1F1E8}\u{1F1ED}",
     experiences: "2,400+",
     categories: 10,
-    viatorDestId: 898,
+    viatorDestId: 577,
     tagline: "Switzerland's cosmopolitan hub — lake, Alps & world-class culture",
     description:
       "Zurich is Switzerland's largest city and financial capital, beautifully set on Lake Zurich with the Swiss Alps as a backdrop. With world-class museums, a charming old town, and easy access to Alpine adventures, TicketMatch.ai provides B2B access to 2,400+ group experiences at exclusive rates for tour operators, DMCs, and travel agencies.",
@@ -50,7 +50,7 @@ export const swissCities: CityData[] = [
     flag: "\u{1F1E8}\u{1F1ED}",
     experiences: "1,800+",
     categories: 9,
-    viatorDestId: 899,
+    viatorDestId: 576,
     tagline: "Switzerland's picture-perfect gem — Chapel Bridge, lake & Alpine peaks",
     description:
       "Lucerne is Switzerland at its most magical — a medieval city on the shores of Lake Lucerne surrounded by dramatic Alpine peaks. With the iconic Chapel Bridge, Lion Monument, and easy access to Mt. Pilatus and Mt. Rigi, TicketMatch.ai provides B2B access to 1,800+ group experiences at exclusive rates.",
@@ -90,7 +90,7 @@ export const swissCities: CityData[] = [
     flag: "\u{1F1E8}\u{1F1ED}",
     experiences: "1,200+",
     categories: 8,
-    viatorDestId: 5122,
+    viatorDestId: 5011,
     tagline: "Adventure capital of Switzerland — between two lakes, beneath the Jungfrau",
     description:
       "Interlaken sits dramatically between Lake Thun and Lake Brienz in the shadow of the Eiger, Mönch, and Jungfrau peaks. As Switzerland's adventure capital and gateway to Jungfraujoch, TicketMatch.ai provides B2B access to 1,200+ group experiences at exclusive rates.",
@@ -129,7 +129,7 @@ export const swissCities: CityData[] = [
     flag: "\u{1F1E8}\u{1F1ED}",
     experiences: "1,600+",
     categories: 9,
-    viatorDestId: 900,
+    viatorDestId: 578,
     tagline: "International city of peace — Lake Geneva, CERN & Mont Blanc views",
     description:
       "Geneva is the world's most international city — home to the UN, Red Cross, CERN, and the iconic Jet d'Eau on Lake Geneva with Mont Blanc as its backdrop. TicketMatch.ai provides B2B access to 1,600+ group experiences at exclusive rates.",

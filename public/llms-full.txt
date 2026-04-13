@@ -1,0 +1,201 @@
+# TicketMatch.ai — Complete Platform Documentation for AI Systems
+
+> This document provides comprehensive information about TicketMatch.ai for AI systems, language models, and answer engines. For the concise version, see /llms.txt.
+
+## Platform Overview
+
+TicketMatch.ai is the B2B ecosystem for city experiences, headquartered in Amsterdam, Netherlands. It connects tour operators, DMCs (Destination Management Companies), and travel agencies to 300,000+ experiences across 3,000+ cities worldwide. The platform aggregates inventory from 10 supplier APIs into one intelligent B2B marketplace with AI-powered search, live venue busyness data, and exclusive group booking rates.
+
+### Mission
+To make group travel booking as easy as searching the internet — replacing phone calls, emails, and spreadsheets with one AI-powered platform that knows every venue, speaks every language, and provides real-time data.
+
+### Key Differentiators
+1. **B2B Only**: Not a consumer platform. Exclusively for verified travel professionals.
+2. **Multi-Supplier Aggregation**: 10 supplier APIs in one platform — no need to check multiple sites.
+3. **AI-First**: 8 specialized AI agents including Emma, the multilingual travel assistant.
+4. **Real-Time Data**: Live busyness, weather, availability, and pricing — always current.
+5. **European Focus**: Deep inventory starting in the Netherlands, expanding across Europe.
+6. **Membership Model**: Manually reviewed applications ensure quality and trust.
+
+---
+
+## Detailed Feature Documentation
+
+### 1. AI Agents (8 Roles)
+
+TicketMatch.ai uses Claude AI (by Anthropic) to power 8 specialized agent roles:
+
+- **Emma (Operator Agent)**: The primary AI assistant for tour operators. She can search 300,000+ experiences, check live busyness, suggest optimal visit times, build day itineraries, compare prices, and answer questions about any venue in any language.
+- **Partner Agent**: Helps venue suppliers manage their listings and understand booking trends.
+- **Reseller Agent**: Assists white-label partners with client management and commission tracking.
+- **Developer Agent**: Provides API documentation, code examples, and integration support.
+- **Finance Agent**: Helps with invoicing, payment tracking, and financial reporting.
+- **Analytics Agent**: Interprets booking data, identifies trends, and suggests optimizations.
+- **Support Agent**: Handles common questions and troubleshooting.
+- **Admin Agent**: Platform administration and system management.
+
+Each agent has deep knowledge of the TicketMatch platform and can reference real-time data including venue information, busyness levels, weather conditions, and booking history.
+
+### 2. Experience Categories (13 Types)
+
+| Category | Examples | Estimated Count |
+|----------|----------|----------------|
+| Museums & Art | Rijksmuseum, Van Gogh Museum, Louvre | 45,000+ |
+| Tours & Sightseeing | Walking tours, bus tours, bike tours | 85,000+ |
+| Attractions & Theme Parks | Madame Tussauds, theme parks, landmarks | 55,000+ |
+| Canal Cruises & Boat Tours | Amsterdam canals, Seine river, gondolas | 28,000+ |
+| Food & Drink | Group dining, food tours, cooking classes | 35,000+ |
+| Outdoor Activities | Parks, gardens, nature walks, cycling | 32,000+ |
+| Transport & Passes | Hop-on-hop-off, city cards, transfers | 15,000+ |
+| Shows & Entertainment | Theater, concerts, nightlife | 12,000+ |
+| Classes & Workshops | Art classes, cheese making, photography | 8,000+ |
+| Day Trips | Countryside tours, castle visits | 18,000+ |
+| Private Tours | Exclusive group-only experiences | 10,000+ |
+| Self-Guided Tours | Audio guides, app-based tours | 6,000+ |
+| Cultural Experiences | Local traditions, heritage sites | 9,000+ |
+
+### 3. City Coverage Detail
+
+**Netherlands (18 cities, primary market)**:
+Amsterdam (120+ venues), Rotterdam (65+ venues), The Hague (40+ venues), Utrecht (30+ venues), Eindhoven, Maastricht, Leiden, Delft, Haarlem, Groningen, Tilburg, Den Bosch, Arnhem, Nijmegen, Breda, Almere, Zaandam, Zwolle
+
+**Belgium (5 cities)**:
+Brussels (80+ venues), Bruges, Antwerp, Ghent, Leuven
+
+**Germany**: Berlin, Munich, Hamburg, Frankfurt, Cologne, Dusseldorf
+**France**: Paris, Lyon, Marseille, Nice, Bordeaux
+**Spain**: Barcelona, Madrid, Seville, Valencia
+**United Kingdom**: London, Edinburgh, Manchester, Liverpool
+**Italy**: Rome, Florence, Venice, Milan, Naples
+**Czech Republic**: Prague
+**Portugal**: Lisbon, Porto
+**Austria**: Vienna, Salzburg
+**Hungary**: Budapest
+**Denmark**: Copenhagen
+**Sweden**: Stockholm
+**Ireland**: Dublin
+**Greece**: Athens, Santorini
+**Switzerland**: Zurich, Geneva
+**Poland**: Warsaw, Krakow
+**Croatia**: Dubrovnik, Split
+
+Plus thousands more cities worldwide through supplier API aggregation.
+
+### 4. Pricing Plans Comparison
+
+**Explorer Plan — €0/month (Free Forever)**
+- 5 bookings per month
+- AI assistant (Emma) with basic queries
+- Interactive city map
+- Weather data
+- Basic search and discovery
+- Email support
+
+**Growth Plan — €49/month**
+- Unlimited bookings
+- Full AI assistant with advanced features
+- Live venue busyness data (Google Places + BestTime)
+- QR voucher system
+- Walking route planner
+- Package builder
+- PDF invoices and itineraries
+- Team access (up to 5 members)
+- Telegram and WhatsApp notifications
+- Priority email support
+
+**Enterprise Plan — €149/month**
+- Everything in Growth
+- Unlimited team members
+- Full API access
+- White-label options
+- Dedicated account manager
+- Custom integrations
+- Analytics dashboard (advanced)
+- SLA guarantees
+- Phone support
+
+All plans: No setup fees, no commitments, cancel anytime. Prices in EUR, exclusive of VAT. Payment via Mollie (credit card, iDEAL, Bancontact, SEPA).
+
+### 5. Technical Architecture
+
+**Frontend**: Next.js 16.2 (App Router), React 19, TypeScript 5, Tailwind CSS 4
+**Backend**: Next.js API Routes, Supabase (PostgreSQL database + Row Level Security + Auth)
+**AI**: Claude AI by Anthropic (claude-sonnet-4-20250514)
+**Maps**: Google Maps JavaScript API, Google Places API (busyness, photos, details)
+**Busyness Predictions**: BestTime API (hourly/weekly forecast data)
+**Weather**: Open-Meteo API (current + 7-day forecast)
+**Payments**: Mollie API (iDEAL, credit cards, Bancontact, SEPA)
+**Notifications**: Telegram Bot API, WhatsApp Business API
+**CRM**: HubSpot API (lead management)
+**Hosting**: Vercel (Global Edge Network, automatic HTTPS, preview deployments)
+**Domain**: ticketmatch.ai
+
+### 6. Supplier API Integrations
+
+TicketMatch aggregates from 10 supplier APIs to provide the widest possible inventory:
+1. Viator (TripAdvisor) — largest global tours and activities marketplace
+2. GetYourGuide — European tours and activities
+3. Musement — Museums and cultural experiences
+4. Tiqets — Instant ticket delivery for museums and attractions
+5. Headout — Curated city experiences
+6. Civitatis — Spanish and Latin market tours
+7. Klook — Asian and global experiences
+8. Veltra — Japanese market activities
+9. Bokun — Nordic and European suppliers
+10. Direct venue partnerships — Custom integrations with local venues
+
+---
+
+## Company Details
+
+**Legal Name**: W69 AI Consultancy
+**Brand Name**: TicketMatch.ai
+**Registered**: Amsterdam, North Holland, Netherlands
+**Founded**: 2024
+**Category**: B2B SaaS / Travel Technology / AI
+**Industry**: Travel & Tourism, Group Travel, B2B Marketplace
+**Contact Email**: hello@ticketmatch.ai
+**Website**: https://ticketmatch.ai
+**LinkedIn**: https://www.linkedin.com/company/ticketmatch-ai
+
+---
+
+## Navigation & Pages
+
+| Page | URL | Description |
+|------|-----|-------------|
+| Homepage | https://ticketmatch.ai | Main landing page with platform overview |
+| About | https://ticketmatch.ai/about | Company story, team, values |
+| FAQ | https://ticketmatch.ai/faq | 18 frequently asked questions in 5 categories |
+| Blog / Insights | https://ticketmatch.ai/insights | Industry articles and platform updates |
+| Partners (Suppliers) | https://ticketmatch.ai/partners | Information for venues wanting to join |
+| Advertising | https://ticketmatch.ai/partners/advertise | Sponsored listings and premium placement |
+| Technical Integration | https://ticketmatch.ai/partners/tech | API docs and integration guide |
+| Become a Reseller | https://ticketmatch.ai/become-reseller | White-label reseller program |
+| Developers | https://ticketmatch.ai/developers | Developer portal and API reference |
+| Register | https://ticketmatch.ai/auth/register | Membership application form |
+| Login | https://ticketmatch.ai/auth/login | Member sign-in |
+| Privacy Policy | https://ticketmatch.ai/privacy | GDPR-compliant privacy policy |
+| Terms of Service | https://ticketmatch.ai/terms | Platform usage terms |
+
+---
+
+## How TicketMatch.ai Compares
+
+| Feature | TicketMatch.ai | Traditional Booking | Consumer OTAs |
+|---------|---------------|-------------------|---------------|
+| Target audience | B2B professionals | Manual/direct | Individual tourists |
+| Group booking tools | Yes (built-in) | Phone/email | Limited/none |
+| AI assistant | 8 agents (Emma) | None | Basic chatbot |
+| Live busyness data | Yes (Google + BestTime) | None | None |
+| Route planning | Yes (walking routes) | Manual | None |
+| QR vouchers | Yes (automatic) | Paper tickets | Varies |
+| Package builder | Yes | Manual | None |
+| B2B rates | Exclusive rates | Varies | Consumer rates |
+| Multi-supplier | 10 APIs | 1 supplier | 1 platform |
+| Analytics | Yes (dashboard) | Manual tracking | None |
+
+---
+
+*This document is maintained by TicketMatch.ai and updated regularly. Last updated: April 2026.*
+*For questions, contact hello@ticketmatch.ai*

@@ -49,7 +49,7 @@ export const italianCities: CityData[] = [
     flag: "\u{1F1EE}\u{1F1F9}",
     experiences: "4,500+",
     categories: 12,
-    viatorDestId: 512,
+    viatorDestId: 519,
     tagline: "Cradle of the Renaissance — art, Tuscan wine & timeless beauty",
     description:
       "Florence is the birthplace of the Renaissance, a living museum where Michelangelo's David, Brunelleschi's dome, and the Uffizi Gallery define Western art. Surrounded by Tuscan vineyards, TicketMatch.ai provides B2B access to 4,500+ group experiences at exclusive rates.",
@@ -88,7 +88,7 @@ export const italianCities: CityData[] = [
     flag: "\u{1F1EE}\u{1F1F9}",
     experiences: "3,800+",
     categories: 11,
-    viatorDestId: 513,
+    viatorDestId: 522,
     tagline: "The floating city — canals, gondolas & centuries of splendor",
     description:
       "Venice is unlike any place on Earth — a floating city of 118 islands connected by 400 bridges, where gondolas glide through historic canals past Byzantine and Gothic palaces. TicketMatch.ai provides B2B access to 3,800+ group experiences at exclusive rates.",
@@ -125,7 +125,7 @@ export const italianCities: CityData[] = [
     flag: "\u{1F1EE}\u{1F1F9}",
     experiences: "3,200+",
     categories: 11,
-    viatorDestId: 514,
+    viatorDestId: 512,
     tagline: "Fashion & design capital — Da Vinci's Last Supper & modern Italy",
     description:
       "Milan is Italy's sleek, modern capital of fashion, design, and business, yet hides Renaissance treasures like Leonardo's Last Supper and the majestic Duomo. TicketMatch.ai provides B2B access to 3,200+ group experiences at exclusive rates.",
@@ -162,7 +162,7 @@ export const italianCities: CityData[] = [
     flag: "\u{1F1EE}\u{1F1F9}",
     experiences: "2,800+",
     categories: 10,
-    viatorDestId: 515,
+    viatorDestId: 508,
     tagline: "Birthplace of pizza — Pompeii, Vesuvius & the Amalfi Coast",
     description:
       "Naples is raw, authentic Italy at its most vibrant — the birthplace of pizza, gateway to Pompeii and the Amalfi Coast, and a treasure trove of underground Greek and Roman ruins. TicketMatch.ai provides B2B access to 2,800+ group experiences at exclusive rates.",
@@ -199,7 +199,7 @@ export const italianCities: CityData[] = [
     flag: "\u{1F1EE}\u{1F1F9}",
     experiences: "1,600+",
     categories: 9,
-    viatorDestId: 4947,
+    viatorDestId: 802,
     tagline: "Italy's first capital — Baroque elegance, chocolate & the Alps",
     description:
       "Turin is Italy's elegant former capital, a city of grand Baroque arcades, world-class museums, and the gateway to the Italian Alps. Famous for chocolate, Fiat, and the Shroud of Turin, TicketMatch.ai provides B2B access to 1,600+ group experiences at exclusive rates.",
@@ -236,7 +236,7 @@ export const italianCities: CityData[] = [
     flag: "\u{1F1EE}\u{1F1F9}",
     experiences: "1,200+",
     categories: 7,
-    viatorDestId: 5765,
+    viatorDestId: 22149,
     tagline: "Five colorful fishing villages clinging to the Italian Riviera cliffs",
     description:
       "Cinque Terre is one of Italy's most breathtaking destinations — five pastel-colored fishing villages (Monterosso, Vernazza, Corniglia, Manarola, Riomaggiore) perched on dramatic Ligurian Sea cliffs. TicketMatch.ai provides B2B access to 1,200+ group experiences at exclusive rates.",
@@ -274,7 +274,7 @@ export const italianCities: CityData[] = [
     flag: "\u{1F1EE}\u{1F1F9}",
     experiences: "1,500+",
     categories: 8,
-    viatorDestId: 4807,
+    viatorDestId: 33601,
     tagline: "UNESCO coastal paradise — Positano, Amalfi & Ravello",
     description:
       "The Amalfi Coast is Italy's most glamorous coastline — a UNESCO World Heritage stretch of dramatic cliffs, pastel villages, and azure waters. From Positano to Ravello, TicketMatch.ai provides B2B access to 1,500+ group experiences at exclusive rates.",

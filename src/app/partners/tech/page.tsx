@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import DeveloperAgent from "@/components/ui/DeveloperAgent";
+import Breadcrumbs from "@/components/Breadcrumbs";
 
 export const metadata: Metadata = {
   title: "Technical Integration Guide | TicketMatch.ai",
@@ -9,6 +11,12 @@ export const metadata: Metadata = {
     "Everything your tech team needs to integrate with TicketMatch.ai. API specs, architecture overview, and integration checklist.",
   alternates: {
     canonical: "/partners/tech",
+  },
+  openGraph: {
+    title: "Technical Integration Guide — TicketMatch.ai",
+    description:
+      "API specs, webhooks, architecture overview, and step-by-step integration checklist for connecting your venue to TicketMatch.ai.",
+    url: "https://ticketmatch.ai/partners/tech",
   },
 };
 
@@ -140,6 +148,7 @@ export default function TechPage() {
         <section className="relative overflow-hidden border-b border-border/40">
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-slate-50 via-white to-blue-50/30" />
           <div className="relative mx-auto max-w-5xl px-6 pb-16 pt-20 md:pb-20 md:pt-28">
+            <Breadcrumbs items={[{ label: "Partners", href: "/partners" }, { label: "Technical Integration" }]} />
             <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-accent/15 bg-accent/5 px-4 py-1.5 text-sm font-medium text-accent">
               <span className="h-1.5 w-1.5 rounded-full bg-accent" />
               Technical Integration Guide
@@ -288,10 +297,10 @@ export default function TechPage() {
                 </p>
                 <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
                   {[
-                    { name: "Combitiq", status: "Ready", border: "border-emerald-400", bg: "bg-emerald-50", text: "text-emerald-700", badge: "bg-emerald-100 text-emerald-700" },
-                    { name: "GetYourGuide", status: "Open", border: "border-blue-300", bg: "bg-blue-50/60", text: "text-blue-700", badge: "bg-blue-100 text-blue-600" },
-                    { name: "Tiqets", status: "Open", border: "border-orange-300", bg: "bg-orange-50/60", text: "text-orange-700", badge: "bg-orange-100 text-orange-600" },
-                    { name: "Viator", status: "Open", border: "border-purple-300", bg: "bg-purple-50/60", text: "text-purple-700", badge: "bg-purple-100 text-purple-600" },
+                    { name: "Museums & Art", status: "Live", border: "border-emerald-400", bg: "bg-emerald-50", text: "text-emerald-700", badge: "bg-emerald-100 text-emerald-700" },
+                    { name: "Attractions", status: "Live", border: "border-blue-300", bg: "bg-blue-50/60", text: "text-blue-700", badge: "bg-blue-100 text-blue-600" },
+                    { name: "Experiences", status: "Live", border: "border-orange-300", bg: "bg-orange-50/60", text: "text-orange-700", badge: "bg-orange-100 text-orange-600" },
+                    { name: "Restaurants", status: "Coming Soon", border: "border-purple-300", bg: "bg-purple-50/60", text: "text-purple-700", badge: "bg-purple-100 text-purple-600" },
                   ].map((a) => (
                     <div key={a.name} className={`rounded-xl border-2 ${a.border} ${a.bg} px-4 py-3 text-center`}>
                       <p className={`text-sm font-bold ${a.text}`}>{a.name}</p>
@@ -638,8 +647,8 @@ export default function TechPage() {
                   <code className="text-emerald-400">{`{
   "products": [
     {
-      "id": "cbtq_001",
-      "supplier": "combitiq",
+      "id": "tm_001",
+      "supplier": "your-company",
       "name": "Rijksmuseum — Group Visit",
       "category": "museum",
       "city": "Amsterdam",
@@ -649,13 +658,13 @@ export default function TechPage() {
       "currency": "EUR",
       "duration": "2-3 hours",
       "max_group_size": 25,
-      "image_url": "https://cdn.combitiq.com/rijksmuseum.jpg",
+      "image_url": "https://your-cdn.com/rijksmuseum.jpg",
       "includes": ["Skip-the-line entry", "Group welcome"],
       "available_days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
     }
   ],
   "total": 45,
-  "supplier": "combitiq",
+  "supplier": "your-company",
   "synced_at": "2026-04-06T12:00:00Z"
 }`}</code>
                 </pre>
@@ -732,12 +741,12 @@ export default function TechPage() {
               products live in our catalog within 5 business days.
             </p>
             <div className="mt-8 flex flex-wrap justify-center gap-3">
-              <a
-                href="mailto:info@ticketmatch.ai?subject=API%20Integration%20—%20[Your%20Company]&body=Hi%20TicketMatch%20team%2C%0A%0AWe'd%20like%20to%20integrate%20our%20API.%20Here%20are%20our%20details%3A%0A%0ACompany%3A%20%0AAPI%20docs%20URL%3A%20%0AContact%20person%3A%20%0A%0ALooking%20forward%20to%20connecting!"
+              <Link
+                href="/developers"
                 className="inline-flex items-center gap-2 rounded-full bg-accent px-7 py-3.5 text-sm font-semibold text-white shadow-lg shadow-accent/25 transition-all hover:shadow-accent/40 hover:brightness-110"
               >
-                Send API docs <IconArrow />
-              </a>
+                Apply as Developer <IconArrow />
+              </Link>
               <Link
                 href="/partners"
                 className="inline-flex items-center gap-2 rounded-full border border-border px-7 py-3.5 text-sm font-semibold transition-colors hover:bg-gray-50"
@@ -750,6 +759,7 @@ export default function TechPage() {
       </main>
 
       <Footer />
+      <DeveloperAgent />
     </>
   );
 }

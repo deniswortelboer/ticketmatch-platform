@@ -5,49 +5,54 @@ import { useSearchParams } from "next/navigation";
 
 const plans = [
   {
-    name: "Free",
+    name: "Explorer",
     price: "€0",
-    period: "",
-    description: "Perfect to explore the platform",
-    color: "border-border/60",
+    period: "forever",
+    description: "Explore the full ecosystem. See what's possible before you commit.",
+    dark: false,
+    popular: false,
+    color: "border-border/60 bg-white",
     buttonStyle: "border border-border text-foreground hover:bg-gray-50",
     buttonText: "Current Plan",
     disabled: true,
+    icon: "explorer",
     features: [
-      { text: "1 group", included: true },
-      { text: "Up to 15 passengers", included: true },
-      { text: "3 bookings", included: true },
-      { text: "Browse full catalog", included: true },
-      { text: "Basic dashboard", included: true },
+      { text: "5 bookings per month", included: true },
+      { text: "Full venue catalog", included: true },
+      { text: "Live city map", included: true },
       { text: "1 team member", included: true },
-      { text: "File upload (Excel/Word)", included: false },
-      { text: "Itinerary PDF export", included: false },
-      { text: "Shareable itinerary link", included: false },
-      { text: "Rebook trips", included: false },
+      { text: "AI assistant", included: true },
+      { text: "Email notifications", included: true },
+      { text: "Weather forecasts", included: true },
+      { text: "Live busyness data", included: false },
+      { text: "QR vouchers & digital tickets", included: false },
+      { text: "PDF invoices & itineraries", included: false },
+      { text: "Smart route planner", included: false },
       { text: "Priority support", included: false },
     ],
   },
   {
-    name: "Pro",
+    name: "Growth",
     price: "€49",
     period: "/month",
-    description: "For active tour operators",
+    description: "Unlock the full power of the ecosystem. Built for operators who scale.",
+    dark: false,
     popular: true,
-    color: "border-accent ring-2 ring-accent/20",
+    color: "border-accent ring-2 ring-accent/20 bg-gradient-to-b from-accent/[0.03] to-white",
     buttonStyle: "bg-accent text-white hover:bg-blue-700",
-    buttonText: "Upgrade to Pro",
+    buttonText: "Start 14-Day Free Trial",
     disabled: false,
+    icon: "zap",
     features: [
-      { text: "Unlimited groups", included: true },
-      { text: "Unlimited passengers", included: true },
       { text: "Unlimited bookings", included: true },
-      { text: "Browse full catalog", included: true },
-      { text: "Full dashboard + analytics", included: true },
-      { text: "3 team members", included: true },
-      { text: "File upload (Excel/Word)", included: true },
-      { text: "Itinerary PDF export", included: true },
-      { text: "Shareable itinerary link", included: true },
-      { text: "Rebook trips (1-click)", included: true },
+      { text: "Live busyness data (Google API)", included: true },
+      { text: "Up to 5 team members", included: true },
+      { text: "QR vouchers & digital tickets", included: true },
+      { text: "Package builder", included: true },
+      { text: "PDF invoices & itineraries", included: true },
+      { text: "Smart route planner", included: true },
+      { text: "Weather & best-time insights", included: true },
+      { text: "Telegram & WhatsApp alerts", included: true },
       { text: "Priority email support", included: true },
     ],
   },
@@ -55,26 +60,43 @@ const plans = [
     name: "Enterprise",
     price: "€149",
     period: "/month",
-    description: "For large operators & resellers",
-    color: "border-border/60",
-    buttonStyle: "bg-foreground text-white hover:bg-gray-800",
-    buttonText: "Upgrade to Enterprise",
+    description: "For agencies & DMCs managing multiple groups across cities.",
+    dark: true,
+    popular: false,
+    color: "border-gray-800 bg-gradient-to-b from-gray-900 to-gray-950",
+    buttonStyle: "bg-white text-gray-900 hover:bg-gray-100 font-bold",
+    buttonText: "Contact Sales",
     disabled: false,
+    icon: "layers",
     features: [
-      { text: "Everything in Pro", included: true },
+      { text: "Everything in Growth", included: true },
       { text: "Unlimited team members", included: true },
-      { text: "Branded PDF (your logo)", included: true },
+      { text: "Advanced analytics dashboard", included: true },
+      { text: "API access & integrations", included: true },
       { text: "White-label options", included: true },
-      { text: "API access", included: true },
-      { text: "Route optimization", included: true },
-      { text: "Savings calculator", included: true },
-      { text: "Multi-currency support", included: true },
+      { text: "Custom AI agent training", included: true },
       { text: "Dedicated account manager", included: true },
-      { text: "WhatsApp support", included: true },
-      { text: "Custom integrations", included: true },
+      { text: "Multi-city management", included: true },
+      { text: "Priority onboarding & SLA", included: true },
+      { text: "Custom invoicing", included: true },
     ],
   },
 ];
+
+function PlanIcon({ type, dark }: { type: string; dark?: boolean }) {
+  const color = dark ? "text-white" : type === "zap" ? "text-accent" : "text-foreground";
+  const props = { width: 22, height: 22, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.5, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, className: color };
+  switch (type) {
+    case "explorer":
+      return <svg {...props}><circle cx="12" cy="12" r="10" /><path d="m16.24 7.76-2.12 6.36-6.36 2.12 2.12-6.36 6.36-2.12z" /></svg>;
+    case "zap":
+      return <svg {...props}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>;
+    case "layers":
+      return <svg {...props}><path d="M12 2L2 7l10 5 10-5-10-5z" /><path d="M2 17l10 5 10-5" /><path d="M2 12l10 5 10-5" /></svg>;
+    default:
+      return null;
+  }
+}
 
 export default function PricingPage() {
   return (
@@ -91,6 +113,10 @@ function PricingContent() {
   const success = searchParams.get("success");
 
   const handleUpgrade = async (planName: string) => {
+    if (planName === "Enterprise") {
+      window.location.href = "mailto:sales@ticketmatch.ai?subject=Enterprise%20Plan%20Inquiry";
+      return;
+    }
     const planId = `${planName.toLowerCase()}-${annual ? "annual" : "monthly"}`;
     setLoading(planId);
 
@@ -130,14 +156,14 @@ function PricingContent() {
       <div className="mb-8 text-center">
         <h1 className="text-2xl font-bold tracking-tight">Choose your plan</h1>
         <p className="mt-2 text-sm text-muted">
-          Start free, upgrade when you need more.
+          Start free, upgrade when you need more. No setup fees, no hidden costs.
         </p>
 
         {/* Annual toggle */}
         <div className="mt-6 inline-flex items-center gap-3 rounded-full border border-border/60 bg-white p-1 shadow-sm">
           <button
             onClick={() => setAnnual(false)}
-            className={`rounded-full px-4 py-2 text-sm font-medium transition-all ${
+            className={`rounded-full px-5 py-2.5 text-sm font-medium transition-all ${
               !annual ? "bg-foreground text-white shadow-sm" : "text-muted hover:text-foreground"
             }`}
           >
@@ -145,7 +171,7 @@ function PricingContent() {
           </button>
           <button
             onClick={() => setAnnual(true)}
-            className={`rounded-full px-4 py-2 text-sm font-medium transition-all ${
+            className={`rounded-full px-5 py-2.5 text-sm font-medium transition-all ${
               annual ? "bg-foreground text-white shadow-sm" : "text-muted hover:text-foreground"
             }`}
           >
@@ -155,7 +181,7 @@ function PricingContent() {
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-6 lg:grid-cols-3 items-start">
         {plans.map((plan) => {
           const price = plan.price === "€0"
             ? "€0"
@@ -166,7 +192,9 @@ function PricingContent() {
           return (
             <div
               key={plan.name}
-              className={`relative rounded-2xl border bg-white p-6 shadow-sm transition-all hover:shadow-md ${plan.color}`}
+              className={`relative rounded-2xl border p-8 shadow-sm transition-all hover:shadow-lg hover:-translate-y-0.5 ${plan.color} ${
+                plan.popular ? "md:-mt-2 md:mb-2" : ""
+              }`}
             >
               {plan.popular && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-accent px-4 py-1 text-xs font-semibold text-white shadow-sm">
@@ -175,51 +203,73 @@ function PricingContent() {
               )}
 
               <div className="mb-6">
-                <h2 className="text-lg font-bold">{plan.name}</h2>
-                <p className="mt-1 text-sm text-muted">{plan.description}</p>
-                <div className="mt-4 flex items-baseline gap-1">
-                  <span className="text-4xl font-bold tracking-tight">{price}</span>
-                  {plan.period && (
-                    <span className="text-sm text-muted">
-                      {plan.period}
-                      {annual && plan.price !== "€0" && (
-                        <span className="ml-1 text-xs text-green-600">(billed annually)</span>
-                      )}
-                    </span>
-                  )}
+                <div className="flex items-center gap-2.5 mb-3">
+                  <PlanIcon type={plan.icon} dark={plan.dark} />
+                  <h2 className={`text-lg font-bold ${plan.dark ? "text-white" : ""}`}>{plan.name}</h2>
                 </div>
+
+                <div className="flex items-baseline gap-1 mb-3">
+                  <span className={`text-4xl font-bold tracking-tight ${plan.dark ? "text-white" : ""} ${plan.popular ? "text-accent" : ""}`}>
+                    {price}
+                  </span>
+                  <span className={`text-sm ${plan.dark ? "text-white/50" : "text-muted"}`}>
+                    {plan.period}
+                    {annual && plan.price !== "€0" && (
+                      <span className="ml-1 text-xs text-green-500">(billed annually)</span>
+                    )}
+                  </span>
+                </div>
+
+                <p className={`text-sm leading-relaxed ${plan.dark ? "text-white/60" : "text-muted"}`}>
+                  {plan.description}
+                </p>
               </div>
 
               <button
                 disabled={plan.disabled || loading !== null}
                 onClick={() => !plan.disabled && handleUpgrade(plan.name)}
-                className={`mb-6 h-12 w-full rounded-xl text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed ${plan.buttonStyle}`}
+                className={`mb-8 flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed ${plan.buttonStyle}`}
               >
                 {loading === `${plan.name.toLowerCase()}-${annual ? "annual" : "monthly"}` ? (
-                  <span className="flex items-center justify-center gap-2">
+                  <>
                     <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
                     Redirecting to payment...
-                  </span>
+                  </>
                 ) : (
-                  plan.buttonText
+                  <>
+                    {plan.buttonText}
+                    {!plan.disabled && (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M5 12h14" /><path d="m12 5 7 7-7 7" />
+                      </svg>
+                    )}
+                  </>
                 )}
               </button>
+
+              {plan.popular && (
+                <p className="text-center text-xs text-muted -mt-6 mb-6">No credit card required</p>
+              )}
 
               <div className="space-y-3">
                 {plan.features.map((feature, i) => (
                   <div key={i} className="flex items-center gap-2.5">
                     {feature.included ? (
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-500 shrink-0">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`shrink-0 ${plan.dark ? "text-green-400" : "text-green-500"}`}>
                         <polyline points="20 6 9 17 4 12" />
                       </svg>
                     ) : (
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-300 shrink-0">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-gray-300 shrink-0">
                         <circle cx="12" cy="12" r="10" />
                         <path d="m15 9-6 6" />
                         <path d="m9 9 6 6" />
                       </svg>
                     )}
-                    <span className={`text-sm ${feature.included ? "text-foreground" : "text-muted/50"}`}>
+                    <span className={`text-sm ${
+                      feature.included
+                        ? plan.dark ? "text-white/90" : "text-foreground"
+                        : "text-muted/40"
+                    }`}>
                       {feature.text}
                     </span>
                   </div>
@@ -230,11 +280,21 @@ function PricingContent() {
         })}
       </div>
 
-      <div className="mt-8 rounded-2xl border border-border/60 bg-white p-6 text-center shadow-sm">
-        <p className="text-sm text-muted">
-          All plans include a <span className="font-semibold text-foreground">14-day free trial</span> of Pro features.
-          No credit card required. Cancel anytime.
+      {/* Trust bar */}
+      <div className="mt-8 rounded-2xl border border-border/60 bg-white p-6 shadow-sm">
+        <p className="text-center text-sm text-muted mb-4">
+          All plans include a <span className="font-semibold text-foreground">14-day free trial</span> of Growth features. No credit card required. Cancel anytime.
         </p>
+        <div className="flex flex-wrap items-center justify-center gap-4">
+          {["SOC 2 Compliant", "GDPR Ready", "99.9% Uptime", "256-bit SSL", "EU Data Centers"].map((badge) => (
+            <div key={badge} className="flex items-center gap-1.5 rounded-full bg-gray-50 border border-border/40 px-3 py-1.5">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-500">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+              </svg>
+              <span className="text-[11px] font-medium text-muted">{badge}</span>
+            </div>
+          ))}
+        </div>
       </div>
     </>
   );

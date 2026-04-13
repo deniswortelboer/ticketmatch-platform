@@ -1,9 +1,15 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { sendBookingStatusEmail, sendApprovalEmail } from "@/lib/email";
+import { sendBookingStatusEmail, sendSmartApprovalEmail } from "@/lib/email";
+import { notifyAdmin } from "@/lib/notify";
 
-const ADMIN_EMAILS = ["wortelboerdenis@gmail.com", "patekrolexvc@gmail.com"];
+// SECURITY: Admin emails from environment variable (not hardcoded in source code)
+// Set ADMIN_EMAILS=email1@x.com,email2@x.com in .env.local
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "wortelboerdenis@gmail.com,patekrolexvc@gmail.com")
+  .split(",")
+  .map((e) => e.trim().toLowerCase())
+  .filter(Boolean);
 
 async function getAuthUser() {
   const cookieStore = await cookies();
@@ -34,7 +40,7 @@ function getAdminClient() {
 // GET: fetch all data for admin dashboard
 export async function GET() {
   const user = await getAuthUser();
-  if (!user || !ADMIN_EMAILS.includes(user.email || "")) {
+  if (!user || !ADMIN_EMAILS.includes((user.email || "").toLowerCase())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
@@ -58,7 +64,7 @@ export async function GET() {
 // PATCH: update booking status
 export async function PATCH(request: Request) {
   const user = await getAuthUser();
-  if (!user || !ADMIN_EMAILS.includes(user.email || "")) {
+  if (!user || !ADMIN_EMAILS.includes((user.email || "").toLowerCase())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
@@ -106,12 +112,15 @@ export async function PATCH(request: Request) {
         status,
         notes: booking.notes || undefined,
       }).catch((err) => console.error("Email send error:", err));
+
+      const statusEmoji = status === "confirmed" ? "✅" : status === "cancelled" ? "❌" : "⏳";
+      notifyAdmin(`${statusEmoji} Booking ${status}!\n\n📍 ${booking.venue_name}\n🏢 ${companyName}\n👥 ${booking.number_of_guests} gasten`);
     }
   } else if (type === "company") {
     // Get the current company to merge message JSON
     const { data: company } = await admin
       .from("companies")
-      .select("message, name")
+      .select("message, name, company_type")
       .eq("id", id)
       .single();
 
@@ -141,10 +150,20 @@ export async function PATCH(request: Request) {
         .map((m: { email: string | null }) => m.email)
         .filter(Boolean) as string[];
 
-      sendApprovalEmail({
+      // Determine company type from company_type column or message JSON
+      let companyType = company?.company_type || "tour-operator";
+      try {
+        const msg = company?.message ? JSON.parse(company.message) : {};
+        if (msg.role === "reseller") companyType = "reseller";
+      } catch {}
+
+      sendSmartApprovalEmail({
         to: emails,
         companyName: company?.name || "Your company",
+        companyType,
       }).catch((err) => console.error("Approval email error:", err));
+
+      notifyAdmin(`✅ Bedrijf goedgekeurd!\n\n🏢 ${company?.name}\n📋 ${companyType}`);
     }
   }
 

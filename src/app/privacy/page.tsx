@@ -9,6 +9,10 @@ export const metadata: Metadata = {
   title: "Privacy Policy",
   description: "Privacy policy for TicketMatch.ai — how we handle your data, GDPR compliance, and your rights as a user.",
   alternates: { canonical: "/privacy" },
+  openGraph: {
+    title: "Privacy Policy — TicketMatch.ai",
+    description: "How TicketMatch.ai handles your data, GDPR compliance, cookies, and your rights as a user.",
+  },
 };
 
 export default function PrivacyPage() {

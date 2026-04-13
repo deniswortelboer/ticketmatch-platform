@@ -9,7 +9,7 @@ export const lithuanianCities: CityData[] = [
     flag: "\u{1F1F1}\u{1F1F9}",
     experiences: "800+",
     categories: 7,
-    viatorDestId: 4220,
+    viatorDestId: 5479,
     tagline: "Baroque beauty — Europe's largest medieval Old Town, castles & creative spirit",
     description:
       "Vilnius is Lithuania's captivating capital, home to the largest medieval Old Town in Europe — a UNESCO World Heritage Site brimming with baroque churches, winding cobblestone lanes, and the self-declared Užupis Republic. TicketMatch.ai provides B2B access to 800+ group experiences at exclusive rates.",

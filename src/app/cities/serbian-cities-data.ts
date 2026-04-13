@@ -9,7 +9,7 @@ export const serbianCities: CityData[] = [
     flag: "🇷🇸",
     experiences: "600+",
     categories: 7,
-    viatorDestId: 23099,
+    viatorDestId: 22817,
     tagline: "The White City That Never Sleeps — fortress views, bohemian lanes & legendary nightlife",
     description:
       "Belgrade sits at the confluence of the Danube and Sava rivers, a city that has been destroyed and rebuilt over 40 times across its turbulent history. Today it pulses with one of Europe's most legendary nightlife scenes, a thriving food culture, and raw creative energy. TicketMatch.ai provides B2B access to 600+ group experiences at exclusive rates.",

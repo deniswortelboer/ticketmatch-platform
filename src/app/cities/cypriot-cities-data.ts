@@ -9,7 +9,7 @@ export const cypriotCities: CityData[] = [
     flag: "\u{1F1E8}\u{1F1FE}",
     experiences: "600+",
     categories: 7,
-    viatorDestId: 5038,
+    viatorDestId: 5629,
     tagline: "Birthplace of Aphrodite — ancient mosaics, turquoise coves & mythic coastlines",
     description:
       "Paphos is Cyprus's cultural jewel — a UNESCO World Heritage coastal city where Greek mythology meets Roman mosaics, crusader castles, and golden Mediterranean beaches. Said to be the birthplace of Aphrodite, TicketMatch.ai provides B2B access to 600+ group experiences at exclusive rates, from archaeological explorations to Troodos Mountain adventures.",

@@ -9,7 +9,7 @@ export const finnishCities: CityData[] = [
     flag: "\u{1F1EB}\u{1F1EE}",
     experiences: "1,400+",
     categories: 8,
-    viatorDestId: 917,
+    viatorDestId: 803,
     tagline: "Nordic design capital — sauna culture, Baltic beauty & Finnish soul",
     description:
       "Helsinki is Finland's vibrant capital where Nordic design, authentic sauna culture, and Baltic coastal beauty converge. TicketMatch.ai provides B2B access to 1,400+ group experiences including Helsinki Cathedral, Suomenlinna Sea Fortress, the Rock Church, and Design District tours — all at exclusive group rates for tour operators, DMCs, and travel agencies.",

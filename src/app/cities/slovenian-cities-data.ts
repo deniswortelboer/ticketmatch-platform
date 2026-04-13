@@ -9,7 +9,7 @@ export const slovenianCities: CityData[] = [
     flag: "\u{1F1F8}\u{1F1EE}",
     experiences: "800+",
     categories: 7,
-    viatorDestId: 4217,
+    viatorDestId: 5257,
     tagline: "Europe's Green Capital — dragons, castles & a gateway to Alpine lakes",
     description:
       "Ljubljana is Slovenia's charming capital — a car-free riverside city where Baroque facades meet art nouveau, presided over by a hilltop castle and guarded by its famous dragons. TicketMatch.ai provides B2B access to 800+ group experiences at exclusive rates, from castle visits to unforgettable Lake Bled day trips.",

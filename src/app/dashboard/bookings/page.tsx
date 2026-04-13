@@ -202,6 +202,16 @@ export default function BookingsPage() {
                       <p className="text-[10px] text-muted/60 mt-0.5">&euro; {Number(booking.total_price).toFixed(2)} EUR</p>
                     )}
                   </div>
+                  <a
+                    href={`/voucher/${booking.id}`}
+                    target="_blank"
+                    className="rounded-lg p-2 text-muted hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                    title="View voucher"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" />
+                    </svg>
+                  </a>
                   <button
                     onClick={() => handleDelete(booking.id)}
                     className="rounded-lg p-2 text-muted hover:bg-red-50 hover:text-red-600 transition-colors"

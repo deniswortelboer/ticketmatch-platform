@@ -46,7 +46,7 @@ export const belgianCities: CityData[] = [
     flag: "\u{1F1E7}\u{1F1EA}",
     experiences: "1,800+",
     categories: 9,
-    viatorDestId: 5073,
+    viatorDestId: 4836,
     tagline: "The Venice of the North — medieval canals, lace & Belgian chocolate",
     description:
       "Bruges is a perfectly preserved medieval gem — a UNESCO World Heritage city of winding canals, cobblestone streets, and Gothic architecture. Famous for chocolate, beer, and lace, TicketMatch.ai provides B2B access to 1,800+ group experiences at exclusive rates.",
@@ -83,7 +83,7 @@ export const belgianCities: CityData[] = [
     flag: "\u{1F1E7}\u{1F1EA}",
     experiences: "1,200+",
     categories: 8,
-    viatorDestId: 5074,
+    viatorDestId: 23079,
     tagline: "Belgium's hidden gem — medieval grandeur without the crowds",
     description:
       "Ghent is Belgium's best-kept secret — a vibrant university city with a stunning medieval skyline, world-famous altarpiece, and thriving food scene, all without the tourist crowds of Bruges. TicketMatch.ai provides B2B access to 1,200+ group experiences at exclusive rates.",
@@ -122,7 +122,7 @@ export const belgianCities: CityData[] = [
     flag: "\u{1F1E7}\u{1F1EA}",
     experiences: "1,500+",
     categories: 9,
-    viatorDestId: 5072,
+    viatorDestId: 764,
     tagline: "Diamond capital — Rubens, fashion & the world's coolest port city",
     description:
       "Antwerp is Belgium's coolest city — the diamond capital of the world, birthplace of Rubens, a fashion powerhouse, and home to Europe's second-largest port. With a stunning cathedral and vibrant nightlife, TicketMatch.ai provides B2B access to 1,500+ group experiences at exclusive rates.",

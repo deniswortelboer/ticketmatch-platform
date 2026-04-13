@@ -1,0 +1,121 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "TicketMatch.ai Public API",
+    "description": "The B2B ecosystem for city experiences. Access 300,000+ experiences across 3,000+ cities at exclusive B2B rates. This API serves public information about cities, experiences, and categories available on TicketMatch.ai.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "TicketMatch.ai Support",
+      "email": "hello@ticketmatch.ai",
+      "url": "https://ticketmatch.ai"
+    },
+    "termsOfService": "https://ticketmatch.ai/terms"
+  },
+  "servers": [
+    {
+      "url": "https://ticketmatch.ai",
+      "description": "Production"
+    }
+  ],
+  "paths": {
+    "/cities": {
+      "get": {
+        "operationId": "listCities",
+        "summary": "List all Dutch cities with group experiences",
+        "description": "Returns an overview page of all 18 Dutch cities available for B2B group bookings on TicketMatch.ai.",
+        "responses": {
+          "200": {
+            "description": "HTML page with city listings"
+          }
+        }
+      }
+    },
+    "/cities/{city}": {
+      "get": {
+        "operationId": "getCityExperiences",
+        "summary": "Get group experiences for a specific Dutch city",
+        "description": "Returns detailed information about group experiences available in a specific Dutch city, including categories, venues, highlights, and FAQs.",
+        "parameters": [
+          {
+            "name": "city",
+            "in": "path",
+            "required": true,
+            "description": "City slug (e.g., amsterdam, rotterdam, den-haag, utrecht)",
+            "schema": {
+              "type": "string",
+              "enum": ["amsterdam", "rotterdam", "den-haag", "utrecht", "eindhoven", "groningen", "maastricht", "haarlem", "leiden", "delft", "arnhem", "nijmegen", "alkmaar", "zaandam", "gouda", "dordrecht", "hoorn", "middelburg"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "HTML page with city experiences"
+          }
+        }
+      }
+    },
+    "/cities/{city}/{category}": {
+      "get": {
+        "operationId": "getCityCategoryExperiences",
+        "summary": "Get experiences for a specific category in a Dutch city",
+        "description": "Returns detailed information about a specific category of group experiences in a Dutch city (e.g., museums in Amsterdam, food tours in Rotterdam).",
+        "parameters": [
+          {
+            "name": "city",
+            "in": "path",
+            "required": true,
+            "description": "City slug",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "category",
+            "in": "path",
+            "required": true,
+            "description": "Category slug (e.g., museums, tours, food-drink, attractions, art-culture, outdoor, canal-cruises, transport, classes)",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "HTML page with category-specific experiences"
+          }
+        }
+      }
+    },
+    "/llms.txt": {
+      "get": {
+        "operationId": "getLLMReference",
+        "summary": "Get LLM-optimized reference about TicketMatch.ai",
+        "description": "Returns a plain text reference document optimized for large language models.",
+        "responses": {
+          "200": {
+            "description": "Plain text LLM reference"
+          }
+        }
+      }
+    },
+    "/llms-cities.txt": {
+      "get": {
+        "operationId": "getLLMCitiesReference",
+        "summary": "Get detailed city reference for AI systems",
+        "description": "Returns comprehensive data about all 18 Dutch cities including venues, categories, FAQs, and booking information.",
+        "responses": {
+          "200": {
+            "description": "Plain text city reference"
+          }
+        }
+      }
+    },
+    "/feed.xml": {
+      "get": {
+        "operationId": "getRSSFeed",
+        "summary": "Get RSS feed of blog posts and city updates",
+        "responses": {
+          "200": {
+            "description": "RSS/XML feed"
+          }
+        }
+      }
+    }
+  }
+}

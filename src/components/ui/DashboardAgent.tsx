@@ -263,7 +263,7 @@ export default function DashboardAgent({ userPlan = "free", userName = "" }: { u
         <div className="fixed inset-x-0 bottom-0 top-14 z-50 md:inset-auto md:bottom-24 md:right-6">
           {/* Premium glow — desktop only */}
           <div className={`absolute -inset-1.5 rounded-3xl bg-gradient-to-r ${config.glowColors} blur-xl animate-pulse hidden md:block`} />
-          <div className={`relative flex h-full w-full md:h-[480px] md:w-[360px] flex-col overflow-hidden md:rounded-2xl border ${config.borderColor} bg-white shadow-2xl ${config.shadowColor}`}>
+          <div className={`relative flex h-full w-full md:h-[480px] md:w-[360px] flex-col overflow-hidden md:rounded-2xl border ${config.borderColor} bg-white dark:bg-[#0f1729] shadow-2xl ${config.shadowColor}`}>
           {/* Header */}
           <div className={`flex items-center gap-3 border-b border-border/40 bg-gradient-to-r ${config.headerGradient} px-4 py-3`}>
             <div className={`flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br ${config.iconGradient} shadow-lg ${config.iconShadow}`}>
@@ -307,7 +307,7 @@ export default function DashboardAgent({ userPlan = "free", userName = "" }: { u
             {/* Welcome state with quick topics */}
             {!hasMessages && (
               <div className="space-y-4">
-                <div className="rounded-2xl rounded-bl-md bg-gray-100 px-3.5 py-2.5 text-[13px] leading-relaxed text-foreground">
+                <div className="rounded-2xl rounded-bl-md bg-surface px-3.5 py-2.5 text-[13px] leading-relaxed text-foreground">
                   {config.greeting(firstName)}
                 </div>
 
@@ -317,7 +317,7 @@ export default function DashboardAgent({ userPlan = "free", userName = "" }: { u
                     <button
                       key={t.label}
                       onClick={() => sendMessage(t.label)}
-                      className={`flex items-center gap-2 rounded-xl border bg-white px-3 py-2.5 text-left transition-all hover:shadow-sm ${
+                      className={`flex items-center gap-2 rounded-xl border bg-white dark:bg-[#0f1729] px-3 py-2.5 text-left transition-all hover:shadow-sm ${
                         tier === "pro"
                           ? "border-amber-200/60 hover:border-amber-300/60 hover:bg-amber-50/50"
                           : tier === "enterprise"
@@ -350,7 +350,7 @@ export default function DashboardAgent({ userPlan = "free", userName = "" }: { u
                         className={`rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed ${
                           msg.role === "user"
                             ? `${config.userBubble} text-white rounded-br-md`
-                            : "bg-gray-100 text-foreground rounded-bl-md"
+                            : "bg-surface text-foreground rounded-bl-md"
                         }`}
                       >
                         {msg.role === "assistant" ? <ChatMarkdown text={msg.content} /> : msg.content}
@@ -361,7 +361,7 @@ export default function DashboardAgent({ userPlan = "free", userName = "" }: { u
 
                 {isTyping && (
                   <div className="flex justify-start">
-                    <div className="flex items-center gap-1 rounded-2xl rounded-bl-md bg-gray-100 px-3.5 py-2.5">
+                    <div className="flex items-center gap-1 rounded-2xl rounded-bl-md bg-surface px-3.5 py-2.5">
                       <span className="h-1 w-1 animate-bounce rounded-full bg-muted/50" style={{ animationDelay: "0ms" }} />
                       <span className="h-1 w-1 animate-bounce rounded-full bg-muted/50" style={{ animationDelay: "150ms" }} />
                       <span className="h-1 w-1 animate-bounce rounded-full bg-muted/50" style={{ animationDelay: "300ms" }} />

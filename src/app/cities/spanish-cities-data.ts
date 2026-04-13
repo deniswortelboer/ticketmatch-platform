@@ -89,7 +89,7 @@ export const spanishCities: CityData[] = [
     flag: "\u{1F1EA}\u{1F1F8}",
     experiences: "3,400+",
     categories: 10,
-    viatorDestId: 563,
+    viatorDestId: 556,
     tagline: "The soul of Andalusia — flamenco, Alcázar & orange-blossom streets",
     description:
       "Seville is the passionate heart of Andalusia, where flamenco was born, Moorish palaces dazzle, and tapas culture thrives. With the Real Alcázar, Seville Cathedral, and Plaza de España, TicketMatch.ai provides B2B access to 3,400+ group experiences at exclusive rates.",
@@ -126,7 +126,7 @@ export const spanishCities: CityData[] = [
     flag: "\u{1F1EA}\u{1F1F8}",
     experiences: "2,600+",
     categories: 10,
-    viatorDestId: 564,
+    viatorDestId: 811,
     tagline: "City of Arts & Sciences — birthplace of paella on the Mediterranean",
     description:
       "Valencia is Spain's third-largest city, blending futuristic architecture with medieval charm. Home to the stunning City of Arts and Sciences, the birthplace of paella, and Las Fallas festival, TicketMatch.ai provides B2B access to 2,600+ group experiences at exclusive rates.",
@@ -200,7 +200,7 @@ export const spanishCities: CityData[] = [
     flag: "\u{1F1EA}\u{1F1F8}",
     experiences: "2,200+",
     categories: 9,
-    viatorDestId: 565,
+    viatorDestId: 554,
     tagline: "Home of the Alhambra — where Moorish Spain lives on",
     description:
       "Granada is one of Spain's most enchanting cities, crowned by the magnificent Alhambra palace against the backdrop of the Sierra Nevada mountains. With its Moorish heritage, cave flamenco shows, and free-tapas culture, TicketMatch.ai provides B2B access to 2,200+ group experiences at exclusive rates.",
@@ -237,7 +237,7 @@ export const spanishCities: CityData[] = [
     flag: "\u{1F1EA}\u{1F1F8}",
     experiences: "1,600+",
     categories: 9,
-    viatorDestId: 4858,
+    viatorDestId: 4485,
     tagline: "The Guggenheim city — Basque culture, pintxos & modern reinvention",
     description:
       "Bilbao's transformation from industrial port to cultural powerhouse is one of Europe's great urban stories. The Guggenheim Museum put it on the map, but Basque cuisine, pintxos bars, and the stunning Biscay coast keep visitors coming back. TicketMatch.ai provides B2B access to 1,600+ group experiences at exclusive rates.",
@@ -274,7 +274,7 @@ export const spanishCities: CityData[] = [
     flag: "\u{1F1EA}\u{1F1F8}",
     experiences: "1,400+",
     categories: 8,
-    viatorDestId: 4856,
+    viatorDestId: 5505,
     tagline: "Europe's culinary capital — Michelin stars, beaches & Basque soul",
     description:
       "San Sebastián (Donostia) is regularly voted the world's best food city, with the highest concentration of Michelin stars per capita on Earth. Its stunning La Concha beach, Belle Époque architecture, and legendary pintxos scene make it a dream group destination. TicketMatch.ai provides B2B access to 1,400+ group experiences at exclusive rates.",

@@ -9,7 +9,7 @@ export const montenegrinCities: CityData[] = [
     flag: "🇲🇪",
     experiences: "500+",
     categories: 6,
-    viatorDestId: 23761,
+    viatorDestId: 23078,
     tagline: "A Fjord in the Mediterranean — walled town, mountain steps & Adriatic magic",
     description:
       "Kotor is a UNESCO-listed medieval town nestled at the head of Europe's southernmost fjord-like bay, where dramatic mountains plunge into still, cerulean waters. From the 1,350 steps to San Giovanni Fortress to the baroque island church of Our Lady of the Rocks, TicketMatch.ai provides B2B access to 500+ group experiences at exclusive rates.",

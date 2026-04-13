@@ -9,7 +9,7 @@ export const malteseCities: CityData[] = [
     flag: "\u{1F1F2}\u{1F1F9}",
     experiences: "1,200+",
     categories: 8,
-    viatorDestId: 4158,
+    viatorDestId: 4142,
     tagline: "Fortress by the Sea — Caravaggio, knights & sun-drenched harbours on every side",
     description:
       "Valletta is Europe's smallest capital and one of its most concentrated historic cities — a UNESCO fortress built by the Knights of St. John, packed with Baroque masterpieces, Caravaggio paintings, and honey-stone streets overlooking the Grand Harbour. TicketMatch.ai provides B2B access to 1,200+ group experiences at exclusive rates, from harbour cruises to Gozo island adventures.",

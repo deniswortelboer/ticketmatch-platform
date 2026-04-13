@@ -9,7 +9,7 @@ export const croatianCities: CityData[] = [
     flag: "\u{1F1ED}\u{1F1F7}",
     experiences: "2,200+",
     categories: 9,
-    viatorDestId: 936,
+    viatorDestId: 904,
     tagline: "The Pearl of the Adriatic — medieval walls, Game of Thrones & crystal seas",
     description:
       "Dubrovnik is Croatia's crown jewel — a UNESCO-listed walled city of marble streets, baroque churches, and stunning Adriatic coastline. Famous as King's Landing in Game of Thrones, TicketMatch.ai provides B2B access to 2,200+ group experiences at exclusive rates.",

@@ -9,7 +9,7 @@ export const latvianCities: CityData[] = [
     flag: "\u{1F1F1}\u{1F1FB}",
     experiences: "900+",
     categories: 7,
-    viatorDestId: 4218,
+    viatorDestId: 4480,
     tagline: "Art Nouveau capital — UNESCO Old Town, vibrant markets & Baltic grandeur",
     description:
       "Riga is Latvia's grand capital and the largest city in the Baltic states, famed for the world's finest collection of Art Nouveau architecture and a UNESCO-listed medieval Old Town. From bustling Central Market to elegant boulevards, TicketMatch.ai provides B2B access to 900+ group experiences at exclusive rates.",
