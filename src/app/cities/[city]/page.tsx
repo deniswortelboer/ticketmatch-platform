@@ -6,7 +6,7 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import { allCities, dutchCities } from "../cities-data";
-import { getCityImages } from "@/lib/viator-images";
+import cityHeroCache from "../city-hero-cache.json";
 
 /* ── Static Params for SSG ── */
 export function generateStaticParams() {
@@ -1078,8 +1078,9 @@ export default async function CityPage({ params }: { params: Promise<{ city: str
   const city = allCities.find((c) => c.slug === slug);
   if (!city) notFound();
 
-  /* Fetch Viator hero images for this city — offset 6 to avoid overlap with category pages */
-  const heroImages = await getCityImages(city.name.toLowerCase() === "the hague" ? "the hague" : city.slug, 6, 6);
+  /* Use pre-fetched static hero image cache (no API calls needed) */
+  const cacheKey = city.name.toLowerCase() === "the hague" ? "the hague" : city.slug;
+  const heroImages = (cityHeroCache as Record<string, { url: string; caption: string }[]>)[cacheKey] || [];
 
   /* Wikidata entity ID for this city */
   const wikidataId = WIKIDATA_IDS[city.slug];
