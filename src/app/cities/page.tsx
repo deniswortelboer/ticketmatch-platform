@@ -5,7 +5,7 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import { allCities, citiesByCountry } from "./cities-data";
-import { getAllCityImages } from "@/lib/viator-images";
+import cityImagesCache from "./city-images-cache.json";
 
 export const metadata: Metadata = {
   title: "Cities — B2B Group Experiences Worldwide | TicketMatch.ai",
@@ -35,15 +35,9 @@ function IconArrow() {
   return <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 }
 
-export const dynamic = "force-dynamic";
-export const maxDuration = 60; // Allow up to 60s for Viator image fetching
-
-export default async function CitiesPage() {
-  /* Fetch one Viator image per city */
-  const cityNames = allCities.map((c) =>
-    c.name.toLowerCase() === "the hague" ? "the hague" : c.slug
-  );
-  const cityImages = await getAllCityImages(cityNames);
+export default function CitiesPage() {
+  /* Use pre-fetched static image cache (no API calls needed) */
+  const cityImages = cityImagesCache as Record<string, string>;
 
   /* Total experiences across all cities */
   const totalExperiences = "350,000+";
