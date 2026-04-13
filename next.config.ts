@@ -54,7 +54,7 @@ const nextConfig: NextConfig = {
               "default-src 'self'",
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com https://js.mollie.com https://*.sentry.io",
               "style-src 'self' 'unsafe-inline'",
-              "img-src 'self' data: blob: https://media.tacdn.com https://hare-media-cdn.tripadvisor.com https://www.google-analytics.com https://*.supabase.co",
+              "img-src 'self' data: blob: https://*.tacdn.com https://*.tripadvisor.com https://*.googleusercontent.com https://www.google-analytics.com https://*.supabase.co https://*.viator.com",
               "font-src 'self' data:",
               "connect-src 'self' https://*.supabase.co https://www.google-analytics.com https://api.viator.com https://*.sentry.io https://*.ingest.sentry.io https://js.mollie.com",
               "frame-src 'self' https://js.mollie.com",
