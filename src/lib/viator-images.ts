@@ -437,15 +437,20 @@ export async function getHeroCarouselImages(
  */
 export async function getAllCityImages(cities: string[]): Promise<Record<string, string>> {
   const results: Record<string, string> = {};
+  const BATCH_SIZE = 10;
 
-  await Promise.all(
-    cities.map(async (city) => {
-      const images = await getCityImages(city, 1);
-      if (images.length > 0) {
-        results[city.toLowerCase()] = images[0].url;
-      }
-    })
-  );
+  // Batch requests to avoid Viator API rate limiting
+  for (let i = 0; i < cities.length; i += BATCH_SIZE) {
+    const batch = cities.slice(i, i + BATCH_SIZE);
+    await Promise.all(
+      batch.map(async (city) => {
+        const images = await getCityImages(city, 1);
+        if (images.length > 0) {
+          results[city.toLowerCase()] = images[0].url;
+        }
+      })
+    );
+  }
 
   return results;
 }
