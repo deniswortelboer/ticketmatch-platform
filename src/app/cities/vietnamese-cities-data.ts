@@ -1,0 +1,78 @@
+import type { CityData } from "./cities-data";
+
+export const vietnameseCities: CityData[] = [
+  {
+    slug: "hanoi",
+    name: "Hanoi",
+    province: "Hanoi",
+    country: "Vietnam",
+    flag: "🇻🇳",
+    experiences: "8,600+",
+    categories: 9,
+    viatorDestId: 351,
+    tagline: "Thousand-Year Capital — ancient quarters, misty lakes, and the gateway to Ha Long Bay",
+    description:
+      "Hanoi is Vietnam's captivating capital, a city of tree-lined boulevards, crumbling French colonial facades, and a chaotic Old Quarter that has thrived for a millennium. TicketMatch.ai provides B2B access to 8,600+ group experiences at exclusive rates across this enchanting city and beyond.",
+    highlights: [
+      "Ho Chi Minh Mausoleum — The solemn granite monument housing the preserved body of Vietnam's revolutionary leader in Ba Dinh Square",
+      "Old Quarter — Hanoi's beating heart of 36 ancient streets, each named for the trade it has practised for centuries",
+      "Hoan Kiem Lake — The legendary lake of the restored sword, ringed by willow trees and home to the iconic red Huc Bridge and Ngoc Son Temple",
+      "Temple of Literature — Vietnam's first university founded in 1070, a tranquil complex of courtyards, pavilions, and scholar steles",
+      "Ha Long Bay (Day Trip) — The UNESCO World Heritage seascape of nearly 2,000 limestone karsts and emerald waters just three hours from Hanoi",
+      "Train Street — The narrow residential lane where twice daily a train thunders through just inches from homes and coffee shops",
+    ],
+    topCategories: [
+      { slug: "tours", name: "Tours & Sightseeing", icon: "🚶", count: "1,500+", description: "Old Quarter walking tours, cyclo rides, Ho Chi Minh complex visits, and West Lake pagoda explorations." },
+      { slug: "day-trips", name: "Day Trips", icon: "🚐", count: "2,000+", description: "Ha Long Bay cruises, Ninh Binh Trang An grottoes, Sapa rice terraces, Mai Chau valley, and Perfume Pagoda." },
+      { slug: "food-drink", name: "Food & Drink", icon: "🍽️", count: "1,200+", description: "Pho tastings, street food walking tours, egg coffee crawls, Vietnamese cooking classes, and beer corner experiences." },
+      { slug: "boat-tours", name: "Boat Tours", icon: "⛵", count: "1,000+", description: "Ha Long Bay overnight junks, Bai Tu Long Bay sailings, Trang An sampan rides, and Perfume River cruises." },
+      { slug: "culture", name: "Culture & Arts", icon: "🎭", count: "800+", description: "Water puppet theatre, Temple of Literature tours, silk village visits, lacquerware workshops, and calligraphy lessons." },
+      { slug: "adventure", name: "Adventure", icon: "🧗", count: "600+", description: "Sapa trekking, motorbike countryside tours, kayaking in Ha Long Bay, rock climbing, and cycling through villages." },
+    ],
+    geoLat: 21.0278,
+    geoLon: 105.8342,
+    faq: [
+      { q: "What group experiences are available in Hanoi?", a: "TicketMatch.ai provides access to 8,600+ experiences: Old Quarter walking tours, Ha Long Bay cruises, street food crawls, water puppet shows, and Sapa trekking — all at exclusive B2B group rates." },
+      { q: "Can I book Ha Long Bay cruises for groups?", a: "Yes. TicketMatch.ai offers group Ha Long Bay experiences including day cruises, overnight junk boat stays, kayaking excursions, and Bai Tu Long Bay sailings — all at competitive B2B rates." },
+      { q: "Are street food tours available for groups?", a: "Absolutely. TicketMatch.ai provides group street food walking tours through the Old Quarter covering pho, banh mi, bun cha, egg coffee, and more at B2B rates." },
+      { q: "Is Hanoi suitable for large group travel?", a: "Yes. Hanoi has experienced group operators, large-capacity cruise boats, and a vibrant tourism infrastructure. TicketMatch.ai's B2B platform streamlines group booking and offers optimised pricing across all experiences." },
+    ],
+  },
+  {
+    slug: "ho-chi-minh-city",
+    name: "Ho Chi Minh City",
+    province: "Ho Chi Minh City",
+    country: "Vietnam",
+    flag: "🇻🇳",
+    experiences: "2,600+",
+    categories: 8,
+    viatorDestId: 352,
+    tagline: "Saigon Reborn — war history, Mekong waters, and a street-food empire on two wheels",
+    description:
+      "Ho Chi Minh City, still lovingly called Saigon, is Vietnam's electric southern powerhouse — a city of roaring motorbikes, French colonial landmarks, and unforgettable wartime history. TicketMatch.ai provides B2B access to 2,600+ group experiences at exclusive rates.",
+    highlights: [
+      "Cu Chi Tunnels — The extraordinary 250-kilometre network of underground tunnels used by Viet Cong guerrillas during the Vietnam War",
+      "War Remnants Museum — A powerful and moving collection of photographs, artefacts, and military hardware documenting the Vietnam War",
+      "Notre-Dame Cathedral — The striking red-brick neo-Romanesque cathedral built with materials shipped from France in the 1880s",
+      "Ben Thanh Market — Saigon's most iconic covered market, a sensory overload of food stalls, textiles, lacquerware, and souvenirs",
+      "Mekong Delta — The vast river delta of floating markets, coconut palm islands, and sampan-navigated canals south of the city",
+      "Bui Vien Walking Street — Saigon's vibrant pedestrian nightlife strip buzzing with bars, street food vendors, and live music",
+    ],
+    topCategories: [
+      { slug: "tours", name: "Tours & Sightseeing", icon: "🚶", count: "500+", description: "Cu Chi Tunnels expeditions, city motorbike tours, French colonial walks, and Cholon Chinatown explorations." },
+      { slug: "day-trips", name: "Day Trips", icon: "🚐", count: "400+", description: "Mekong Delta floating markets, Cu Chi Tunnels, Vung Tau beaches, Tay Ninh Cao Dai temple, and Can Tho." },
+      { slug: "food-drink", name: "Food & Drink", icon: "🍽️", count: "350+", description: "Street food motorbike tours, banh mi tastings, pho cooking classes, coffee culture walks, and rooftop cocktail tours." },
+      { slug: "history", name: "History & Heritage", icon: "🏛️", count: "250+", description: "War Remnants Museum tours, Independence Palace visits, Cu Chi history expeditions, and colonial architecture walks." },
+      { slug: "boat-tours", name: "Boat Tours", icon: "⛵", count: "300+", description: "Mekong Delta sampan rides, Saigon River dinner cruises, floating market experiences, and coconut island kayaking." },
+      { slug: "nightlife", name: "Nightlife", icon: "🌃", count: "150+", description: "Bui Vien pub crawls, rooftop bar hopping, Saigon River evening cruises, and night market walking tours." },
+    ],
+    geoLat: 10.8231,
+    geoLon: 106.6297,
+    faq: [
+      { q: "What group experiences are available in Ho Chi Minh City?", a: "TicketMatch.ai provides access to 2,600+ experiences: Cu Chi Tunnels expeditions, Mekong Delta cruises, street food motorbike tours, and war history walks — all at exclusive B2B group rates." },
+      { q: "Can I book Mekong Delta tours for groups?", a: "Yes. TicketMatch.ai offers group Mekong Delta experiences including sampan rides, floating market visits, coconut island stops, and overnight homestays — all at competitive B2B rates." },
+      { q: "Are Cu Chi Tunnels tours available for groups?", a: "Absolutely. TicketMatch.ai provides group Cu Chi Tunnels expeditions with expert guides, including tunnel crawling, shooting range experiences, and wartime history at B2B rates." },
+      { q: "Is Ho Chi Minh City suitable for large group travel?", a: "Yes. Ho Chi Minh City has excellent group infrastructure with large coaches, experienced operators, and spacious venues. TicketMatch.ai's B2B platform ensures seamless booking and group-optimised pricing." },
+    ],
+  },
+];

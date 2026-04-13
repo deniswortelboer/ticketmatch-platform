@@ -1,0 +1,78 @@
+import type { CityData } from "./cities-data";
+
+export const chineseCities: CityData[] = [
+  {
+    slug: "beijing",
+    name: "Beijing",
+    province: "Beijing",
+    country: "China",
+    flag: "🇨🇳",
+    experiences: "3,400+",
+    categories: 9,
+    viatorDestId: 321,
+    tagline: "Imperial Powerhouse — dynastic grandeur, living hutongs, and the Great Wall on the horizon",
+    description:
+      "Beijing is a city of staggering scale where imperial palaces, sacred temples, and one of humanity's greatest engineering feats converge beneath a modern skyline. From the vermilion halls of the Forbidden City to the serpentine ridgeline of the Great Wall, TicketMatch.ai provides B2B access to 3,400+ group experiences at exclusive rates.",
+    highlights: [
+      "Great Wall of China — The awe-inspiring 2,000-year-old fortification stretching across mountain ridges, with popular sections at Mutianyu and Badaling",
+      "Forbidden City — The colossal imperial palace complex of 980 buildings that served as the seat of Chinese power for nearly 500 years",
+      "Temple of Heaven — A masterpiece of Ming-dynasty architecture where emperors performed annual ceremonies to pray for bountiful harvests",
+      "Tiananmen Square — One of the world's largest public squares, flanked by the National Museum, the Great Hall of the People, and Mao's mausoleum",
+      "Summer Palace — A sprawling imperial retreat of pavilions, gardens, and Kunming Lake, recognised as a UNESCO World Heritage masterpiece",
+      "Hutong alleys — The historic narrow lanes of old Beijing where courtyard homes, tea houses, and local life reveal the city's authentic soul",
+    ],
+    topCategories: [
+      { slug: "tours", name: "Tours & Sightseeing", icon: "🚶", count: "800+", description: "Great Wall hiking tours, Forbidden City guided visits, hutong rickshaw rides, and imperial Beijing heritage walks." },
+      { slug: "culture", name: "Culture & History", icon: "🎭", count: "600+", description: "Peking Opera performances, calligraphy classes, tai chi sessions, tea ceremony workshops, and kung fu shows." },
+      { slug: "attractions", name: "Attractions", icon: "🎠", count: "500+", description: "Forbidden City, Temple of Heaven, Summer Palace, Ming Tombs, Olympic Park, and the National Centre for the Performing Arts." },
+      { slug: "day-trips", name: "Day Trips", icon: "🚐", count: "550+", description: "Mutianyu and Jinshanling Great Wall excursions, Ming Tombs visits, Longqing Gorge trips, and ancient water town tours." },
+      { slug: "food-drink", name: "Food & Drink", icon: "🍽️", count: "400+", description: "Peking duck feasts, dumpling-making classes, night market tastings, hutong food crawls, and Beijing street snack tours." },
+      { slug: "outdoor", name: "Outdoor & Adventure", icon: "🏞️", count: "350+", description: "Great Wall hiking, Olympic Park cycling, Fragrant Hills treks, Kunming Lake boat rides, and sunrise mountain excursions." },
+    ],
+    geoLat: 39.9042,
+    geoLon: 116.4074,
+    faq: [
+      { q: "What group experiences are available in Beijing?", a: "TicketMatch.ai provides access to 3,400+ experiences: Great Wall excursions, Forbidden City guided tours, hutong rickshaw rides, Peking duck feasts, and tai chi classes — all at exclusive B2B group rates." },
+      { q: "Can I book Great Wall tours for groups?", a: "Yes. TicketMatch.ai offers group Great Wall tours to Mutianyu, Badaling, Jinshanling, and Simatai sections with options for hiking, cable cars, and toboggans — all at competitive B2B rates with expert guides." },
+      { q: "Are cultural workshops available for groups?", a: "Absolutely. TicketMatch.ai provides group calligraphy classes, dumpling-making workshops, Peking Opera backstage visits, and kung fu demonstrations at B2B rates." },
+      { q: "Is Beijing suitable for large group travel?", a: "Yes. Beijing has an extensive metro system, Mandarin and English-speaking guides, and large-capacity venues. TicketMatch.ai's B2B platform streamlines booking across all 3,400+ experiences with group-optimised pricing." },
+    ],
+  },
+  {
+    slug: "shanghai",
+    name: "Shanghai",
+    province: "Shanghai",
+    country: "China",
+    flag: "🇨🇳",
+    experiences: "700+",
+    categories: 7,
+    viatorDestId: 325,
+    tagline: "Neon Skyline on the Huangpu — Art Deco glamour meets futuristic towers",
+    description:
+      "Shanghai is China's glittering commercial capital, where the Art Deco facades of the Bund gaze across the Huangpu River at the space-age skyline of Pudong. From the tranquil classical gardens of Yu Garden to the electric energy of Nanjing Road, TicketMatch.ai provides B2B access to 700+ group experiences at exclusive rates.",
+    highlights: [
+      "The Bund — The iconic waterfront promenade lined with 52 heritage buildings showcasing Gothic, Baroque, and Art Deco architecture",
+      "Yu Garden — A 400-year-old classical Chinese garden of rockeries, pavilions, and koi ponds in the heart of the Old City",
+      "Shanghai Tower — China's tallest building at 632 metres, with the world's highest observation deck offering breathtaking Pudong views",
+      "Jade Buddha Temple — A serene Chan Buddhist temple housing two luminous jade Buddha statues brought from Burma in 1882",
+      "Nanjing Road — One of the world's busiest shopping streets, stretching six kilometres from the Bund to Jing'an Temple",
+      "Zhujiajiao Water Town — A 1,700-year-old canal village of arched stone bridges, wooden boats, and Ming-dynasty architecture just outside Shanghai",
+    ],
+    topCategories: [
+      { slug: "tours", name: "Tours & Sightseeing", icon: "🚶", count: "180+", description: "Bund heritage walks, French Concession strolls, Pudong skyline tours, and old Shanghai laneway explorations." },
+      { slug: "attractions", name: "Attractions", icon: "🎠", count: "130+", description: "Shanghai Tower, Yu Garden, Oriental Pearl Tower, Shanghai Museum, Jade Buddha Temple, and the Propaganda Poster Art Centre." },
+      { slug: "food-drink", name: "Food & Drink", icon: "🍽️", count: "120+", description: "Xiaolongbao dumpling crawls, French Concession café tours, street food tastings, Shanghai hairy crab feasts, and cocktail bar tours." },
+      { slug: "day-trips", name: "Day Trips", icon: "🚐", count: "100+", description: "Zhujiajiao Water Town excursions, Suzhou garden visits, Hangzhou West Lake tours, and Tongli canal village day trips." },
+      { slug: "culture", name: "Culture & Arts", icon: "🎭", count: "90+", description: "Shanghai Circus acrobatics, traditional silk-making workshops, Chinese painting classes, and art district gallery tours." },
+      { slug: "nightlife", name: "Nightlife & Cruises", icon: "🌃", count: "80+", description: "Huangpu River night cruises, rooftop bar tours, jazz club evenings, and Xintiandi nightlife explorations." },
+    ],
+    geoLat: 31.2304,
+    geoLon: 121.4737,
+    faq: [
+      { q: "What group experiences are available in Shanghai?", a: "TicketMatch.ai provides access to 700+ experiences: Bund heritage walks, Yu Garden visits, Huangpu River cruises, xiaolongbao food crawls, and Zhujiajiao Water Town day trips — all at exclusive B2B group rates." },
+      { q: "Can I book Huangpu River cruises for groups?", a: "Yes. TicketMatch.ai offers group Huangpu River cruises including evening skyline tours, dinner cruises, and VIP boat experiences — all at competitive B2B rates." },
+      { q: "Are water town day trips available for groups?", a: "Absolutely. TicketMatch.ai provides group excursions to Zhujiajiao, Tongli, and Suzhou with guided canal boat rides, garden visits, and silk workshops at B2B rates." },
+      { q: "Is Shanghai suitable for large group travel?", a: "Yes. Shanghai has one of the world's most modern metro systems, Maglev train connections, and multilingual guides. TicketMatch.ai's B2B platform streamlines booking across all 700+ experiences with group-optimised pricing." },
+    ],
+  },
+];

@@ -1,0 +1,78 @@
+import type { CityData } from "./cities-data";
+
+export const norwegianCities: CityData[] = [
+  {
+    slug: "oslo",
+    name: "Oslo",
+    province: "Oslo",
+    country: "Norway",
+    flag: "🇳🇴",
+    experiences: "1,600+",
+    categories: 8,
+    viatorDestId: 910,
+    tagline: "Viking heritage, fjord views & world-class museums in Scandinavia's greenest capital",
+    description:
+      "Oslo is Norway's vibrant capital — a city where Viking history meets cutting-edge architecture, surrounded by forests and the Oslofjord. TicketMatch.ai provides B2B access to 1,600+ group experiences at exclusive rates.",
+    highlights: [
+      "Viking Ship Museum — Home to the world's best-preserved Viking ships and artifacts from the 9th century",
+      "Oslo Opera House — Stunning waterfront architecture where visitors walk on the sloping marble roof",
+      "Vigeland Sculpture Park — The world's largest sculpture park by a single artist, with 200+ works by Gustav Vigeland",
+      "Akershus Fortress — Medieval castle and fortress guarding the Oslo harbour since 1299",
+      "Munch Museum — Dedicated to Edvard Munch, housing 'The Scream' and thousands of his works",
+      "Holmenkollen Ski Jump — Iconic ski jump arena with panoramic views and a ski museum dating to 1892",
+    ],
+    topCategories: [
+      { slug: "tours", name: "Tours & Sightseeing", icon: "🚶", count: "120+", description: "Viking heritage walks, Oslo city tours, harbour promenades, street art tours, and Nordic culture experiences." },
+      { slug: "museums", name: "Museums", icon: "🏛️", count: "60+", description: "Viking Ship Museum, Munch Museum, Fram Museum, Norwegian Folk Museum, and Nobel Peace Center." },
+      { slug: "attractions", name: "Attractions", icon: "🎯", count: "50+", description: "Vigeland Sculpture Park, Akershus Fortress, Holmenkollen Ski Jump, Oslo Opera House, and Royal Palace." },
+      { slug: "river-cruises", name: "Fjord Cruises", icon: "🚢", count: "40+", description: "Oslofjord sightseeing cruises, island-hopping tours, dinner cruises, and fjord kayaking experiences." },
+      { slug: "food-drink", name: "Food & Drink", icon: "🍽️", count: "35+", description: "Nordic food tours, Mathallen food hall, craft beer tastings, seafood experiences, and Norwegian cooking classes." },
+      { slug: "day-trips", name: "Day Trips", icon: "🚐", count: "30+", description: "Drøbak village, Hadeland Glassverk, Fredrikstad fortress town, Norwegian countryside, and seasonal aurora trips." },
+    ],
+    geoLat: 59.9139,
+    geoLon: 10.7522,
+    faq: [
+      { q: "What group experiences are available in Oslo?", a: "TicketMatch.ai provides access to 1,600+ experiences: Viking Ship Museum tours, fjord cruises, Munch Museum visits, food tours, and more — all at exclusive B2B group rates." },
+      { q: "Can groups do fjord cruises from Oslo?", a: "Yes. The Oslofjord offers stunning sightseeing cruises, island-hopping, dinner cruises, and kayaking. TicketMatch.ai provides B2B group rates for all fjord experiences departing from Oslo." },
+      { q: "What Viking experiences are available for groups?", a: "Oslo is the world capital of Viking heritage. TicketMatch.ai offers group tours of the Viking Ship Museum, historical walking tours, and Viking-themed experiences at exclusive B2B rates." },
+      { q: "Is Oslo good for group travel?", a: "Excellent. Oslo is compact, well-connected by public transport, and surrounded by nature. TicketMatch.ai helps plan Scandinavian group itineraries with exclusive B2B rates." },
+    ],
+  },
+  {
+    slug: "bergen",
+    name: "Bergen",
+    province: "Vestland",
+    country: "Norway",
+    flag: "🇳🇴",
+    experiences: "1,200+",
+    categories: 7,
+    viatorDestId: 24498,
+    tagline: "Gateway to the fjords — UNESCO Bryggen, funiculars & dramatic Norwegian nature",
+    description:
+      "Bergen is Norway's gateway to the fjords — a UNESCO-listed harbour city of colorful wooden houses, dramatic mountains, and world-famous fjord scenery. TicketMatch.ai provides B2B access to 1,200+ group experiences at exclusive rates.",
+    highlights: [
+      "Bryggen Wharf — UNESCO World Heritage Site with iconic colorful wooden buildings from the Hanseatic era",
+      "Fløibanen Funicular — Historic funicular railway ascending 320 metres to the summit of Mount Fløyen",
+      "Mount Fløyen — Panoramic viewpoint above Bergen with hiking trails and stunning city-and-fjord vistas",
+      "Bergen Fish Market — Bustling waterfront market serving fresh seafood and local Norwegian delicacies since 1276",
+      "Edvard Grieg Museum — Troldhaugen, the lakeside home and concert hall of Norway's greatest composer",
+      "Fjord Cruises — Gateway to Sognefjord and Hardangerfjord, Norway's longest and most spectacular fjords",
+    ],
+    topCategories: [
+      { slug: "tours", name: "Tours & Sightseeing", icon: "🚶", count: "100+", description: "Bryggen walking tours, Bergen city tours, Hanseatic history walks, street art tours, and harbour promenades." },
+      { slug: "outdoor", name: "Outdoor Activities", icon: "🏔️", count: "70+", description: "Mount Fløyen hiking, Ulriken cable car, fjord kayaking, glacier walks, and Norwegian wilderness experiences." },
+      { slug: "river-cruises", name: "Fjord Tours", icon: "🚢", count: "60+", description: "Sognefjord cruises, Hardangerfjord tours, Norway in a Nutshell, Mostraumen fjord safari, and dinner cruises." },
+      { slug: "attractions", name: "Attractions", icon: "🎯", count: "40+", description: "Bryggen Wharf, Fløibanen funicular, Bergen Aquarium, Fantoft Stave Church, and Bergenhus Fortress." },
+      { slug: "food-drink", name: "Food & Drink", icon: "🍽️", count: "30+", description: "Fish Market tastings, seafood tours, Norwegian cuisine experiences, craft beer walks, and local food workshops." },
+      { slug: "day-trips", name: "Day Trips", icon: "🚐", count: "25+", description: "Norway in a Nutshell, Hardangerfjord fruit farms, Rosendal barony, Voss adventure sports, and Stave Church visits." },
+    ],
+    geoLat: 60.3913,
+    geoLon: 5.3221,
+    faq: [
+      { q: "What group experiences are available in Bergen?", a: "TicketMatch.ai provides access to 1,200+ experiences: Bryggen walking tours, fjord cruises, Fløibanen funicular, seafood tastings, and more — all at exclusive B2B group rates." },
+      { q: "Can groups do fjord tours from Bergen?", a: "Absolutely. Bergen is the gateway to Norway's fjords. TicketMatch.ai offers B2B group rates for Sognefjord cruises, Hardangerfjord tours, Norway in a Nutshell, and fjord safari experiences." },
+      { q: "What is Bryggen and can groups visit?", a: "Bryggen is Bergen's iconic UNESCO World Heritage wharf with colorful Hanseatic-era wooden buildings. TicketMatch.ai offers guided group walking tours of Bryggen and the Hanseatic Museum at B2B rates." },
+      { q: "Is Bergen good for group travel?", a: "Outstanding. Bergen is compact, walkable, and the perfect base for fjord adventures. TicketMatch.ai helps plan Norwegian group itineraries with exclusive B2B rates." },
+    ],
+  },
+];

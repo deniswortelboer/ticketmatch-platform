@@ -1,0 +1,78 @@
+import type { CityData } from "./cities-data";
+
+export const newZealandCities: CityData[] = [
+  {
+    slug: "auckland",
+    name: "Auckland",
+    province: "Auckland",
+    country: "New Zealand",
+    flag: "\u{1F1F3}\u{1F1FF}",
+    experiences: "2,100+",
+    categories: 8,
+    viatorDestId: 391,
+    tagline: "City of Sails — volcanic islands, Polynesian soul & the gateway to Middle-earth",
+    description:
+      "Auckland is New Zealand's largest city — a vibrant harbour metropolis built across 53 volcanic cones, surrounded by sparkling water and lush rainforest. From the Sky Tower to Waiheke Island's vineyards and Hobbiton day trips, TicketMatch.ai provides B2B access to 2,100+ group experiences at exclusive rates.",
+    highlights: [
+      "Sky Tower — Auckland's 328-metre landmark with SkyWalk, SkyJump, and panoramic views across two harbours and volcanic cones",
+      "Waiheke Island — A 40-minute ferry ride to award-winning vineyards, olive groves, sculpture trails, and golden beaches",
+      "Rangitoto Island — Young volcanic island with a summit hike through native pohutukawa forest to sweeping harbour views",
+      "Hobbiton (day trip) — Journey to Matamata for the world-famous movie set of The Shire from The Lord of the Rings and The Hobbit",
+      "Piha Beach — Dramatic west-coast surf beach with black iron sand, Lion Rock, and raw Tasman Sea power",
+      "Auckland War Memorial Museum — Neo-classical museum showcasing Maori taonga, Pacific Island culture, and New Zealand's natural history",
+    ],
+    topCategories: [
+      { slug: "tours", name: "Tours & Sightseeing", icon: "\u{1F6B6}", count: "300+", description: "Harbour cruises, city walking tours, Hobbiton day trips, Waitomo Caves, and Rotorua geothermal excursions." },
+      { slug: "outdoor", name: "Outdoor & Nature", icon: "\u{1F3DE}\u{FE0F}", count: "250+", description: "Rangitoto hikes, Piha beach trips, rainforest walks, dolphin swimming, and volcanic crater explorations." },
+      { slug: "food-drink", name: "Food & Drink", icon: "\u{1F37D}\u{FE0F}", count: "150+", description: "Waiheke wine tours, craft beer trails, Maori hangi feasts, seafood experiences, and foodie walking tours." },
+      { slug: "water-sports", name: "Water Sports", icon: "\u{26F5}", count: "120+", description: "America's Cup sailing, harbour kayaking, jet skiing, whale watching, and paddleboarding adventures." },
+      { slug: "attractions", name: "Attractions", icon: "\u{1F3A0}", count: "80+", description: "Sky Tower, Auckland Museum, SEA LIFE Kelly Tarlton's, Auckland Zoo, and MOTAT transport museum." },
+      { slug: "art-culture", name: "Art & Culture", icon: "\u{1F3A8}", count: "60+", description: "Auckland Art Gallery, Maori cultural performances, Pacific Island heritage tours, and street art walks." },
+    ],
+    geoLat: -36.8485,
+    geoLon: 174.7633,
+    faq: [
+      { q: "What group experiences are available in Auckland?", a: "TicketMatch.ai provides access to 2,100+ experiences: Hobbiton day trips, Waiheke wine tours, Sky Tower, harbour cruises, and Maori cultural encounters — all at exclusive B2B group rates." },
+      { q: "Can I book Hobbiton tours for groups?", a: "Yes. TicketMatch.ai offers group day trips from Auckland to Hobbiton Movie Set in Matamata, often combined with Waitomo Glowworm Caves or Rotorua geothermal parks at B2B rates." },
+      { q: "What wine experiences are available for groups?", a: "Waiheke Island is Auckland's wine country. TicketMatch.ai provides group vineyard tours, tastings at award-winning estates, and gourmet food-and-wine pairings at B2B rates." },
+      { q: "Is Auckland good for group travel?", a: "Excellent. Auckland's harbour setting, volcanic landscapes, Polynesian culture, and proximity to Hobbiton and Rotorua make it a superb group hub. TicketMatch.ai plans complete Auckland group itineraries." },
+    ],
+  },
+  {
+    slug: "queenstown",
+    name: "Queenstown",
+    province: "Otago",
+    country: "New Zealand",
+    flag: "\u{1F1F3}\u{1F1FF}",
+    experiences: "750+",
+    categories: 7,
+    viatorDestId: 407,
+    tagline: "Adventure capital of the world — alpine thrills, fjord magic & Lord of the Rings landscapes",
+    description:
+      "Queenstown is New Zealand's adrenaline playground — a stunning alpine resort town nestled between the Remarkables mountain range and the crystal waters of Lake Wakatipu. From bungee jumping to Milford Sound and Glenorchy's Lord of the Rings scenery, TicketMatch.ai provides B2B access to 750+ group experiences at exclusive rates.",
+    highlights: [
+      "Milford Sound — New Zealand's most famous fjord with towering Mitre Peak, cascading waterfalls, and wildlife-rich cruises",
+      "Bungee jumping (AJ Hackett) — The birthplace of commercial bungee at the historic Kawarau Bridge and the epic Nevis swing",
+      "Skyline Gondola — Ride to Bob's Peak for panoramic views of Lake Wakatipu and the Remarkables, plus luge and stargazing",
+      "Lake Wakatipu — Glacial lake stretching 80 kilometres, framed by mountains and explored by vintage steamship TSS Earnslaw",
+      "Glenorchy (LOTR) — Gateway to Paradise and filming locations for Isengard, Lothlórien, and Ithilien from The Lord of the Rings",
+      "Jet boating — Shotover Jet's thrilling canyon ride through narrow Shotover River gorges at breath-taking speed",
+    ],
+    topCategories: [
+      { slug: "adventure", name: "Adventure", icon: "\u{1F3D4}\u{FE0F}", count: "200+", description: "Bungee jumping, skydiving, jet boating, canyon swings, white-water rafting, and ziplining." },
+      { slug: "tours", name: "Tours & Sightseeing", icon: "\u{1F6B6}", count: "150+", description: "Milford Sound cruises, Glenorchy LOTR tours, wine trails, scenic flights, and heritage walks." },
+      { slug: "outdoor", name: "Outdoor & Nature", icon: "\u{1F3DE}\u{FE0F}", count: "120+", description: "Alpine hikes, Routeburn Track, glacier visits, mountain biking, and lakeside walking trails." },
+      { slug: "water-sports", name: "Water Sports", icon: "\u{26F5}", count: "80+", description: "Jet boating, kayaking Milford Sound, lake cruises on TSS Earnslaw, and river surfing adventures." },
+      { slug: "food-drink", name: "Food & Drink", icon: "\u{1F37D}\u{FE0F}", count: "50+", description: "Central Otago wine tours (Pinot Noir), craft beer trails, lakeside dining, and gourmet experiences." },
+      { slug: "winter-sports", name: "Winter Sports", icon: "\u{26F7}\u{FE0F}", count: "40+", description: "The Remarkables and Coronet Peak skiing, snowboarding, heli-skiing, and winter scenic flights." },
+    ],
+    geoLat: -45.0312,
+    geoLon: 168.6626,
+    faq: [
+      { q: "What group experiences are available in Queenstown?", a: "TicketMatch.ai provides access to 750+ experiences: Milford Sound cruises, bungee jumping, LOTR tours, jet boating, and Skyline Gondola — all at exclusive B2B group rates." },
+      { q: "Can I book Milford Sound for groups?", a: "Yes. TicketMatch.ai offers group Milford Sound day trips from Queenstown including scenic drives, nature cruises, kayaking, and overnight options at B2B rates." },
+      { q: "What adventure activities are available for groups?", a: "Queenstown is the adventure capital. TicketMatch.ai provides B2B group rates on bungee jumping, skydiving, jet boating, canyon swings, white-water rafting, and ziplining." },
+      { q: "Is Queenstown good for group travel?", a: "Perfect. Queenstown's compact size, world-class adventure activities, stunning scenery, and excellent dining make it ideal for groups. TicketMatch.ai plans complete Queenstown group itineraries." },
+    ],
+  },
+];

@@ -1,0 +1,78 @@
+import type { CityData } from "./cities-data";
+
+export const mexicanCities: CityData[] = [
+  {
+    slug: "cancun",
+    name: "Cancun",
+    province: "Quintana Roo",
+    country: "Mexico",
+    flag: "\u{1F1F2}\u{1F1FD}",
+    experiences: "3,600+",
+    categories: 9,
+    viatorDestId: 631,
+    tagline: "Caribbean paradise — turquoise waters, ancient ruins & jungle adventures",
+    description:
+      "Cancun is Mexico's premier Caribbean resort destination, where pristine white-sand beaches meet ancient Maya ruins and lush jungle cenotes. From Chichen Itza day trips to underwater museums, TicketMatch.ai provides B2B access to 3,600+ group experiences at exclusive rates for tour operators, DMCs, and travel agencies.",
+    highlights: [
+      "Chichen Itza — One of the New Seven Wonders of the World, the iconic Maya pyramid of Kukulkan",
+      "Isla Mujeres — A laid-back Caribbean island just 20 minutes by ferry, famous for snorkeling and beach clubs",
+      "Xcaret Park — An eco-archaeological park combining Maya ruins, underground rivers, and a spectacular evening show",
+      "Cenotes — Thousands of natural limestone sinkholes with crystal-clear freshwater perfect for swimming and diving",
+      "Tulum Ruins — Stunning clifftop Maya fortress overlooking the turquoise Caribbean Sea",
+      "MUSA Underwater Museum — Over 500 submerged sculptures creating an artificial reef for snorkelers and divers",
+    ],
+    topCategories: [
+      { slug: "tours", name: "Tours & Sightseeing", icon: "\u{1F6B6}", count: "400+", description: "Chichen Itza excursions, Tulum ruins, jungle tours, cenote swims, catamaran sails, and Isla Mujeres day trips — all at B2B group rates." },
+      { slug: "water-sports", name: "Water Sports", icon: "\u{1F3C4}", count: "350+", description: "Snorkeling, scuba diving, parasailing, jet ski tours, whale shark encounters, glass-bottom boats, and deep-sea fishing at group rates." },
+      { slug: "attractions", name: "Attractions", icon: "\u{1F3A0}", count: "200+", description: "Xcaret, Xel-Ha, Xplor, MUSA underwater museum, Ventura Park, and interactive aquarium experiences." },
+      { slug: "day-trips", name: "Day Trips", icon: "\u{1F690}", count: "250+", description: "Chichen Itza, Tulum, Coba ruins, Valladolid, Isla Mujeres, Holbox Island, and Sian Ka'an Biosphere Reserve." },
+      { slug: "outdoor", name: "Outdoor & Nature", icon: "\u{1F33F}", count: "180+", description: "Cenote diving, zip-line jungle canopy tours, ATV adventures, kayaking in mangroves, and Sian Ka'an nature reserves." },
+      { slug: "food-drink", name: "Food & Drink", icon: "\u{1F37D}\u{FE0F}", count: "80+", description: "Taco tours, tequila tastings, mezcal experiences, Mexican cooking classes, and beachfront dinner cruises at B2B rates." },
+    ],
+    geoLat: 21.1619,
+    geoLon: -86.8515,
+    faq: [
+      { q: "What group experiences are available in Cancun?", a: "TicketMatch.ai provides access to 3,600+ experiences: Chichen Itza tours, cenote adventures, Xcaret park tickets, snorkeling trips, catamaran sails, and more — all at exclusive B2B group rates." },
+      { q: "How do I book group Chichen Itza tours?", a: "Through TicketMatch.ai, book group Chichen Itza excursions including transport, licensed guides, cenote stops, lunch at Valladolid, and early-access visits — all at wholesale B2B rates." },
+      { q: "Can I book eco-park tickets for groups?", a: "Yes. TicketMatch.ai offers group packages for Xcaret, Xel-Ha, Xplor, and Xenses parks including transport, buffet meals, and priority entry at B2B rates." },
+      { q: "Is Cancun good for large group travel?", a: "Excellent. Cancun has world-class resort infrastructure, modern transport, and hundreds of group-ready operators. TicketMatch.ai helps coordinate multi-day group itineraries combining beach, culture, and adventure." },
+    ],
+  },
+  {
+    slug: "mexico-city",
+    name: "Mexico City",
+    province: "Mexico City",
+    country: "Mexico",
+    flag: "\u{1F1F2}\u{1F1FD}",
+    experiences: "2,000+",
+    categories: 8,
+    viatorDestId: 628,
+    tagline: "The megacity of murals — ancient temples, world-class cuisine & vibrant culture",
+    description:
+      "Mexico City is one of the world's greatest capitals, built atop the ancient Aztec city of Tenochtitlan. With its stunning murals, vibrant markets, Michelin-starred taquerias, and pre-Hispanic pyramids just outside the city, TicketMatch.ai provides B2B access to 2,000+ group experiences at exclusive rates for tour operators, DMCs, and travel agencies.",
+    highlights: [
+      "Teotihuacan Pyramids — The awe-inspiring Pyramids of the Sun and Moon, built over 2,000 years ago along the Avenue of the Dead",
+      "Zocalo (Plaza de la Constitucion) — One of the world's largest public squares, flanked by the National Palace and Metropolitan Cathedral",
+      "Frida Kahlo Museum (Casa Azul) — The iconic blue house where Frida Kahlo was born, lived, and created her masterpieces",
+      "Chapultepec Castle — The only royal castle in the Americas, perched atop Chapultepec Hill with panoramic city views",
+      "Xochimilco — UNESCO-listed floating gardens with colorful trajinera boats, mariachi bands, and floating flower vendors",
+      "Palacio de Bellas Artes — Mexico's premier cultural venue with stunning Art Nouveau and Art Deco architecture and murals by Rivera and Orozco",
+    ],
+    topCategories: [
+      { slug: "tours", name: "Tours & Sightseeing", icon: "\u{1F6B6}", count: "300+", description: "Teotihuacan excursions, historic center walks, street art tours, Coyoacan neighborhood strolls, and lucha libre nights — all at B2B group rates." },
+      { slug: "food-drink", name: "Food & Drink", icon: "\u{1F37D}\u{FE0F}", count: "200+", description: "Taco street tours, mezcal tastings, Mexican cooking classes, market visits at La Merced, pulque crawls, and fine-dining group experiences." },
+      { slug: "museums", name: "Museums", icon: "\u{1F3DB}\u{FE0F}", count: "150+", description: "Frida Kahlo Museum, National Museum of Anthropology, Templo Mayor, Soumaya Museum, and 140+ more at B2B group rates." },
+      { slug: "day-trips", name: "Day Trips", icon: "\u{1F690}", count: "120+", description: "Teotihuacan pyramids, Puebla and Cholula, hot air balloon rides, Taxco silver town, and Cuernavaca — group excursions from CDMX." },
+      { slug: "attractions", name: "Attractions", icon: "\u{1F3A0}", count: "100+", description: "Chapultepec Castle, Xochimilco trajineras, National Palace murals, Basilica of Guadalupe, and Torre Latinoamericana." },
+      { slug: "art-culture", name: "Art & Culture", icon: "\u{1F3A8}", count: "80+", description: "Muralism tours, Diego Rivera studios, lucha libre spectacles, mariachi performances at Garibaldi, and folk art workshops." },
+    ],
+    geoLat: 19.4326,
+    geoLon: -99.1332,
+    faq: [
+      { q: "What group experiences are available in Mexico City?", a: "TicketMatch.ai provides access to 2,000+ experiences: Teotihuacan tours, Frida Kahlo Museum tickets, Xochimilco boat rides, taco tours, and more — all at exclusive B2B group rates." },
+      { q: "How do I book group Teotihuacan tours?", a: "Through TicketMatch.ai, book group Teotihuacan excursions including guided pyramid visits, obsidian workshops, tequila tastings, hot air balloon rides, and combined Teotihuacan + Basilica of Guadalupe tours at wholesale B2B rates." },
+      { q: "Can I book Xochimilco for groups?", a: "Yes. TicketMatch.ai offers group Xochimilco trajinera boat rides with mariachi bands, food and drink packages, combined Xochimilco + Coyoacan + Frida Kahlo Museum tours at B2B rates." },
+      { q: "Is Mexico City suitable for large group travel?", a: "Absolutely. CDMX has extensive metro and bus systems, thousands of group-ready venues, and bilingual guides. TicketMatch.ai helps plan combined city + Teotihuacan itineraries for groups of any size." },
+    ],
+  },
+];

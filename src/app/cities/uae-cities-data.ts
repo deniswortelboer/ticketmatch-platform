@@ -1,0 +1,78 @@
+import type { CityData } from "./cities-data";
+
+export const uaeCities: CityData[] = [
+  {
+    slug: "dubai",
+    name: "Dubai",
+    province: "Dubai",
+    country: "UAE",
+    flag: "🇦🇪",
+    experiences: "8,300+",
+    categories: 10,
+    viatorDestId: 828,
+    tagline: "City of Superlatives — the tallest, the largest, the most luxurious, all under a desert sun",
+    description:
+      "Dubai is a futuristic metropolis rising from the Arabian desert, where record-breaking skyscrapers, man-made islands, and gold-soaked souks redefine what a city can be. TicketMatch.ai provides B2B access to 8,300+ group experiences at exclusive rates across this icon of modern ambition.",
+    highlights: [
+      "Burj Khalifa — The world's tallest building at 828 metres with observation decks on floors 124, 125, and the exclusive 148th-floor SKY lounge",
+      "Dubai Mall — The planet's largest shopping destination with 1,200+ stores, an aquarium, ice rink, and indoor waterfall",
+      "Palm Jumeirah — The iconic palm-shaped artificial island home to Atlantis resort, luxury villas, and a monorail skyline",
+      "Dubai Marina — A dazzling waterfront district of supertall towers, yacht-filled marinas, and alfresco dining promenades",
+      "Desert Safari — Thrilling dune-bashing adventures followed by Bedouin camp dinners with camel rides, henna, and belly dancing under the stars",
+      "Dubai Frame — The 150-metre golden picture frame offering split views of old and new Dubai from its sky deck",
+    ],
+    topCategories: [
+      { slug: "tours", name: "Tours & Sightseeing", icon: "🚶", count: "1,200+", description: "City bus tours, Burj Khalifa skip-the-line visits, Old Dubai heritage walks, and helicopter sightseeing flights." },
+      { slug: "adventure", name: "Adventure", icon: "🧗", count: "1,000+", description: "Desert safaris, dune bashing, skydiving over the Palm, indoor skiing, jet-ski tours, and flyboarding experiences." },
+      { slug: "attractions", name: "Attractions", icon: "🎠", count: "800+", description: "Burj Khalifa, Dubai Aquarium, IMG Worlds of Adventure, Miracle Garden, Museum of the Future, and Global Village." },
+      { slug: "boat-tours", name: "Boat Tours", icon: "⛵", count: "600+", description: "Dubai Marina yacht cruises, dhow dinner cruises, speedboat tours past Atlantis, and luxury catamaran sailings." },
+      { slug: "food-drink", name: "Food & Drink", icon: "🍽️", count: "500+", description: "Brunch experiences, desert dining under the stars, spice souk tours, Arabic cooking classes, and rooftop bar hopping." },
+      { slug: "day-trips", name: "Day Trips", icon: "🚐", count: "700+", description: "Abu Dhabi Grand Mosque, Oman Musandam fjords, Hatta mountain pools, Al Ain oasis, and Sharjah cultural tours." },
+    ],
+    geoLat: 25.2048,
+    geoLon: 55.2708,
+    faq: [
+      { q: "What group experiences are available in Dubai?", a: "TicketMatch.ai provides access to 8,300+ experiences: Burj Khalifa skip-the-line access, desert safaris, dhow dinner cruises, yacht tours, and Abu Dhabi day trips — all at exclusive B2B group rates." },
+      { q: "Can I book desert safari experiences for groups?", a: "Yes. TicketMatch.ai offers group desert safaris including dune bashing, camel rides, Bedouin camp dinners, and overnight glamping — all at competitive B2B rates." },
+      { q: "Are yacht and boat experiences available for groups?", a: "Absolutely. TicketMatch.ai provides group yacht charters, Marina dinner cruises, speedboat tours, and traditional dhow sailings at B2B rates across Dubai." },
+      { q: "Is Dubai suitable for large group travel?", a: "Yes. Dubai excels at large-group logistics with world-class infrastructure, luxury coaches, and massive venues. TicketMatch.ai's B2B platform streamlines booking across all 8,300+ experiences with group-optimised pricing." },
+    ],
+  },
+  {
+    slug: "abu-dhabi",
+    name: "Abu Dhabi",
+    province: "Abu Dhabi",
+    country: "UAE",
+    flag: "🇦🇪",
+    experiences: "350+",
+    categories: 7,
+    viatorDestId: 4474,
+    tagline: "Capital of Culture — grand mosques, world-class museums, and desert serenity",
+    description:
+      "Abu Dhabi is the refined and culturally rich capital of the UAE, where the breathtaking Sheikh Zayed Grand Mosque meets the Louvre's Middle Eastern outpost and the roar of Formula One. TicketMatch.ai provides B2B access to 350+ group experiences at exclusive rates.",
+    highlights: [
+      "Sheikh Zayed Grand Mosque — One of the world's largest mosques, a masterpiece of white marble, gold, and 82 domes accommodating 40,000 worshippers",
+      "Louvre Abu Dhabi — The stunning rain-of-light museum showcasing 600+ works spanning ancient civilisations to contemporary art",
+      "Yas Island (Ferrari World) — Home to the world's fastest roller coaster, Formula Rossa, plus Yas Waterworld and Warner Bros. World",
+      "Corniche — An eight-kilometre waterfront promenade with pristine beaches, cycling paths, and skyline panoramas",
+      "Qasr Al Watan — The magnificent Presidential Palace opened to the public, displaying Arabian architecture, gardens, and governance artefacts",
+      "Saadiyat Island — The cultural district housing the Louvre, with the Guggenheim and Zayed National Museum in development",
+    ],
+    topCategories: [
+      { slug: "tours", name: "Tours & Sightseeing", icon: "🚶", count: "80+", description: "Grand Mosque guided tours, city sightseeing buses, heritage village walks, and mangrove kayaking excursions." },
+      { slug: "attractions", name: "Attractions", icon: "🎠", count: "60+", description: "Sheikh Zayed Mosque, Louvre Abu Dhabi, Ferrari World, Warner Bros. World, Qasr Al Watan, and Yas Waterworld." },
+      { slug: "adventure", name: "Adventure", icon: "🧗", count: "50+", description: "Desert safaris, dune bashing, camel treks, kayaking through mangroves, and skydiving over Yas Island." },
+      { slug: "culture", name: "Culture & Arts", icon: "🎭", count: "40+", description: "Louvre Abu Dhabi tours, Qasr Al Watan exhibitions, pearl diving heritage, and Arabic calligraphy workshops." },
+      { slug: "food-drink", name: "Food & Drink", icon: "🍽️", count: "35+", description: "Emirati cuisine tastings, date market tours, afternoon tea experiences, and desert camp BBQ dinners." },
+      { slug: "day-trips", name: "Day Trips", icon: "🚐", count: "45+", description: "Al Ain oasis and Jebel Hafeet, Liwa desert dunes, Sir Bani Yas wildlife island, and Dubai excursions." },
+    ],
+    geoLat: 24.4539,
+    geoLon: 54.3773,
+    faq: [
+      { q: "What group experiences are available in Abu Dhabi?", a: "TicketMatch.ai provides access to 350+ experiences: Sheikh Zayed Grand Mosque tours, Louvre Abu Dhabi visits, Ferrari World tickets, desert safaris, and Qasr Al Watan tours — all at exclusive B2B group rates." },
+      { q: "Can I book Ferrari World tickets for groups?", a: "Yes. TicketMatch.ai offers group tickets for Ferrari World, Yas Waterworld, and Warner Bros. World on Yas Island — all at competitive B2B rates." },
+      { q: "Are cultural experiences available for groups?", a: "Absolutely. TicketMatch.ai provides group tours of the Sheikh Zayed Grand Mosque, Louvre Abu Dhabi, and Qasr Al Watan Presidential Palace at B2B rates." },
+      { q: "Is Abu Dhabi suitable for large group travel?", a: "Yes. Abu Dhabi has excellent infrastructure for groups with luxury coaches, spacious venues, and world-class facilities. TicketMatch.ai's B2B platform ensures seamless group booking and optimised pricing." },
+    ],
+  },
+];

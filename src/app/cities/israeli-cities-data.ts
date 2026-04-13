@@ -1,0 +1,78 @@
+import type { CityData } from "./cities-data";
+
+export const israeliCities: CityData[] = [
+  {
+    slug: "jerusalem",
+    name: "Jerusalem",
+    province: "Jerusalem District",
+    country: "Israel",
+    flag: "🇮🇱",
+    experiences: "2,800+",
+    categories: 8,
+    viatorDestId: 921,
+    tagline: "City of Three Faiths — millennia of devotion carved in golden stone",
+    description:
+      "Jerusalem stands at the crossroads of civilisation, where Jewish, Christian, and Islamic heritage converge within ancient limestone walls. From the solemn stones of the Western Wall to the mosaic-laden Church of the Holy Sepulchre and the gleaming Dome of the Rock, TicketMatch.ai provides B2B access to 2,800+ group experiences at exclusive rates.",
+    highlights: [
+      "Western Wall — The holiest site in Judaism, a remnant of the Second Temple's retaining wall where prayers are tucked between ancient stones",
+      "Church of the Holy Sepulchre — The revered Christian pilgrimage site believed to contain the tomb of Jesus and the hill of Calvary",
+      "Dome of the Rock — The iconic gold-domed Islamic shrine on the Temple Mount, one of the most recognisable landmarks on Earth",
+      "Mount of Olives — A ridge offering sweeping panoramas of the Old City, dotted with ancient Jewish cemeteries and sacred churches",
+      "Via Dolorosa — The processional route through the Old City tracing the path Jesus walked to his crucifixion, with 14 Stations of the Cross",
+      "Yad Vashem — Israel's official Holocaust memorial and museum, a deeply moving tribute set on the western slopes of Mount Herzl",
+    ],
+    topCategories: [
+      { slug: "tours", name: "Tours & Sightseeing", icon: "🚶", count: "600+", description: "Old City walking tours, four-quarter explorations, underground tunnel visits, and panoramic Mount of Olives excursions." },
+      { slug: "culture", name: "Culture & History", icon: "🎭", count: "500+", description: "Yad Vashem guided visits, Dead Sea Scrolls exhibits, archaeological digs, Shabbat experiences, and interfaith heritage walks." },
+      { slug: "attractions", name: "Attractions", icon: "🎠", count: "450+", description: "Western Wall, Dome of the Rock, Tower of David, Church of the Holy Sepulchre, Israel Museum, and the Garden Tomb." },
+      { slug: "day-trips", name: "Day Trips", icon: "🚐", count: "500+", description: "Dead Sea floating excursions, Masada sunrise hikes, Bethlehem visits, Jericho tours, and Ein Gedi nature reserve treks." },
+      { slug: "food-drink", name: "Food & Drink", icon: "🍽️", count: "300+", description: "Mahane Yehuda Market tastings, hummus crawls, kosher wine tours, Middle Eastern cooking classes, and Old City street food walks." },
+      { slug: "outdoor", name: "Outdoor & Nature", icon: "🏞️", count: "250+", description: "Judean Desert hikes, Dead Sea spa experiences, Ein Gedi canyon walks, Wadi Qelt treks, and Jerusalem forest trails." },
+    ],
+    geoLat: 31.7683,
+    geoLon: 35.2137,
+    faq: [
+      { q: "What group experiences are available in Jerusalem?", a: "TicketMatch.ai provides access to 2,800+ experiences: Old City walking tours, Western Wall visits, Dead Sea day trips, Masada sunrise hikes, and Mahane Yehuda Market food tours — all at exclusive B2B group rates." },
+      { q: "Can I book Dead Sea and Masada trips for groups?", a: "Yes. TicketMatch.ai offers group excursions to the Dead Sea and Masada including sunrise hikes, cable-car access, and floating experiences — all at competitive B2B rates with expert guides." },
+      { q: "Are multi-faith heritage tours available for groups?", a: "Absolutely. TicketMatch.ai provides group interfaith tours covering the Western Wall, Church of the Holy Sepulchre, and Dome of the Rock with knowledgeable licensed guides at B2B rates." },
+      { q: "Is Jerusalem suitable for large group travel?", a: "Yes. Jerusalem has extensive coach parking, multilingual licensed guides, and large-capacity venues. TicketMatch.ai's B2B platform streamlines booking across all 2,800+ experiences with group-optimised pricing." },
+    ],
+  },
+  {
+    slug: "tel-aviv",
+    name: "Tel Aviv",
+    province: "Tel Aviv District",
+    country: "Israel",
+    flag: "🇮🇱",
+    experiences: "140+",
+    categories: 6,
+    viatorDestId: 920,
+    tagline: "Mediterranean Playground — sun-drenched beaches, Bauhaus boulevards, and non-stop nightlife",
+    description:
+      "Tel Aviv pulses with creative energy along its Mediterranean shoreline, where Bauhaus-era White City architecture blends with world-class dining, buzzing tech hubs, and golden-sand beaches. From the cobbled lanes of ancient Jaffa to the café-lined Rothschild Boulevard, TicketMatch.ai provides B2B access to 140+ group experiences at exclusive rates.",
+    highlights: [
+      "Jaffa Old City — One of the world's oldest port cities, a labyrinth of stone alleyways, artist studios, galleries, and the famous flea market",
+      "Carmel Market — Tel Aviv's largest and most vibrant open-air market overflowing with fresh produce, spices, street food, and local flavour",
+      "White City (Bauhaus) — A UNESCO World Heritage collection of over 4,000 International Style buildings, the largest concentration on Earth",
+      "Rothschild Boulevard — The tree-lined cultural artery of Tel Aviv, home to Independence Hall, sidewalk cafés, and striking architecture",
+      "Tel Aviv Beach — Kilometres of golden Mediterranean coastline with distinct beach zones for surfing, swimming, sports, and relaxation",
+      "Neve Tzedek — The charming first neighbourhood built outside Jaffa, now a trendy enclave of boutique shops, galleries, and cafés",
+    ],
+    topCategories: [
+      { slug: "tours", name: "Tours & Sightseeing", icon: "🚶", count: "35+", description: "Jaffa walking tours, White City Bauhaus walks, street art explorations, and Rothschild Boulevard heritage strolls." },
+      { slug: "food-drink", name: "Food & Drink", icon: "🍽️", count: "30+", description: "Carmel Market tastings, hummus crawls, shakshuka cooking classes, wine bar tours, and Middle Eastern street food walks." },
+      { slug: "culture", name: "Culture & Arts", icon: "🎭", count: "25+", description: "Bauhaus architecture tours, Jaffa art gallery visits, independence history walks, and contemporary museum experiences." },
+      { slug: "outdoor", name: "Outdoor & Beach", icon: "🏖️", count: "20+", description: "Mediterranean kayaking, beach cycling tours, sunrise yoga sessions, and coastal promenade e-bike rides." },
+      { slug: "nightlife", name: "Nightlife", icon: "🌃", count: "15+", description: "Rooftop bar hopping, craft cocktail tours, Florentin nightlife crawls, and Mediterranean sunset boat parties." },
+      { slug: "day-trips", name: "Day Trips", icon: "🚐", count: "15+", description: "Caesarea and Haifa coastal tours, Nazareth visits, Sea of Galilee excursions, and Negev Desert adventures." },
+    ],
+    geoLat: 32.0853,
+    geoLon: 34.7818,
+    faq: [
+      { q: "What group experiences are available in Tel Aviv?", a: "TicketMatch.ai provides access to 140+ experiences: Jaffa Old City tours, Carmel Market food walks, Bauhaus architecture strolls, beach activities, and nightlife crawls — all at exclusive B2B group rates." },
+      { q: "Can I book food tours in Tel Aviv for groups?", a: "Yes. TicketMatch.ai offers group food experiences including Carmel Market tastings, hummus crawls, shakshuka cooking classes, and street food walks — all at competitive B2B rates." },
+      { q: "Are Bauhaus architecture tours available for groups?", a: "Absolutely. TicketMatch.ai provides guided group tours of Tel Aviv's UNESCO-listed White City with expert architecture guides at B2B rates." },
+      { q: "Is Tel Aviv suitable for large group travel?", a: "Yes. Tel Aviv has modern transport, English-speaking guides, and ample group dining venues. TicketMatch.ai's B2B platform streamlines booking across all 140+ experiences with group-optimised pricing." },
+    ],
+  },
+];
