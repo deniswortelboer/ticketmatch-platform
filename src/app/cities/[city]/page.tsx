@@ -1153,9 +1153,39 @@ export default async function CityPage({ params }: { params: Promise<{ city: str
         "@type": "BreadcrumbList",
         itemListElement: [
           { "@type": "ListItem", position: 1, name: "Home", item: "https://ticketmatch.ai" },
-          { "@type": "ListItem", position: 2, name: "Dutch Cities", item: "https://ticketmatch.ai/cities" },
+          { "@type": "ListItem", position: 2, name: "Cities", item: "https://ticketmatch.ai/cities" },
           { "@type": "ListItem", position: 3, name: `${city.name} Group Experiences`, item: `https://ticketmatch.ai/cities/${city.slug}` },
         ],
+      },
+      /* ItemList — enables rich snippets for categories in Google search results */
+      {
+        "@type": "ItemList",
+        name: `Top Experience Categories in ${city.name}`,
+        description: `Browse ${city.experiences} group experiences across ${city.categories} categories in ${city.name}`,
+        numberOfItems: city.topCategories.length,
+        itemListElement: city.topCategories.map((cat, i) => ({
+          "@type": "ListItem",
+          position: i + 1,
+          name: cat.name,
+          url: `https://ticketmatch.ai/cities/${city.slug}/${cat.slug}`,
+          description: `${cat.count} ${cat.name.toLowerCase()} experiences in ${city.name} at B2B rates`,
+        })),
+      },
+      /* Product + AggregateOffer — shows "X experiences available" in Google search */
+      {
+        "@type": "Product",
+        name: `${city.name} Group Experiences — B2B`,
+        description: `${city.experiences} group experiences in ${city.name}, ${city.country}. Exclusive B2B rates for tour operators, DMCs and travel agencies.`,
+        brand: { "@type": "Brand", name: "TicketMatch.ai" },
+        offers: {
+          "@type": "AggregateOffer",
+          offerCount: city.experiences,
+          availability: "https://schema.org/InStock",
+          priceCurrency: "EUR",
+          lowPrice: "0",
+          eligibleCustomerType: "https://schema.org/Business",
+          seller: { "@id": "https://ticketmatch.ai/#organization" },
+        },
       },
     ],
   };
