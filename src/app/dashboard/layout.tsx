@@ -205,12 +205,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           if (msg.approved === false) isApproved = false;
         } catch {}
 
-        if (!isApproved && !ADMIN_EMAILS.includes(authUser.email || "") && pathname !== "/dashboard/pending") {
+        if (!isApproved && !ADMIN_EMAILS.includes((authUser.email || "").toLowerCase()) && pathname !== "/dashboard/pending") {
           router.push("/dashboard/pending");
           return;
         }
 
-        const isAdminUser = ADMIN_EMAILS.includes(authUser.email || "");
+        const isAdminUser = ADMIN_EMAILS.includes((authUser.email || "").toLowerCase());
 
         if (isReseller && !isAdminUser && pathname === "/dashboard") {
           router.push("/dashboard/reseller");
@@ -245,7 +245,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (!user.email) return;
     const loadNotifications = async () => {
       try {
-        if (ADMIN_EMAILS.includes(user.email)) {
+        if (ADMIN_EMAILS.includes(user.email.toLowerCase())) {
           // Admin: fetch recent companies + bookings
           const res = await fetch("/api/admin");
           if (!res.ok) return;
@@ -327,7 +327,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     router.refresh();
   };
 
-  const isAdmin = ADMIN_EMAILS.includes(user.email);
+  const isAdmin = ADMIN_EMAILS.includes(user.email.toLowerCase());
 
   // Plan-based avatar colors
   const planStyles = {
