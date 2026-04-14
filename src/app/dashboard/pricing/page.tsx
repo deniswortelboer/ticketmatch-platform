@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 
 const plans = [
@@ -83,6 +83,15 @@ const plans = [
   },
 ];
 
+// Map backend plan names to UI plan names
+const PLAN_NAME_MAP: Record<string, string> = {
+  free: "Explorer",
+  pro: "Growth",
+  enterprise: "Enterprise",
+};
+
+const PLAN_ORDER = ["Explorer", "Growth", "Enterprise"];
+
 function PlanIcon({ type, dark }: { type: string; dark?: boolean }) {
   const color = dark ? "text-white" : type === "zap" ? "text-accent" : "text-foreground";
   const props = { width: 22, height: 22, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.5, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, className: color };
@@ -109,8 +118,20 @@ export default function PricingPage() {
 function PricingContent() {
   const [annual, setAnnual] = useState(false);
   const [loading, setLoading] = useState<string | null>(null);
+  const [currentPlan, setCurrentPlan] = useState("free");
+  const [isTrial, setIsTrial] = useState(false);
   const searchParams = useSearchParams();
   const success = searchParams.get("success");
+
+  useEffect(() => {
+    fetch("/api/me")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.plan) setCurrentPlan(data.plan);
+        if (data.trial) setIsTrial(true);
+      })
+      .catch(() => {});
+  }, []);
 
   const handleTrial = async () => {
     setLoading("trial");
@@ -129,22 +150,21 @@ function PricingContent() {
   };
 
   const handleUpgrade = async (planName: string) => {
-    // Map UI plan names to backend plan IDs
     const planMap: Record<string, string> = { Growth: "pro", Enterprise: "enterprise" };
     const planKey = planMap[planName] || planName.toLowerCase();
     const planId = `${planKey}-${annual ? "annual" : "monthly"}`;
     setLoading(planId);
 
     try {
-      const res = await fetch("/api/mollie/subscribe", {
+      const res = await fetch("/api/stripe/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ planId }),
       });
       const data = await res.json();
 
-      if (data.checkoutUrl) {
-        window.open(data.checkoutUrl, "_blank", "noopener,noreferrer");
+      if (data.url) {
+        window.open(data.url, "_blank", "noopener,noreferrer");
       } else {
         alert(data.error || "Something went wrong");
       }
@@ -153,6 +173,8 @@ function PricingContent() {
     }
     setLoading(null);
   };
+
+  const currentPlanName = PLAN_NAME_MAP[currentPlan] || "Explorer";
 
   return (
     <>
@@ -210,6 +232,29 @@ function PricingContent() {
               ? `€${Math.round(parseInt(plan.price.replace("€", "")) * 0.8)}`
               : plan.price;
 
+          const isCurrentPlan = plan.name === currentPlanName;
+          const isDowngrade = PLAN_ORDER.indexOf(plan.name) < PLAN_ORDER.indexOf(currentPlanName);
+          const canUpgrade = !isCurrentPlan && !isDowngrade;
+
+          // Determine button text and style based on current plan
+          let btnText = plan.buttonText;
+          let btnDisabled = plan.disabled;
+          let btnStyle = plan.buttonStyle;
+
+          if (isCurrentPlan) {
+            btnText = isTrial ? "Current Plan (Trial)" : "Current Plan";
+            btnDisabled = true;
+            btnStyle = plan.dark
+              ? "bg-green-500 text-white cursor-default"
+              : "border-2 border-green-400 bg-green-50 text-green-700 cursor-default";
+          } else if (isDowngrade) {
+            btnDisabled = true;
+            btnText = plan.name;
+            btnStyle = plan.dark
+              ? "bg-white/10 text-white/50 cursor-default"
+              : "border border-border text-muted cursor-default";
+          }
+
           return (
             <div
               key={plan.name}
@@ -217,9 +262,15 @@ function PricingContent() {
                 plan.popular ? "md:-mt-2 md:mb-2" : ""
               }`}
             >
-              {plan.popular && (
+              {plan.popular && !isCurrentPlan && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-accent px-4 py-1 text-xs font-semibold text-white shadow-sm">
                   Most Popular
+                </div>
+              )}
+
+              {isCurrentPlan && (
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-green-500 px-4 py-1 text-xs font-semibold text-white shadow-sm">
+                  {isTrial ? "Your Plan (Trial)" : "Your Plan"}
                 </div>
               )}
 
@@ -247,19 +298,19 @@ function PricingContent() {
               </div>
 
               <button
-                disabled={plan.disabled || loading !== null}
-                onClick={() => !plan.disabled && (plan.popular ? handleTrial() : handleUpgrade(plan.name))}
-                className={`flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed ${plan.buttonStyle} ${plan.popular ? "mb-2" : "mb-8"}`}
+                disabled={btnDisabled || loading !== null}
+                onClick={() => canUpgrade && (plan.popular ? handleTrial() : handleUpgrade(plan.name))}
+                className={`flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed ${btnStyle} ${plan.popular && canUpgrade ? "mb-2" : "mb-8"}`}
               >
-                {loading !== null ? (
+                {loading !== null && canUpgrade ? (
                   <>
                     <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
                     {loading === "trial" ? "Activating trial..." : "Opening payment..."}
                   </>
                 ) : (
                   <>
-                    {plan.buttonText}
-                    {!plan.disabled && (
+                    {btnText}
+                    {canUpgrade && (
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M5 12h14" /><path d="m12 5 7 7-7 7" />
                       </svg>
@@ -268,7 +319,7 @@ function PricingContent() {
                 )}
               </button>
 
-              {plan.popular && (
+              {plan.popular && canUpgrade && (
                 <>
                   <p className="text-center text-xs text-muted mb-2">No credit card required</p>
                   <button
@@ -316,7 +367,7 @@ function PricingContent() {
       {/* Trust bar */}
       <div className="mt-8 rounded-2xl border border-border/60 bg-white p-6 shadow-sm">
         <p className="text-center text-sm text-muted mb-4">
-          All plans include a <span className="font-semibold text-foreground">14-day free trial</span> of Growth features. No credit card required. Cancel anytime.
+          The Growth plan includes a <span className="font-semibold text-foreground">14-day free trial</span>. No credit card required. Cancel anytime.
         </p>
         <div className="flex flex-wrap items-center justify-center gap-4">
           {["SOC 2 Compliant", "GDPR Ready", "99.9% Uptime", "256-bit SSL", "EU Data Centers"].map((badge) => (

@@ -51,6 +51,7 @@ export async function GET() {
   let isDeveloper = false;
   let isApproved = true;
   let plan = "free";
+  let trial = false;
   let resellerSlug = "";
 
   try {
@@ -60,6 +61,7 @@ export async function GET() {
     isDeveloper = msg.role === "developer";
     if (msg.approved === false) isApproved = false;
     if (msg.plan) plan = msg.plan;
+    if (msg.trial) trial = true;
     if (msg.reseller_slug) resellerSlug = msg.reseller_slug;
 
     // Auto-expire trial if past end date
@@ -87,6 +89,7 @@ export async function GET() {
     isDeveloper,
     isApproved,
     plan,
+    trial,
     resellerSlug,
   });
 }
