@@ -178,76 +178,43 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   });
 
   useEffect(() => {
-    const supabase = createClient();
     const loadUser = async () => {
       try {
-        const { data: { user: authUser } } = await supabase.auth.getUser();
-        if (!authUser) return;
+        // Use server-side API route to bypass RLS restrictions
+        const res = await fetch("/api/me");
+        if (!res.ok) return;
+        const data = await res.json();
 
-        const email = authUser.email || "";
-        const isAdminUser = ADMIN_EMAILS.includes(email.toLowerCase());
-
-        // Try to load profile, but don't fail if it doesn't exist
-        let profile: { full_name?: string; company_id?: string; companies?: unknown } | null = null;
-        try {
-          const { data } = await supabase
-            .from("profiles")
-            .select("full_name, company_id, companies(name, message)")
-            .eq("id", authUser.id)
-            .single();
-          profile = data;
-        } catch {
-          // Profile might not exist yet — continue with auth data only
-        }
-
-        const name = profile?.full_name || authUser.user_metadata?.full_name || authUser.user_metadata?.name || email.split("@")[0] || "";
-        const companies = profile?.companies as unknown as { name: string; message: string } | { name: string; message: string }[] | null;
-        const comp = Array.isArray(companies) ? companies[0] : companies;
-        const company = comp?.name || authUser.user_metadata?.company_name || "";
-
-        let isSupplier = false;
-        let isReseller = false;
-        let isDeveloper = false;
-        let isApproved = true;
-        try {
-          const msg = comp?.message ? JSON.parse(comp.message) : {};
-          isSupplier = msg.role === "supplier";
-          isReseller = msg.role === "reseller";
-          isDeveloper = msg.role === "developer";
-          if (msg.approved === false) isApproved = false;
-        } catch {}
+        const isAdminUser = ADMIN_EMAILS.includes((data.email || "").toLowerCase());
 
         // Admins always bypass approval check
-        if (!isApproved && !isAdminUser && pathname !== "/dashboard/pending") {
+        if (!data.isApproved && !isAdminUser && pathname !== "/dashboard/pending") {
           router.push("/dashboard/pending");
           return;
         }
 
-        if (isReseller && !isAdminUser && pathname === "/dashboard") {
+        if (data.isReseller && !isAdminUser && pathname === "/dashboard") {
           router.push("/dashboard/reseller");
           return;
         }
 
-        if (isDeveloper && !isAdminUser && pathname === "/dashboard") {
+        if (data.isDeveloper && !isAdminUser && pathname === "/dashboard") {
           router.push("/dashboard/partner/docs");
           return;
         }
 
-        let plan = "free";
-        let resellerSlug = "";
-        try {
-          const msg = comp?.message ? JSON.parse(comp.message) : {};
-          if (msg.plan) plan = msg.plan;
-          if (msg.reseller_slug) resellerSlug = msg.reseller_slug;
-        } catch {}
-
-        const parts = name.split(" ").filter(Boolean);
-        const initials = parts.length >= 2
-          ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
-          : name.substring(0, 2).toUpperCase();
-        setUser({ name, company, initials, email, isSupplier, isReseller, isDeveloper, plan, resellerSlug });
+        setUser({
+          name: data.name,
+          company: data.company,
+          initials: data.initials,
+          email: data.email,
+          isSupplier: data.isSupplier,
+          isReseller: data.isReseller,
+          isDeveloper: data.isDeveloper,
+          plan: data.plan,
+          resellerSlug: data.resellerSlug,
+        });
       } catch (err) {
-        // Last resort: set user from whatever we have to prevent infinite Loading...
         console.error("Dashboard loadUser error:", err);
       }
     };
