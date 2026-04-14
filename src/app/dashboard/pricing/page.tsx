@@ -65,7 +65,7 @@ const plans = [
     popular: false,
     color: "border-gray-800 bg-gradient-to-b from-gray-900 to-gray-950",
     buttonStyle: "bg-white text-gray-900 hover:bg-gray-100 font-bold",
-    buttonText: "Contact Sales",
+    buttonText: "Start Enterprise",
     disabled: false,
     icon: "layers",
     features: [
@@ -112,12 +112,27 @@ function PricingContent() {
   const searchParams = useSearchParams();
   const success = searchParams.get("success");
 
-  const handleUpgrade = async (planName: string) => {
-    if (planName === "Enterprise") {
-      window.location.href = "mailto:sales@ticketmatch.ai?subject=Enterprise%20Plan%20Inquiry";
-      return;
+  const handleTrial = async () => {
+    setLoading("trial");
+    try {
+      const res = await fetch("/api/trial", { method: "POST" });
+      const data = await res.json();
+      if (data.success) {
+        window.location.href = "/dashboard/pricing?success=trial";
+      } else {
+        alert(data.error || "Could not start trial");
+      }
+    } catch {
+      alert("Something went wrong. Please try again.");
     }
-    const planId = `${planName.toLowerCase()}-${annual ? "annual" : "monthly"}`;
+    setLoading(null);
+  };
+
+  const handleUpgrade = async (planName: string) => {
+    // Map UI plan names to backend plan IDs
+    const planMap: Record<string, string> = { Growth: "pro", Enterprise: "enterprise" };
+    const planKey = planMap[planName] || planName.toLowerCase();
+    const planId = `${planKey}-${annual ? "annual" : "monthly"}`;
     setLoading(planId);
 
     try {
@@ -129,7 +144,7 @@ function PricingContent() {
       const data = await res.json();
 
       if (data.checkoutUrl) {
-        window.location.href = data.checkoutUrl;
+        window.open(data.checkoutUrl, "_blank", "noopener,noreferrer");
       } else {
         alert(data.error || "Something went wrong");
       }
@@ -148,8 +163,14 @@ function PricingContent() {
               <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
             </svg>
           </div>
-          <h2 className="text-lg font-bold text-green-800">Payment successful!</h2>
-          <p className="mt-1 text-sm text-green-600">Your plan has been upgraded. Enjoy all the premium features!</p>
+          <h2 className="text-lg font-bold text-green-800">
+            {success === "trial" ? "Trial activated!" : "Payment successful!"}
+          </h2>
+          <p className="mt-1 text-sm text-green-600">
+            {success === "trial"
+              ? "Your 14-day Pro trial is now active. Enjoy all premium features!"
+              : "Your plan has been upgraded. Enjoy all the premium features!"}
+          </p>
         </div>
       )}
 
@@ -227,13 +248,13 @@ function PricingContent() {
 
               <button
                 disabled={plan.disabled || loading !== null}
-                onClick={() => !plan.disabled && handleUpgrade(plan.name)}
-                className={`mb-8 flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed ${plan.buttonStyle}`}
+                onClick={() => !plan.disabled && (plan.popular ? handleTrial() : handleUpgrade(plan.name))}
+                className={`flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed ${plan.buttonStyle} ${plan.popular ? "mb-2" : "mb-8"}`}
               >
-                {loading === `${plan.name.toLowerCase()}-${annual ? "annual" : "monthly"}` ? (
+                {loading !== null ? (
                   <>
                     <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                    Redirecting to payment...
+                    {loading === "trial" ? "Activating trial..." : "Opening payment..."}
                   </>
                 ) : (
                   <>
@@ -248,7 +269,19 @@ function PricingContent() {
               </button>
 
               {plan.popular && (
-                <p className="text-center text-xs text-muted -mt-6 mb-6">No credit card required</p>
+                <>
+                  <p className="text-center text-xs text-muted mb-2">No credit card required</p>
+                  <button
+                    disabled={loading !== null}
+                    onClick={() => handleUpgrade(plan.name)}
+                    className="mb-8 flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-accent/30 text-sm font-semibold text-accent hover:bg-accent/5 transition-all disabled:opacity-50"
+                  >
+                    Buy Now — {price}/mo
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" />
+                    </svg>
+                  </button>
+                </>
               )}
 
               <div className="space-y-3">

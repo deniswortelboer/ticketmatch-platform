@@ -61,6 +61,15 @@ export async function GET() {
     if (msg.approved === false) isApproved = false;
     if (msg.plan) plan = msg.plan;
     if (msg.reseller_slug) resellerSlug = msg.reseller_slug;
+
+    // Auto-expire trial if past end date
+    if (msg.trial && msg.trial_ends_at && new Date(msg.trial_ends_at) < new Date()) {
+      plan = "free";
+      // Update in background (don't block the response)
+      adminSupabase.from("companies").update({
+        message: JSON.stringify({ ...msg, plan: "free", trial: false, trial_expired: true }),
+      }).eq("id", profile?.company_id).then(() => {});
+    }
   } catch {}
 
   const parts = name.split(" ").filter(Boolean);
