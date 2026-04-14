@@ -180,15 +180,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     const supabase = createClient();
     const loadUser = async () => {
-      const { data: { user: authUser } } = await supabase.auth.getUser();
-      if (authUser) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("full_name, company_id, companies(name, message)")
-          .eq("id", authUser.id)
-          .single();
+      try {
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        if (!authUser) return;
 
-        const name = profile?.full_name || authUser.user_metadata?.full_name || authUser.email || "";
+        const email = authUser.email || "";
+        const isAdminUser = ADMIN_EMAILS.includes(email.toLowerCase());
+
+        // Try to load profile, but don't fail if it doesn't exist
+        let profile: { full_name?: string; company_id?: string; companies?: unknown } | null = null;
+        try {
+          const { data } = await supabase
+            .from("profiles")
+            .select("full_name, company_id, companies(name, message)")
+            .eq("id", authUser.id)
+            .single();
+          profile = data;
+        } catch {
+          // Profile might not exist yet — continue with auth data only
+        }
+
+        const name = profile?.full_name || authUser.user_metadata?.full_name || authUser.user_metadata?.name || email.split("@")[0] || "";
         const companies = profile?.companies as unknown as { name: string; message: string } | { name: string; message: string }[] | null;
         const comp = Array.isArray(companies) ? companies[0] : companies;
         const company = comp?.name || authUser.user_metadata?.company_name || "";
@@ -205,12 +217,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           if (msg.approved === false) isApproved = false;
         } catch {}
 
-        if (!isApproved && !ADMIN_EMAILS.includes((authUser.email || "").toLowerCase()) && pathname !== "/dashboard/pending") {
+        // Admins always bypass approval check
+        if (!isApproved && !isAdminUser && pathname !== "/dashboard/pending") {
           router.push("/dashboard/pending");
           return;
         }
-
-        const isAdminUser = ADMIN_EMAILS.includes((authUser.email || "").toLowerCase());
 
         if (isReseller && !isAdminUser && pathname === "/dashboard") {
           router.push("/dashboard/reseller");
@@ -234,7 +245,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         const initials = parts.length >= 2
           ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
           : name.substring(0, 2).toUpperCase();
-        setUser({ name, company, initials, email: authUser.email || "", isSupplier, isReseller, isDeveloper, plan, resellerSlug });
+        setUser({ name, company, initials, email, isSupplier, isReseller, isDeveloper, plan, resellerSlug });
+      } catch (err) {
+        // Last resort: set user from whatever we have to prevent infinite Loading...
+        console.error("Dashboard loadUser error:", err);
       }
     };
     loadUser();
