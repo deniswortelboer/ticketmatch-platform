@@ -11,7 +11,7 @@ import PartnerAgent from "@/components/ui/PartnerAgent";
 import AdminAgent from "@/components/ui/AdminAgent";
 import AdminAgentDock from "@/components/ui/AdminAgentDock";
 
-const ADMIN_EMAILS = ["wortelboerdenis@gmail.com", "patekrolexvc@gmail.com"];
+const ADMIN_EMAILS = ["wortelboerdenis@gmail.com", "patekrolexvc@gmail.com", "denis.wortelboer@w69.nl"];
 
 /* ── Grouped navigation ── */
 type NavItem = { href: string; label: string; icon: string };

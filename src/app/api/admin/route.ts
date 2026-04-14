@@ -6,7 +6,7 @@ import { notifyAdmin } from "@/lib/notify";
 
 // SECURITY: Admin emails from environment variable (not hardcoded in source code)
 // Set ADMIN_EMAILS=email1@x.com,email2@x.com in .env.local
-const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "wortelboerdenis@gmail.com,patekrolexvc@gmail.com")
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "wortelboerdenis@gmail.com,patekrolexvc@gmail.com,denis.wortelboer@w69.nl")
   .split(",")
   .map((e) => e.trim().toLowerCase())
   .filter(Boolean);

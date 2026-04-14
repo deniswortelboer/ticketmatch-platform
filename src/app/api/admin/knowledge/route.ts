@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
-const ADMIN_EMAILS = ["wortelboerdenis@gmail.com", "patekrolexvc@gmail.com"];
+const ADMIN_EMAILS = ["wortelboerdenis@gmail.com", "patekrolexvc@gmail.com", "denis.wortelboer@w69.nl"];
 
 async function getAuthUser() {
   const cookieStore = await cookies();
