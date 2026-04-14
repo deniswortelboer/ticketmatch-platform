@@ -10,12 +10,12 @@ import LiveActivityFeed from "@/components/ui/LiveActivityFeed";
 import ScrollReveal from "@/components/ui/ScrollReveal";
 import StickyNav from "@/components/ui/StickyNav";
 
-/* Below-the-fold components — lazy loaded for faster initial paint */
-const CitySearchPreview = dynamic(() => import("@/components/ui/CitySearchPreview"), { ssr: false });
-const ROICalculator = dynamic(() => import("@/components/ui/ROICalculator"), { ssr: false });
-const FAQ = dynamic(() => import("@/components/ui/FAQ"), { ssr: false });
-const SaveVsRetail = dynamic(() => import("@/components/ui/SaveVsRetail"), { ssr: false });
-const TrendingDestinations = dynamic(() => import("@/components/ui/TrendingDestinations"), { ssr: false });
+/* Below-the-fold components — lazy loaded for smaller initial JS bundle */
+const CitySearchPreview = dynamic(() => import("@/components/ui/CitySearchPreview"));
+const ROICalculator = dynamic(() => import("@/components/ui/ROICalculator"));
+const FAQ = dynamic(() => import("@/components/ui/FAQ"));
+const SaveVsRetail = dynamic(() => import("@/components/ui/SaveVsRetail"));
+const TrendingDestinations = dynamic(() => import("@/components/ui/TrendingDestinations"));
 
 /* ───── small icons ───── */
 function IconCheck() {
