@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { createClient } from "@/lib/supabase";
 import { useCurrency } from "@/components/CurrencySelector";
 import { CURRENCIES } from "@/lib/currency";
 import UpgradeLock from "@/components/UpgradeLock";
@@ -208,60 +207,46 @@ export default function SettingsPage() {
 
   useEffect(() => {
     const load = async () => {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      try {
+        const res = await fetch("/api/profile");
+        if (!res.ok) { setLoading(false); return; }
+        const data = await res.json();
 
-      const { data: prof } = await supabase
-        .from("profiles")
-        .select("full_name, email, company_id, companies(id, name, company_type, phone, kvk_number, vat_number, message)")
-        .eq("id", user.id)
-        .single();
+        setProfile(data.profile);
 
-      if (prof) {
-        setProfile({ full_name: prof.full_name || "", email: prof.email || user.email || "" });
-
-        const comp = Array.isArray(prof.companies) ? prof.companies[0] : prof.companies;
-        if (comp) {
+        if (data.company) {
           let msg: Record<string, string> = {};
-          try { msg = comp.message ? JSON.parse(comp.message) : {}; } catch {}
+          try { msg = data.company.message ? JSON.parse(data.company.message) : {}; } catch {}
 
           setCompany({
-            id: comp.id || "",
-            name: comp.name || "",
-            company_type: comp.company_type || "",
-            phone: comp.phone || "",
-            kvk_number: comp.kvk_number || "",
-            vat_number: comp.vat_number || "",
-            plan: (msg.plan as string) || "free",
-            plan_id: (msg.plan_id as string) || "",
-            plan_activated_at: (msg.plan_activated_at as string) || "",
+            id: data.company.id,
+            name: data.company.name,
+            company_type: data.company.company_type,
+            phone: data.company.phone,
+            kvk_number: data.company.kvk_number,
+            vat_number: data.company.vat_number,
+            plan: msg.plan || "free",
+            plan_id: msg.plan_id || "",
+            plan_activated_at: msg.plan_activated_at || "",
           });
 
-          setCountry((msg.country as string) || "NL");
-          setCity((msg.city as string) || "");
-          setAddress((msg.address as string) || "");
-          setWebsite((msg.website as string) || "");
+          setCountry(msg.country || "NL");
+          setCity(msg.city || "");
+          setAddress(msg.address || "");
+          setWebsite(msg.website || "");
+        }
 
-          const { data: team } = await supabase
-            .from("profiles")
-            .select("id, full_name, email, role")
-            .eq("company_id", comp.id);
-
-          if (team) setTeamMembers(team.map(t => ({
-            id: t.id,
-            full_name: t.full_name || "",
-            email: t.email || "",
-            role: t.role || "member",
-          })));
+        if (data.team) {
+          setTeamMembers(data.team);
         }
 
         try {
           const stored = localStorage.getItem("tm_notifications");
           if (stored) setNotifications(JSON.parse(stored));
         } catch {}
+      } catch (err) {
+        console.error("Settings load error:", err);
       }
-
       setLoading(false);
     };
     load();
@@ -279,10 +264,22 @@ export default function SettingsPage() {
 
   const handleSaveProfile = async () => {
     setSaving(true);
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    await supabase.from("profiles").update({ full_name: profile.full_name }).eq("id", user.id);
+    await fetch("/api/profile", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        companyId: company.id,
+        name: company.name,
+        phone: company.phone,
+        kvk_number: company.kvk_number,
+        vat_number: company.vat_number,
+        fullName: profile.full_name,
+        country,
+        city,
+        address,
+        website,
+      }),
+    });
     setSaving(false);
     showSaved();
   };
@@ -330,15 +327,11 @@ export default function SettingsPage() {
       if (res.ok) {
         setInviteMsg({ type: "success", text: data.message });
         setInviteEmail("");
-        // Reload team members
-        const supabase = createClient();
-        const { data: { user: authUser } } = await supabase.auth.getUser();
-        if (authUser) {
-          const { data: prof } = await supabase.from("profiles").select("company_id").eq("id", authUser.id).single();
-          if (prof?.company_id) {
-            const { data: team } = await supabase.from("profiles").select("id, full_name, email, role").eq("company_id", prof.company_id);
-            if (team) setTeamMembers(team.map(t => ({ id: t.id, full_name: t.full_name || "", email: t.email || "", role: t.role || "member" })));
-          }
+        // Reload team members via API
+        const profileRes = await fetch("/api/profile");
+        if (profileRes.ok) {
+          const profileData = await profileRes.json();
+          if (profileData.team) setTeamMembers(profileData.team);
         }
       } else {
         setInviteMsg({ type: "error", text: data.error });

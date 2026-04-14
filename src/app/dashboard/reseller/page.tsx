@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase";
 
 interface Agency {
   id: string;
@@ -35,103 +34,28 @@ export default function ResellerDashboard() {
 
   useEffect(() => {
     const load = async () => {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      try {
+        const res = await fetch("/api/reseller/data");
+        if (!res.ok) { setLoading(false); return; }
+        const data = await res.json();
 
-      const ADMIN_EMAILS = ["wortelboerdenis@gmail.com", "patekrolexvc@gmail.com"];
-      if (user.email && ADMIN_EMAILS.includes(user.email)) {
-        setIsAdmin(true);
+        const ADMIN_EMAILS = ["wortelboerdenis@gmail.com", "patekrolexvc@gmail.com"];
+        if (data.userEmail && ADMIN_EMAILS.includes(data.userEmail)) {
+          setIsAdmin(true);
+        }
+
+        setResellerSlug(data.resellerSlug || "");
+        setCompanyName(data.companyName || "");
+        setCommissionRate(data.commissionRate || 10);
+        setCompanyId(data.companyId || "");
+        setCompanyMessage(data.companyMessage || {});
+        setAgencies(data.agencies || []);
+        setTotalBookings(data.totalBookings || 0);
+        setTotalRevenue(data.totalRevenue || 0);
+        setTotalCommission(data.totalCommission || 0);
+      } catch (err) {
+        console.error("Reseller load error:", err);
       }
-
-      // Get reseller's own company info
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("company_id, companies(id, name, message)")
-        .eq("id", user.id)
-        .single();
-
-      if (!profile) return;
-
-      const comp = Array.isArray(profile.companies) ? profile.companies[0] : profile.companies;
-      if (!comp) return;
-
-      let msg: Record<string, unknown> = {};
-      try { msg = comp.message ? JSON.parse(comp.message as string) : {}; } catch {}
-
-      let slug = (msg.reseller_slug as string) || "";
-      const rate = (msg.commission_rate as number) || 10;
-
-      // Auto-generate and save slug if missing
-      if (!slug && comp.name) {
-        slug = comp.name
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, "-")
-          .replace(/^-|-$/g, "")
-          .substring(0, 30);
-        // Save slug back to company record
-        const updatedMsg = { ...msg, reseller_slug: slug, role: msg.role || "reseller", commission_rate: rate };
-        await supabase
-          .from("companies")
-          .update({ message: JSON.stringify(updatedMsg) })
-          .eq("id", comp.id);
-      }
-
-      setResellerSlug(slug);
-      setCompanyName(comp.name || "");
-      setCommissionRate(rate);
-      setCompanyId(comp.id);
-      setCompanyMessage(msg);
-
-      // Find all companies referred by this reseller
-      const { data: allCompanies } = await supabase
-        .from("companies")
-        .select("id, name, company_type, status, message, created_at");
-
-      if (!allCompanies) { setLoading(false); return; }
-
-      const referredCompanies = allCompanies.filter((c) => {
-        if (c.id === comp.id) return false; // Exclude self
-        try {
-          const m = c.message ? JSON.parse(c.message) : {};
-          return m.referred_by === comp.id || m.reseller_slug === slug;
-        } catch { return false; }
-      });
-
-      // Get bookings for referred companies
-      const companyIds = referredCompanies.map((c) => c.id);
-      let bookings: { company_id: string; total_price: number; status: string }[] = [];
-      if (companyIds.length > 0) {
-        const { data: bks } = await supabase
-          .from("bookings")
-          .select("company_id, total_price, status")
-          .in("company_id", companyIds);
-        bookings = bks || [];
-      }
-
-      // Build agency list with booking stats
-      const agencyList: Agency[] = referredCompanies.map((c) => {
-        const compBookings = bookings.filter((b) => b.company_id === c.id);
-        const rev = compBookings.reduce((sum, b) => sum + Number(b.total_price), 0);
-        return {
-          id: c.id,
-          name: c.name,
-          company_type: c.company_type,
-          status: c.status,
-          created_at: c.created_at,
-          bookingCount: compBookings.length,
-          totalRevenue: rev,
-        };
-      });
-
-      const totBookings = bookings.length;
-      const totRevenue = bookings.reduce((sum, b) => sum + Number(b.total_price), 0);
-      const totCommission = totRevenue * (rate / 100);
-
-      setAgencies(agencyList);
-      setTotalBookings(totBookings);
-      setTotalRevenue(totRevenue);
-      setTotalCommission(totCommission);
       setLoading(false);
     };
     load();
@@ -159,15 +83,15 @@ export default function ResellerDashboard() {
       }
     }
 
-    // Save new slug
-    const supabase = createClient();
+    // Save new slug via API
     const updatedMsg = { ...companyMessage, reseller_slug: cleaned };
-    const { error } = await supabase
-      .from("companies")
-      .update({ message: JSON.stringify(updatedMsg) })
-      .eq("id", companyId);
+    const saveRes = await fetch("/api/reseller/data", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ companyId, message: updatedMsg }),
+    });
 
-    if (error) {
+    if (!saveRes.ok) {
       setSlugError("Could not save. Try again.");
     } else {
       setResellerSlug(cleaned);

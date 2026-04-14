@@ -311,7 +311,7 @@ export default function CityMapPage() {
       <div className="grid gap-4 lg:grid-cols-[1fr_340px]">
         <div className="space-y-4">
           {/* Map */}
-          <div className="rounded-2xl border border-border/60 bg-white shadow-sm overflow-hidden" style={{ height: "480px" }}>
+          <div className="rounded-2xl border border-border/60 bg-white shadow-sm overflow-hidden relative" style={{ height: "480px", width: "100%" }}>
             {loading ? (
               <div className="flex items-center justify-center h-full">
                 <div className="text-center">
@@ -323,7 +323,7 @@ export default function CityMapPage() {
               <APIProvider apiKey={apiKey}>
                 <Map key={city.id} defaultCenter={{ lat: city.lat, lng: city.lng }} defaultZoom={city.zoom}
                   mapId="1a3172e8a192f4b578d440bb" gestureHandling="greedy" disableDefaultUI={false}
-                  style={{ width: "100%", height: "100%" }}>
+                  className="w-full h-full">
                   {filtered.map((venue) => {
                     const inRoute = route.find((v) => v.id === venue.id);
                     const routeIdx = route.findIndex((v) => v.id === venue.id);

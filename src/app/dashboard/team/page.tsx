@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { createClient } from "@/lib/supabase";
 
 type Member = {
   id: string;
@@ -49,37 +48,23 @@ export default function TeamPage() {
 
   const loadTeam = async () => {
     setLoading(true);
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    setCurrentUserId(user.id);
-
-    // Get profile + company
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("company_id, companies(name, message)")
-      .eq("id", user.id)
-      .single();
-
-    if (!profile?.company_id) { setLoading(false); return; }
-
-    const companies = profile.companies as unknown as { name: string; message: string } | { name: string; message: string }[] | null;
-    const comp = Array.isArray(companies) ? companies[0] : companies;
-    setCompanyName(comp?.name || "");
-
     try {
-      const msg = comp?.message ? JSON.parse(comp.message) : {};
-      setPlan(msg.plan || "free");
-    } catch { setPlan("free"); }
+      const res = await fetch("/api/profile");
+      if (!res.ok) { setLoading(false); return; }
+      const data = await res.json();
 
-    // Get team members
-    const { data: teamMembers } = await supabase
-      .from("profiles")
-      .select("id, full_name, email, role, created_at")
-      .eq("company_id", profile.company_id)
-      .order("created_at", { ascending: true });
+      setCurrentUserId(data.userId || "");
+      setCompanyName(data.company?.name || "");
 
-    setMembers(teamMembers || []);
+      try {
+        const msg = data.company?.message ? JSON.parse(data.company.message) : {};
+        setPlan(msg.plan || "free");
+      } catch { setPlan("free"); }
+
+      setMembers(data.team || []);
+    } catch (err) {
+      console.error("Team load error:", err);
+    }
     setLoading(false);
   };
 

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { createClient } from "@/lib/supabase";
 
 type KnowledgeEntry = {
   id: string;
@@ -48,35 +47,15 @@ export default function KnowledgePage() {
 
   useEffect(() => {
     const load = async () => {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      // Get user plan from profile/company
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("company_id, companies(message)")
-        .eq("id", user.id)
-        .single();
-
-      let plan = "free";
       try {
-        const companies = profile?.companies as unknown as { message: string } | { message: string }[] | null;
-        const comp = Array.isArray(companies) ? companies[0] : companies;
-        const msg = comp?.message ? JSON.parse(comp.message) : {};
-        if (msg.plan) plan = msg.plan;
-      } catch {}
-      setUserPlan(plan);
-
-      // Fetch all active entries (we'll filter access client-side for the lock UI)
-      const { data } = await supabase
-        .from("knowledge_base")
-        .select("id, title, content, category, tier")
-        .eq("active", true)
-        .order("category")
-        .order("tier");
-
-      setEntries(data || []);
+        const res = await fetch("/api/knowledge");
+        if (!res.ok) { setLoading(false); return; }
+        const data = await res.json();
+        setUserPlan(data.plan || "free");
+        setEntries(data.entries || []);
+      } catch (err) {
+        console.error("Knowledge load error:", err);
+      }
       setLoading(false);
     };
     load();
