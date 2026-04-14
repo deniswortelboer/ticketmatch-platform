@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 
 const sections = [
   { id: "ecosystem", label: "Ecosystem" },
@@ -16,45 +16,54 @@ const sections = [
 export default function StickyNav() {
   const [visible, setVisible] = useState(false);
   const [activeSection, setActiveSection] = useState<string>("");
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
 
-  // Show/hide based on scroll position
+  // Show/hide using a sentinel element instead of scroll listener
   useEffect(() => {
-    const handleScroll = () => {
-      setVisible(window.scrollY > 600);
+    // Create a sentinel div at 600px from top
+    const sentinel = document.createElement("div");
+    sentinel.style.cssText = "position:absolute;top:600px;height:1px;width:1px;pointer-events:none;";
+    document.body.appendChild(sentinel);
+    sentinelRef.current = sentinel;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        // When sentinel scrolls out of view (above viewport), show nav
+        setVisible(!entry.isIntersecting);
+      },
+      { threshold: 0 }
+    );
+
+    observer.observe(sentinel);
+    return () => {
+      observer.disconnect();
+      sentinel.remove();
     };
-
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    handleScroll();
-
-    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Track active section with IntersectionObserver
+  // Track active section with ONE IntersectionObserver for all sections
   useEffect(() => {
-    const observers: IntersectionObserver[] = [];
-
-    const callback = (id: string) => (entries: IntersectionObserverEntry[]) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          setActiveSection(id);
-        }
-      });
-    };
-
+    const elements: Element[] = [];
     sections.forEach(({ id }) => {
       const el = document.getElementById(id);
-      if (!el) return;
-
-      const observer = new IntersectionObserver(callback(id), {
-        rootMargin: "-20% 0px -60% 0px",
-        threshold: 0,
-      });
-
-      observer.observe(el);
-      observers.push(observer);
+      if (el) elements.push(el);
     });
 
-    return () => observers.forEach((o) => o.disconnect());
+    if (elements.length === 0) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            setActiveSection(entry.target.id);
+          }
+        }
+      },
+      { rootMargin: "-20% 0px -60% 0px", threshold: 0 }
+    );
+
+    elements.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
   }, []);
 
   const scrollTo = useCallback((id: string) => {

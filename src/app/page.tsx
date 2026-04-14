@@ -1,4 +1,5 @@
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import HeroChat from "@/components/ui/HeroChat";
@@ -6,13 +7,15 @@ import { getHeroCarouselImages, getAllCategoryImages, getAllCityImages } from "@
 import ImageSlider from "@/components/ui/ImageSlider";
 import AnimatedCounters from "@/components/ui/AnimatedCounters";
 import LiveActivityFeed from "@/components/ui/LiveActivityFeed";
-import CitySearchPreview from "@/components/ui/CitySearchPreview";
-import ROICalculator from "@/components/ui/ROICalculator";
-import FAQ from "@/components/ui/FAQ";
 import ScrollReveal from "@/components/ui/ScrollReveal";
-import SaveVsRetail from "@/components/ui/SaveVsRetail";
-import TrendingDestinations from "@/components/ui/TrendingDestinations";
 import StickyNav from "@/components/ui/StickyNav";
+
+/* Below-the-fold components — lazy loaded for faster initial paint */
+const CitySearchPreview = dynamic(() => import("@/components/ui/CitySearchPreview"), { ssr: false });
+const ROICalculator = dynamic(() => import("@/components/ui/ROICalculator"), { ssr: false });
+const FAQ = dynamic(() => import("@/components/ui/FAQ"), { ssr: false });
+const SaveVsRetail = dynamic(() => import("@/components/ui/SaveVsRetail"), { ssr: false });
+const TrendingDestinations = dynamic(() => import("@/components/ui/TrendingDestinations"), { ssr: false });
 
 /* ───── small icons ───── */
 function IconCheck() {
@@ -936,12 +939,12 @@ export default async function Home() {
                   ))}
                 </ul>
                 <Link
-                  href="/auth/register"
+                  href="/dashboard/pricing"
                   className="mt-8 flex w-full items-center justify-center gap-2 rounded-full bg-accent px-6 py-3.5 text-[13px] font-semibold text-white shadow-lg shadow-accent/25 transition-[box-shadow,filter] hover:shadow-accent/40 hover:brightness-110"
                 >
                   Start 14-Day Free Trial <IconArrow />
                 </Link>
-                <p className="mt-3 text-center text-[11px] text-muted">No credit card required · Manually approved</p>
+                <p className="mt-3 text-center text-[11px] text-muted">No credit card required · Cancel anytime</p>
               </div>
 
               {/* Enterprise */}
@@ -981,10 +984,10 @@ export default async function Home() {
                   ))}
                 </ul>
                 <Link
-                  href="/auth/register"
+                  href="/dashboard/pricing"
                   className="mt-8 flex w-full items-center justify-center gap-2 rounded-full bg-white px-6 py-3.5 text-[13px] font-semibold text-gray-900 transition-colors hover:bg-gray-100"
                 >
-                  Contact Sales <IconArrow />
+                  Start Enterprise <IconArrow />
                 </Link>
               </div>
             </div>
