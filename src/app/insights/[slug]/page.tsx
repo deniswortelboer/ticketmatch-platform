@@ -9,6 +9,7 @@ import ReadingTime from "@/components/ui/ReadingTime";
 import ShareSave from "@/components/ui/ShareSave";
 import EmmaSuggests from "@/components/ui/EmmaSuggests";
 import NewsletterSignup from "@/components/ui/NewsletterSignup";
+import RelatedCities from "@/components/ui/RelatedCities";
 import { posts } from "../posts";
 
 const categoryColors: Record<string, { bg: string; text: string; border: string; gradient: string }> = {
@@ -270,6 +271,9 @@ export default async function InsightPostPage({ params }: { params: Promise<{ sl
                 <p className="text-[12px] font-medium text-muted">Found this useful?</p>
                 <ShareSave title={post.title} />
               </div>
+
+              {/* ──── Related Cities (SEO internal links) ──── */}
+              <RelatedCities content={post.content} title={post.title} />
             </article>
 
             {/* ──── Sidebar ──── */}
