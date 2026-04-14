@@ -96,8 +96,9 @@ export async function POST(request: Request) {
     }).eq("id", profile.company_id);
 
     return NextResponse.json({ url: session.url });
-  } catch (err) {
-    console.error("Stripe checkout error:", err);
-    return NextResponse.json({ error: "Failed to create checkout" }, { status: 500 });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    console.error("Stripe checkout error:", message, err);
+    return NextResponse.json({ error: `Failed to create checkout: ${message}` }, { status: 500 });
   }
 }
