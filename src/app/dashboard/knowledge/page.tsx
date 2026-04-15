@@ -10,10 +10,37 @@ type KnowledgeEntry = {
   tier: string;
 };
 
-const TIER_LABELS: Record<string, string> = {
-  free: "Free",
-  pro: "Pro",
-  enterprise: "Enterprise",
+const TIER_CONFIG: Record<string, { label: string; color: string; bgLight: string; bgDark: string; border: string; text: string; badge: string; badgeText: string }> = {
+  free: {
+    label: "Free",
+    color: "#3b82f6",
+    bgLight: "bg-blue-50",
+    bgDark: "bg-blue-600",
+    border: "border-blue-200",
+    text: "text-blue-700",
+    badge: "bg-blue-100",
+    badgeText: "text-blue-700",
+  },
+  pro: {
+    label: "Pro",
+    color: "#059669",
+    bgLight: "bg-emerald-50",
+    bgDark: "bg-emerald-600",
+    border: "border-emerald-200",
+    text: "text-emerald-700",
+    badge: "bg-emerald-100",
+    badgeText: "text-emerald-700",
+  },
+  enterprise: {
+    label: "Enterprise",
+    color: "#7c3aed",
+    bgLight: "bg-purple-50",
+    bgDark: "bg-purple-600",
+    border: "border-purple-200",
+    text: "text-purple-700",
+    badge: "bg-purple-100",
+    badgeText: "text-purple-700",
+  },
 };
 
 const TIER_ORDER = ["free", "pro", "enterprise"];
@@ -62,9 +89,7 @@ export default function KnowledgePage() {
   }, []);
 
   const userTierIndex = tierIndex(userPlan);
-
   const canAccess = (entryTier: string) => tierIndex(entryTier) <= userTierIndex;
-
   const categories = [...new Set(entries.map((e) => e.category))];
 
   const filteredEntries = entries.filter((e) => {
@@ -78,6 +103,12 @@ export default function KnowledgePage() {
 
   const accessibleCount = filteredEntries.filter((e) => canAccess(e.tier)).length;
   const lockedCount = filteredEntries.filter((e) => !canAccess(e.tier)).length;
+
+  // Group entries by tier
+  const entriesByTier = TIER_ORDER.reduce<Record<string, KnowledgeEntry[]>>((acc, tier) => {
+    acc[tier] = filteredEntries.filter((e) => e.tier === tier);
+    return acc;
+  }, {});
 
   if (loading) {
     return (
@@ -151,74 +182,106 @@ export default function KnowledgePage() {
         )}
       </div>
 
-      {/* Entries grid */}
+      {/* Three-column tier layout */}
       {filteredEntries.length === 0 ? (
         <div className="rounded-2xl border border-border/40 bg-white p-12 text-center">
           <p className="text-muted">No articles found. Try a different search or filter.</p>
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filteredEntries.map((entry) => {
-            const locked = !canAccess(entry.tier);
+        <div className="grid gap-5 lg:grid-cols-3">
+          {TIER_ORDER.map((tier) => {
+            const config = TIER_CONFIG[tier];
+            const tierEntries = entriesByTier[tier] || [];
+            if (tierEntries.length === 0) return null;
+
             return (
-              <div
-                key={entry.id}
-                className={`group relative rounded-2xl border bg-white p-5 transition-all ${
-                  locked
-                    ? "border-border/30 opacity-75"
-                    : "border-border/40 hover:border-accent/20 hover:shadow-md hover:shadow-accent/5"
-                }`}
-              >
-                {/* Category + tier badges */}
-                <div className="mb-3 flex items-center justify-between">
-                  <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2.5 py-0.5 text-[11px] font-medium text-muted">
-                    {CATEGORY_ICONS[entry.category] || "📄"} {CATEGORY_LABELS[entry.category] || entry.category}
-                  </span>
-                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                    entry.tier === "free"
-                      ? "bg-green-100 text-green-700"
-                      : entry.tier === "pro"
-                      ? "bg-blue-100 text-blue-700"
-                      : "bg-purple-100 text-purple-700"
-                  }`}>
-                    {TIER_LABELS[entry.tier] || entry.tier}
-                  </span>
+              <div key={tier} className="flex flex-col">
+                {/* Column header */}
+                <div
+                  className={`rounded-t-xl px-4 py-3 text-center ${config.bgDark}`}
+                >
+                  <h2 className="text-sm font-bold text-white tracking-wide">
+                    {config.label}
+                  </h2>
+                  <p className="text-[10px] text-white/70 mt-0.5">
+                    {tier === "free" && "Basiskennis voor iedereen"}
+                    {tier === "pro" && "€49/mo — Voor professionals"}
+                    {tier === "enterprise" && "€149/mo — Strategische inzichten"}
+                  </p>
                 </div>
 
-                {/* Title */}
-                <h3 className="mb-2 text-sm font-semibold text-foreground">{entry.title}</h3>
+                {/* Articles */}
+                <div className={`flex-1 rounded-b-xl border-x border-b ${config.border} bg-white`}>
+                  {tierEntries.map((entry, i) => {
+                    const locked = !canAccess(entry.tier);
+                    return (
+                      <div key={entry.id}>
+                        {i > 0 && <div className="mx-4 border-t border-gray-100" />}
+                        <div
+                          className={`p-4 transition-all ${
+                            locked ? "opacity-60" : "hover:bg-gray-50/50"
+                          }`}
+                        >
+                          {/* Category badge */}
+                          <div className="mb-2 flex items-center justify-between">
+                            <span className="inline-flex items-center gap-1 text-[10px] font-medium text-muted">
+                              {CATEGORY_ICONS[entry.category] || "📄"} {CATEGORY_LABELS[entry.category] || entry.category}
+                            </span>
+                            <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${config.badge} ${config.badgeText}`}>
+                              {config.label}
+                            </span>
+                          </div>
 
-                {/* Content */}
-                {locked ? (
-                  <div className="relative">
-                    <p className="text-xs leading-relaxed text-muted line-clamp-2 blur-[2px] select-none">
-                      {entry.content}
-                    </p>
-                    <div className="mt-3 flex items-center gap-2 rounded-xl bg-gradient-to-r from-accent/5 to-blue-50 px-3 py-2">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-accent">
-                        <rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                      </svg>
-                      <a href="/dashboard/pricing" className="text-[11px] font-semibold text-accent hover:underline">
-                        Upgrade to {entry.tier === "pro" ? "Pro" : "Enterprise"} to unlock
-                      </a>
-                    </div>
+                          {/* Title */}
+                          <h3 className="text-[13px] font-semibold text-foreground leading-snug">
+                            {entry.title}
+                          </h3>
+
+                          {/* Content */}
+                          {locked ? (
+                            <div className="mt-2">
+                              <p className="text-[11px] leading-relaxed text-muted line-clamp-2 blur-[2px] select-none">
+                                {entry.content}
+                              </p>
+                              <div className="mt-2 flex items-center gap-1.5 text-[10px]">
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={config.text}>
+                                  <rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                                </svg>
+                                <a href="/dashboard/pricing" className={`font-semibold ${config.text} hover:underline`}>
+                                  Upgrade to {config.label} to unlock
+                                </a>
+                              </div>
+                            </div>
+                          ) : (
+                            <>
+                              <p className="mt-1.5 text-[11px] leading-relaxed text-muted line-clamp-2">
+                                {entry.content}
+                              </p>
+                              <button
+                                onClick={() => {
+                                  window.dispatchEvent(new CustomEvent("tm-ask-agent", { detail: `Tell me more about: ${entry.title}` }));
+                                }}
+                                className={`mt-2 flex items-center gap-1 rounded-md px-2 py-1 text-[10px] font-semibold ${config.text} ${config.bgLight} hover:brightness-95 transition-all`}
+                              >
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                                </svg>
+                                Ask the Agent
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {/* Article count */}
+                  <div className="border-t border-gray-100 px-4 py-2.5 text-center">
+                    <span className="text-[10px] font-medium text-muted">
+                      {tierEntries.length} article{tierEntries.length !== 1 ? "s" : ""}
+                    </span>
                   </div>
-                ) : (
-                  <>
-                    <p className="text-xs leading-relaxed text-muted line-clamp-3">{entry.content}</p>
-                    <button
-                      onClick={() => {
-                        window.dispatchEvent(new CustomEvent("tm-ask-agent", { detail: `Tell me more about: ${entry.title}` }));
-                      }}
-                      className="mt-3 flex items-center gap-1.5 rounded-lg bg-accent/5 px-3 py-1.5 text-[11px] font-semibold text-accent hover:bg-accent/10 transition-all"
-                    >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                      </svg>
-                      Ask the Agent
-                    </button>
-                  </>
-                )}
+                </div>
               </div>
             );
           })}
@@ -227,20 +290,25 @@ export default function KnowledgePage() {
 
       {/* Upgrade CTA for free users */}
       {userPlan === "free" && (
-        <div className="mt-8 rounded-2xl border border-accent/20 bg-gradient-to-r from-accent/5 via-blue-50 to-cyan-50 p-6 text-center">
+        <div className="mt-8 rounded-2xl border border-accent/20 bg-gradient-to-r from-blue-50 via-emerald-50 to-purple-50 p-6 text-center">
           <h3 className="text-lg font-bold text-foreground">Unlock the full Knowledge Base</h3>
           <p className="mt-1 text-sm text-muted">
             Get access to venue recommendations, planning strategies, and market insights.
           </p>
-          <a
-            href="/dashboard/pricing"
-            className="mt-4 inline-flex items-center gap-2 rounded-xl bg-accent px-6 py-2.5 text-sm font-semibold text-white hover:brightness-110 transition-all"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-            </svg>
-            Upgrade to Pro
-          </a>
+          <div className="mt-4 flex items-center justify-center gap-3">
+            <a
+              href="/dashboard/pricing"
+              className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:brightness-110 transition-all"
+            >
+              Upgrade to Pro
+            </a>
+            <a
+              href="/dashboard/pricing"
+              className="inline-flex items-center gap-2 rounded-xl bg-purple-600 px-5 py-2.5 text-sm font-semibold text-white hover:brightness-110 transition-all"
+            >
+              Go Enterprise
+            </a>
+          </div>
         </div>
       )}
     </div>
