@@ -234,6 +234,12 @@ export default function AdminDashboard() {
     { key: "knowledge", label: "Knowledge Base", count: kbEntries.length },
   ];
 
+  // Blocked companies
+  const blockedCompanies = companies.filter((c) => {
+    const msg = parseMsg(c.message);
+    return msg && msg.blocked === true;
+  });
+
   const statusBadge = (status: string) => {
     const colors: Record<string, string> = {
       pending: "bg-amber-100 text-amber-700",
@@ -241,6 +247,7 @@ export default function AdminDashboard() {
       confirmed: "bg-green-100 text-green-700",
       rejected: "bg-red-100 text-red-700",
       cancelled: "bg-red-100 text-red-700",
+      blocked: "bg-red-200 text-red-800",
       draft: "bg-gray-100 text-gray-600",
       completed: "bg-blue-100 text-blue-700",
     };
@@ -345,6 +352,57 @@ export default function AdminDashboard() {
                           className="rounded-lg bg-red-600 px-4 py-2 text-xs font-medium text-white hover:bg-red-700 disabled:opacity-50 transition-colors"
                         >
                           Reject
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Blocked Companies Banner */}
+          {blockedCompanies.length > 0 && (
+            <div className="mb-6">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-red-100">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-600">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+                  </svg>
+                </div>
+                <h2 className="text-lg font-semibold text-red-700">Blocked Accounts ({blockedCompanies.length})</h2>
+              </div>
+              <div className="rounded-2xl border-2 border-red-200 bg-red-50/50 divide-y divide-red-100 shadow-sm">
+                {blockedCompanies.map((c) => {
+                  const extra = parseMessage(c.message);
+                  const companyProfiles = profiles.filter((p) => p.company_id === c.id);
+                  return (
+                    <div key={c.id} className="flex items-center justify-between px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100 text-sm font-semibold text-red-700">
+                          {(c.name || "?").substring(0, 2).toUpperCase()}
+                        </div>
+                        <div>
+                          <p className="font-medium">{c.name || "Unnamed"}</p>
+                          <p className="text-xs text-muted">
+                            {companyProfiles.map(p => p.email).join(", ")}
+                            {extra?.blocked_at && ` · Blocked ${formatDate(extra.blocked_at)}`}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {statusBadge("blocked")}
+                        <button
+                          onClick={() => {
+                            if (confirm(`DEBLOKKEREN: ${c.name}?`)) {
+                              updateStatus("company", c.id, "pending");
+                            }
+                          }}
+                          disabled={updating === c.id}
+                          className="rounded-lg bg-gray-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-gray-700 disabled:opacity-50 transition-colors"
+                        >
+                          Unblock
                         </button>
                       </div>
                     </div>
@@ -470,7 +528,7 @@ export default function AdminDashboard() {
                     )}
                   </div>
                   <div className="flex gap-2">
-                    {c.status !== "approved" && (
+                    {c.status !== "approved" && c.status !== "blocked" && (
                       <button
                         onClick={() => updateStatus("company", c.id, "approved")}
                         disabled={updating === c.id}
@@ -479,13 +537,39 @@ export default function AdminDashboard() {
                         Approve
                       </button>
                     )}
-                    {c.status !== "rejected" && (
+                    {c.status !== "rejected" && c.status !== "blocked" && (
                       <button
                         onClick={() => updateStatus("company", c.id, "rejected")}
                         disabled={updating === c.id}
                         className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-700 disabled:opacity-50 transition-colors"
                       >
                         Reject
+                      </button>
+                    )}
+                    {c.status !== "blocked" && (
+                      <button
+                        onClick={() => {
+                          if (confirm(`BLOKKEREN: ${c.name || "dit bedrijf"}?\n\nAlle gebruikers worden permanent geblokkeerd en kunnen niet meer inloggen.`)) {
+                            updateStatus("company", c.id, "blocked");
+                          }
+                        }}
+                        disabled={updating === c.id}
+                        className="rounded-lg bg-red-800 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-900 disabled:opacity-50 transition-colors"
+                      >
+                        Block
+                      </button>
+                    )}
+                    {c.status === "blocked" && (
+                      <button
+                        onClick={() => {
+                          if (confirm(`DEBLOKKEREN: ${c.name || "dit bedrijf"}?\n\nGebruikers moeten opnieuw worden goedgekeurd.`)) {
+                            updateStatus("company", c.id, "pending");
+                          }
+                        }}
+                        disabled={updating === c.id}
+                        className="rounded-lg bg-gray-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-gray-700 disabled:opacity-50 transition-colors"
+                      >
+                        Unblock
                       </button>
                     )}
                   </div>

@@ -60,6 +60,10 @@ export async function GET() {
     isReseller = msg.role === "reseller";
     isDeveloper = msg.role === "developer";
     if (msg.approved === false) isApproved = false;
+    if (msg.blocked === true) {
+      // Blocked users get immediately signed out — return blocked status
+      return NextResponse.json({ blocked: true, error: "Account is blocked" }, { status: 403 });
+    }
     if (msg.plan) plan = msg.plan;
     if (msg.trial) trial = true;
     if (msg.reseller_slug) resellerSlug = msg.reseller_slug;

@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useRef, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
@@ -12,12 +12,22 @@ const CODE_LENGTH = 8;
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [step, setStep] = useState<Step>("email");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState<string[]>(Array(CODE_LENGTH).fill(""));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [isBlocked, setIsBlocked] = useState(false);
+
+  // Check if redirected here because of a block
+  useEffect(() => {
+    if (searchParams.get("blocked") === "true") {
+      setIsBlocked(true);
+      setError("Your account has been blocked. Contact support if you believe this is an error.");
+    }
+  }, [searchParams]);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const handleSendCode = async (e: React.FormEvent) => {
@@ -87,6 +97,19 @@ export default function LoginPage() {
       setError("Invalid code. Please try again.");
       setCode(Array(CODE_LENGTH).fill(""));
       inputRefs.current[0]?.focus();
+      setLoading(false);
+      return;
+    }
+
+    // Check if user is blocked before allowing access
+    const meRes = await fetch("/api/me");
+    if (meRes.status === 403) {
+      const supabase2 = createClient();
+      await supabase2.auth.signOut();
+      setIsBlocked(true);
+      setError("Your account has been blocked. Contact support if you believe this is an error.");
+      setStep("email");
+      setCode(Array(CODE_LENGTH).fill(""));
       setLoading(false);
       return;
     }
@@ -220,7 +243,7 @@ export default function LoginPage() {
 
                     <button
                       type="submit"
-                      disabled={loading || !email.trim()}
+                      disabled={loading || !email.trim() || isBlocked}
                       className="mt-4 h-12 w-full rounded-xl bg-accent text-sm font-semibold text-white shadow-lg shadow-accent/25 transition-all hover:shadow-accent/40 hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {loading ? (

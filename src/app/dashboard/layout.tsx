@@ -182,6 +182,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       try {
         // Use server-side API route to bypass RLS restrictions
         const res = await fetch("/api/me");
+        if (res.status === 403) {
+          // User is blocked — force logout immediately
+          const supabase = createClient();
+          await supabase.auth.signOut();
+          router.push("/auth/login?blocked=true");
+          return;
+        }
         if (!res.ok) return;
         const data = await res.json();
 

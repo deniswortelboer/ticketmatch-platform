@@ -49,9 +49,26 @@ export async function GET(request: Request) {
 
       const { data: existingProfile } = await adminSupabase
         .from("profiles")
-        .select("id")
+        .select("id, company_id")
         .eq("id", user.id)
         .single();
+
+      // Check if user's company is blocked
+      if (existingProfile?.company_id) {
+        const { data: company } = await adminSupabase
+          .from("companies")
+          .select("message")
+          .eq("id", existingProfile.company_id)
+          .single();
+        try {
+          const msg = company?.message ? JSON.parse(company.message) : {};
+          if (msg.blocked === true) {
+            // Sign them out and redirect to login with blocked message
+            await supabase.auth.signOut();
+            return NextResponse.redirect(`${origin}/auth/login?blocked=true`);
+          }
+        } catch {}
+      }
 
       // Only sync new users (first-time OAuth login)
       const isNewUser = !existingProfile;

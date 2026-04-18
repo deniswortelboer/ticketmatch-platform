@@ -128,15 +128,64 @@ export async function PATCH(request: Request) {
     const { error } = await admin.from("companies").update({ status }).eq("id", id);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-    // Update the approved flag in the message JSON
+    // Update the approved/blocked flags in the message JSON
     let messageObj: Record<string, unknown> = {};
     try { messageObj = company?.message ? JSON.parse(company.message) : {}; } catch {}
-    messageObj.approved = status === "approved";
+
+    if (status === "blocked") {
+      messageObj.approved = false;
+      messageObj.blocked = true;
+      messageObj.blocked_at = new Date().toISOString();
+    } else {
+      messageObj.approved = status === "approved";
+      messageObj.blocked = false;
+    }
+
     const { error: msgError } = await admin
       .from("companies")
       .update({ message: JSON.stringify(messageObj) })
       .eq("id", id);
     if (msgError) console.error("Failed to update message JSON:", msgError);
+
+    // If blocking: also ban all Supabase auth users for this company
+    if (status === "blocked") {
+      const { data: teamMembers } = await admin
+        .from("profiles")
+        .select("id")
+        .eq("company_id", id);
+
+      // Ban each user in Supabase Auth (prevents login entirely)
+      for (const member of teamMembers || []) {
+        const adminAuth = createServerClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.SUPABASE_SERVICE_ROLE_KEY!,
+          { cookies: { getAll: () => [], setAll: () => {} } }
+        );
+        await adminAuth.auth.admin.updateUserById(member.id, { ban_duration: "876600h" }); // ~100 years
+      }
+
+      notifyAdmin(`🚫 Bedrijf GEBLOKKEERD!\n\n🏢 ${company?.name}\nAlle gebruikers zijn geband.`);
+    }
+
+    // If unblocking (going from blocked to pending/approved): unban Supabase users
+    const wasBlocked = (() => { try { const m = company?.message ? JSON.parse(company.message) : {}; return m.blocked === true; } catch { return false; } })();
+    if (wasBlocked && status !== "blocked") {
+      const { data: teamMembers } = await admin
+        .from("profiles")
+        .select("id")
+        .eq("company_id", id);
+
+      for (const member of teamMembers || []) {
+        const adminAuth = createServerClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.SUPABASE_SERVICE_ROLE_KEY!,
+          { cookies: { getAll: () => [], setAll: () => {} } }
+        );
+        await adminAuth.auth.admin.updateUserById(member.id, { ban_duration: "none" });
+      }
+
+      notifyAdmin(`✅ Bedrijf gedeblokkeerd!\n\n🏢 ${company?.name}\nGebruikers kunnen weer inloggen.`);
+    }
 
     // Send approval email to all team members when approved
     if (status === "approved") {
