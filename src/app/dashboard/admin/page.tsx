@@ -60,7 +60,18 @@ interface KnowledgeEntry {
   updated_at: string | null;
 }
 
-type Tab = "overview" | "companies" | "bookings" | "groups" | "suppliers" | "resellers" | "knowledge";
+type Tab = "overview" | "companies" | "bookings" | "groups" | "suppliers" | "resellers" | "knowledge" | "blocked" | "activity";
+
+interface AuthUser {
+  email: string;
+  name: string;
+  company: string;
+  lastSignIn: string | null;
+  createdAt: string;
+  provider: string;
+  banned: boolean;
+  blocked: boolean;
+}
 
 function getCompanyName(companies: { name: string } | { name: string }[] | null): string {
   if (!companies) return "—";
@@ -85,6 +96,21 @@ export default function AdminDashboard() {
   const [kbEditing, setKbEditing] = useState<string | null>(null);
   const [kbForm, setKbForm] = useState({ title: "", content: "", category: "platform", tier: "free" });
   const [kbSaving, setKbSaving] = useState(false);
+
+  // Login Activity state
+  const [authUsers, setAuthUsers] = useState<AuthUser[]>([]);
+  const [activityLoading, setActivityLoading] = useState(false);
+
+  const loadActivity = () => {
+    setActivityLoading(true);
+    fetch("/api/admin/activity")
+      .then((r) => r.json())
+      .then((data) => {
+        setAuthUsers(data.users || []);
+        setActivityLoading(false);
+      })
+      .catch(() => setActivityLoading(false));
+  };
 
   const CATEGORIES = ["platform", "venues", "planning", "market", "trends"] as const;
   const TIERS = ["free", "pro", "enterprise"] as const;
@@ -166,7 +192,7 @@ export default function AdminDashboard() {
       });
   };
 
-  useEffect(() => { loadData(); loadKnowledge(); }, []);
+  useEffect(() => { loadData(); loadKnowledge(); loadActivity(); }, []);
 
   const updateStatus = async (type: "booking" | "company", id: string, status: string) => {
     setUpdating(id);
@@ -224,21 +250,23 @@ export default function AdminDashboard() {
     return !msg || msg.approved !== false; // existing accounts without the flag are considered approved
   });
 
-  const tabs: { key: Tab; label: string; count: number }[] = [
+  // Blocked companies (must be before tabs array)
+  const blockedCompanies = companies.filter((c) => {
+    const msg = parseMsg(c.message);
+    return msg && msg.blocked === true;
+  });
+
+  const tabs: { key: Tab; label: string; count: number; highlight?: boolean }[] = [
     { key: "overview", label: "Overview", count: 0 },
     { key: "companies", label: "Companies", count: companies.length },
+    { key: "blocked", label: "Blocked", count: blockedCompanies.length, highlight: blockedCompanies.length > 0 },
+    { key: "activity", label: "Login Activity", count: authUsers.filter(u => { const d = u.lastSignIn ? new Date(u.lastSignIn) : null; return d && d > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000); }).length },
     { key: "bookings", label: "Bookings", count: bookings.length },
     { key: "groups", label: "Groups", count: groups.length },
     { key: "suppliers", label: "Suppliers", count: companies.filter(c => { try { const m = c.message ? JSON.parse(c.message) : {}; return m.role === "supplier"; } catch { return false; } }).length },
     { key: "resellers", label: "Resellers", count: companies.filter(c => { try { const m = c.message ? JSON.parse(c.message) : {}; return m.role === "reseller"; } catch { return false; } }).length },
     { key: "knowledge", label: "Knowledge Base", count: kbEntries.length },
   ];
-
-  // Blocked companies
-  const blockedCompanies = companies.filter((c) => {
-    const msg = parseMsg(c.message);
-    return msg && msg.blocked === true;
-  });
 
   const statusBadge = (status: string) => {
     const colors: Record<string, string> = {
@@ -293,13 +321,13 @@ export default function AdminDashboard() {
               onClick={() => setTab(t.key)}
               className={`shrink-0 whitespace-nowrap rounded-lg px-3 py-2 text-xs md:px-4 md:py-2.5 md:text-sm font-medium transition-all ${
                 tab === t.key
-                  ? "bg-foreground text-white shadow-sm"
-                  : "text-muted hover:bg-gray-50 hover:text-foreground"
+                  ? t.highlight ? "bg-red-700 text-white shadow-sm" : "bg-foreground text-white shadow-sm"
+                  : t.highlight ? "text-red-600 bg-red-50 hover:bg-red-100" : "text-muted hover:bg-gray-50 hover:text-foreground"
               }`}
             >
               {t.label}
               {t.count > 0 && (
-                <span className={`ml-1 text-[10px] md:ml-1.5 md:text-xs ${tab === t.key ? "text-white/60" : "text-muted"}`}>
+                <span className={`ml-1 text-[10px] md:ml-1.5 md:text-xs ${tab === t.key ? "text-white/60" : t.highlight ? "text-red-500" : "text-muted"}`}>
                   ({t.count})
                 </span>
               )}
@@ -1122,6 +1150,228 @@ export default function AdminDashboard() {
               <p className="text-sm text-muted">No knowledge base entries yet.</p>
               <p className="mt-1 text-xs text-muted">Click &quot;+ Add Entry&quot; to create your first article.</p>
             </div>
+          )}
+        </div>
+      )}
+
+      {/* Blocked Tab */}
+      {tab === "blocked" && (
+        <div className="space-y-4">
+          {blockedCompanies.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-border/60 bg-white p-12 text-center">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="mx-auto text-green-400 mb-3">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+              </svg>
+              <p className="text-sm font-medium text-green-700">Geen geblokkeerde accounts</p>
+              <p className="mt-1 text-xs text-muted">Alle accounts zijn in orde.</p>
+            </div>
+          ) : (
+            <>
+              <div className="rounded-2xl bg-red-50 border border-red-200 p-4 flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100 shrink-0">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-600">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="font-semibold text-red-800">{blockedCompanies.length} geblokkeerde account{blockedCompanies.length !== 1 ? "s" : ""}</p>
+                  <p className="text-xs text-red-600">Deze bedrijven en hun gebruikers zijn permanent geblokkeerd en kunnen niet meer inloggen.</p>
+                </div>
+              </div>
+
+              {blockedCompanies.map((c) => {
+                const extra = parseMessage(c.message);
+                const companyProfiles = profiles.filter((p) => p.company_id === c.id);
+                return (
+                  <div key={c.id} className="rounded-2xl border border-red-200 bg-red-50/30 p-6 shadow-sm">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-start gap-4">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-100 text-sm font-bold text-red-700 shrink-0">
+                          {(c.name || "?").substring(0, 2).toUpperCase()}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-3">
+                            <h3 className="text-lg font-semibold">{c.name || "Unnamed"}</h3>
+                            {statusBadge("blocked")}
+                          </div>
+                          <div className="mt-1 flex flex-wrap gap-x-6 gap-y-1 text-sm text-muted">
+                            {c.company_type && <span>Type: {c.company_type}</span>}
+                            {c.phone && <span>Tel: {c.phone}</span>}
+                            <span>Registered: {formatDate(c.created_at)}</span>
+                          </div>
+                          {extra?.blocked_at && (
+                            <p className="mt-1 text-sm font-medium text-red-600">Blocked: {formatDate(extra.blocked_at)}</p>
+                          )}
+                          {companyProfiles.length > 0 && (
+                            <div className="mt-3">
+                              <p className="text-xs font-medium text-muted uppercase tracking-wider mb-1">Geblokkeerde gebruikers</p>
+                              {companyProfiles.map((p) => (
+                                <div key={p.id} className="flex items-center gap-2 mt-1">
+                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-400">
+                                    <circle cx="12" cy="12" r="10" />
+                                    <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+                                  </svg>
+                                  <span className="text-sm">{p.full_name} &middot; {p.email} &middot; <span className="text-muted">{p.role}</span></span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          if (confirm(`DEBLOKKEREN: ${c.name || "dit bedrijf"}?\n\nGebruikers moeten opnieuw worden goedgekeurd.`)) {
+                            updateStatus("company", c.id, "pending");
+                          }
+                        }}
+                        disabled={updating === c.id}
+                        className="rounded-lg bg-gray-600 px-4 py-2 text-xs font-medium text-white hover:bg-gray-700 disabled:opacity-50 transition-colors shrink-0"
+                      >
+                        Unblock
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Login Activity Tab */}
+      {tab === "activity" && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-accent">
+                <circle cx="12" cy="12" r="10" />
+                <polyline points="12 6 12 12 16 14" />
+              </svg>
+              <h2 className="text-lg font-semibold">Login Activity</h2>
+              <span className="text-sm text-muted">({authUsers.length} users)</span>
+            </div>
+            <button
+              onClick={loadActivity}
+              className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted hover:bg-gray-50 transition-colors"
+            >
+              Refresh
+            </button>
+          </div>
+
+          {activityLoading ? (
+            <div className="flex justify-center py-12">
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+            </div>
+          ) : (
+            <>
+              {/* Recent logins (past 7 days) */}
+              {(() => {
+                const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+                const recentUsers = authUsers.filter(u => u.lastSignIn && new Date(u.lastSignIn) > oneWeekAgo);
+                const olderUsers = authUsers.filter(u => !u.lastSignIn || new Date(u.lastSignIn) <= oneWeekAgo);
+
+                return (
+                  <>
+                    {recentUsers.length > 0 && (
+                      <div>
+                        <h3 className="mb-2 text-sm font-semibold text-green-700 flex items-center gap-2">
+                          <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                          Afgelopen 7 dagen ({recentUsers.length})
+                        </h3>
+                        <div className="rounded-2xl border border-border/60 bg-white divide-y divide-border/40 shadow-sm">
+                          {recentUsers.map((u) => {
+                            const loginDate = u.lastSignIn ? new Date(u.lastSignIn) : null;
+                            const hoursAgo = loginDate ? Math.floor((Date.now() - loginDate.getTime()) / 3600000) : null;
+                            const timeLabel = hoursAgo !== null
+                              ? hoursAgo < 1 ? "Zojuist" : hoursAgo < 24 ? `${hoursAgo}u geleden` : `${Math.floor(hoursAgo / 24)}d geleden`
+                              : "Nooit";
+
+                            return (
+                              <div key={u.email} className={`flex items-center justify-between px-6 py-4 ${u.banned || u.blocked ? "bg-red-50/50" : ""}`}>
+                                <div className="flex items-center gap-3">
+                                  <div className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold ${
+                                    u.banned || u.blocked
+                                      ? "bg-red-100 text-red-700"
+                                      : "bg-accent/10 text-accent"
+                                  }`}>
+                                    {(u.name || u.email.substring(0, 2)).substring(0, 2).toUpperCase()}
+                                  </div>
+                                  <div>
+                                    <div className="flex items-center gap-2">
+                                      <p className="font-medium">{u.name || u.email.split("@")[0]}</p>
+                                      {(u.banned || u.blocked) && (
+                                        <span className="rounded-full bg-red-200 px-2 py-0.5 text-[10px] font-semibold text-red-800">BLOCKED</span>
+                                      )}
+                                    </div>
+                                    <p className="text-xs text-muted">
+                                      {u.email} &middot; {u.company || "—"} &middot;{" "}
+                                      <span className="inline-flex items-center gap-1">
+                                        {u.provider === "google" ? "Google" : u.provider === "azure" ? "Microsoft" : "Email"}
+                                      </span>
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="text-right shrink-0">
+                                  <p className="text-xs font-medium">{timeLabel}</p>
+                                  <p className="text-[11px] text-muted">
+                                    {loginDate ? loginDate.toLocaleDateString("nl-NL", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "—"}
+                                  </p>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {olderUsers.length > 0 && (
+                      <div>
+                        <h3 className="mb-2 text-sm font-semibold text-muted flex items-center gap-2">
+                          Ouder dan 7 dagen ({olderUsers.length})
+                        </h3>
+                        <div className="rounded-2xl border border-border/60 bg-white divide-y divide-border/40 shadow-sm">
+                          {olderUsers.map((u) => {
+                            const loginDate = u.lastSignIn ? new Date(u.lastSignIn) : null;
+                            return (
+                              <div key={u.email} className={`flex items-center justify-between px-6 py-4 ${u.banned || u.blocked ? "bg-red-50/50" : ""}`}>
+                                <div className="flex items-center gap-3">
+                                  <div className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold ${
+                                    u.banned || u.blocked ? "bg-red-100 text-red-700" : "bg-gray-100 text-gray-500"
+                                  }`}>
+                                    {(u.name || u.email.substring(0, 2)).substring(0, 2).toUpperCase()}
+                                  </div>
+                                  <div>
+                                    <div className="flex items-center gap-2">
+                                      <p className="font-medium text-muted">{u.name || u.email.split("@")[0]}</p>
+                                      {(u.banned || u.blocked) && (
+                                        <span className="rounded-full bg-red-200 px-2 py-0.5 text-[10px] font-semibold text-red-800">BLOCKED</span>
+                                      )}
+                                    </div>
+                                    <p className="text-xs text-muted">{u.email} &middot; {u.company || "—"} &middot; {u.provider === "google" ? "Google" : u.provider === "azure" ? "Microsoft" : "Email"}</p>
+                                  </div>
+                                </div>
+                                <div className="text-right shrink-0">
+                                  <p className="text-xs text-muted">
+                                    {loginDate ? loginDate.toLocaleDateString("nl-NL", { day: "numeric", month: "short", year: "numeric" }) : "Nooit ingelogd"}
+                                  </p>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {authUsers.length === 0 && (
+                      <div className="rounded-2xl border border-dashed border-border/60 bg-white p-12 text-center">
+                        <p className="text-sm text-muted">Geen gebruikers gevonden.</p>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
+            </>
           )}
         </div>
       )}
