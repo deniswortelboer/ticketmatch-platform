@@ -260,6 +260,13 @@ export default function AdminDashboard() {
 
   const parseMessage = parseMsg;
 
+  // Derive effective status: if message.blocked === true, status is "blocked" regardless of DB status column
+  const effectiveStatus = (c: Company): string => {
+    const msg = parseMsg(c.message);
+    if (msg && msg.blocked === true) return "blocked";
+    return c.status || "pending";
+  };
+
   return (
     <>
       {/* Header */}
@@ -506,13 +513,14 @@ export default function AdminDashboard() {
           {companies.map((c) => {
             const extra = parseMessage(c.message);
             const companyProfiles = profiles.filter((p) => p.company_id === c.id);
+            const eStatus = effectiveStatus(c);
             return (
-              <div key={c.id} className="rounded-2xl border border-border/60 bg-white p-6 shadow-sm">
+              <div key={c.id} className={`rounded-2xl border bg-white p-6 shadow-sm ${eStatus === "blocked" ? "border-red-300 bg-red-50/30" : "border-border/60"}`}>
                 <div className="flex items-start justify-between">
                   <div>
                     <div className="flex items-center gap-3">
                       <h3 className="text-lg font-semibold">{c.name || "Unnamed"}</h3>
-                      {statusBadge(c.status || "pending")}
+                      {statusBadge(eStatus)}
                     </div>
                     <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-sm text-muted">
                       {c.company_type && <span>Type: {c.company_type}</span>}
@@ -525,6 +533,7 @@ export default function AdminDashboard() {
                         {extra.interested_cities && (
                           <span>Cities: {Array.isArray(extra.interested_cities) ? extra.interested_cities.join(", ") : extra.interested_cities}</span>
                         )}
+                        {extra.blocked_at && <span className="text-red-600 font-medium">Blocked: {formatDate(extra.blocked_at)}</span>}
                       </div>
                     )}
                     {companyProfiles.length > 0 && (
@@ -539,7 +548,7 @@ export default function AdminDashboard() {
                     )}
                   </div>
                   <div className="flex gap-2">
-                    {c.status !== "approved" && c.status !== "blocked" && (
+                    {eStatus !== "approved" && eStatus !== "blocked" && (
                       <button
                         onClick={() => updateStatus("company", c.id, "approved")}
                         disabled={updating === c.id}
@@ -548,7 +557,7 @@ export default function AdminDashboard() {
                         Approve
                       </button>
                     )}
-                    {c.status !== "rejected" && c.status !== "blocked" && (
+                    {eStatus !== "rejected" && eStatus !== "blocked" && (
                       <button
                         onClick={() => updateStatus("company", c.id, "rejected")}
                         disabled={updating === c.id}
@@ -557,7 +566,7 @@ export default function AdminDashboard() {
                         Reject
                       </button>
                     )}
-                    {c.status !== "blocked" && (
+                    {eStatus !== "blocked" && (
                       <button
                         onClick={() => {
                           if (confirm(`BLOKKEREN: ${c.name || "dit bedrijf"}?\n\nAlle gebruikers worden permanent geblokkeerd en kunnen niet meer inloggen.`)) {
@@ -570,7 +579,7 @@ export default function AdminDashboard() {
                         Block
                       </button>
                     )}
-                    {c.status === "blocked" && (
+                    {eStatus === "blocked" && (
                       <button
                         onClick={() => {
                           if (confirm(`DEBLOKKEREN: ${c.name || "dit bedrijf"}?\n\nGebruikers moeten opnieuw worden goedgekeurd.`)) {

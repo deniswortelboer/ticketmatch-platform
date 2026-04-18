@@ -124,10 +124,6 @@ export async function PATCH(request: Request) {
       .eq("id", id)
       .single();
 
-    // Update the status column
-    const { error } = await admin.from("companies").update({ status }).eq("id", id);
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-
     // Update the approved/blocked flags in the message JSON
     let messageObj: Record<string, unknown> = {};
     try { messageObj = company?.message ? JSON.parse(company.message) : {}; } catch {}
@@ -140,6 +136,11 @@ export async function PATCH(request: Request) {
       messageObj.approved = status === "approved";
       messageObj.blocked = false;
     }
+
+    // Update the status column (use "rejected" as DB value for blocked, since DB may not accept "blocked")
+    const dbStatus = status === "blocked" ? "rejected" : status;
+    const { error } = await admin.from("companies").update({ status: dbStatus }).eq("id", id);
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
     const { error: msgError } = await admin
       .from("companies")
