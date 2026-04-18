@@ -217,7 +217,7 @@ export default function AdminDashboard() {
   // Companies pending account approval (based on message JSON)
   const pendingApprovalCompanies = companies.filter((c) => {
     const msg = parseMsg(c.message);
-    return msg && msg.approved === false;
+    return msg && msg.approved === false && msg.blocked !== true;
   });
   const approvedCompanies = companies.filter((c) => {
     const msg = parseMsg(c.message);
@@ -352,6 +352,17 @@ export default function AdminDashboard() {
                           className="rounded-lg bg-red-600 px-4 py-2 text-xs font-medium text-white hover:bg-red-700 disabled:opacity-50 transition-colors"
                         >
                           Reject
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (confirm(`BLOKKEREN: ${c.name || "dit bedrijf"}?\n\nAlle gebruikers worden permanent geblokkeerd en kunnen niet meer inloggen.`)) {
+                              updateStatus("company", c.id, "blocked");
+                            }
+                          }}
+                          disabled={updating === c.id}
+                          className="rounded-lg bg-red-800 px-4 py-2 text-xs font-medium text-white hover:bg-red-900 disabled:opacity-50 transition-colors"
+                        >
+                          Block
                         </button>
                       </div>
                     </div>
