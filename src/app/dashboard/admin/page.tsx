@@ -319,7 +319,7 @@ export default function AdminDashboard() {
             <button
               key={t.key}
               onClick={() => setTab(t.key)}
-              className={`shrink-0 whitespace-nowrap rounded-lg px-3 py-2 text-xs md:px-4 md:py-2.5 md:text-sm font-medium transition-all ${
+              className={`shrink-0 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-[11px] md:px-3 md:py-2 md:text-xs font-medium transition-all ${
                 tab === t.key
                   ? t.highlight ? "bg-red-700 text-white shadow-sm" : "bg-foreground text-white shadow-sm"
                   : t.highlight ? "text-red-600 bg-red-50 hover:bg-red-100" : "text-muted hover:bg-gray-50 hover:text-foreground"
@@ -327,7 +327,7 @@ export default function AdminDashboard() {
             >
               {t.label}
               {t.count > 0 && (
-                <span className={`ml-1 text-[10px] md:ml-1.5 md:text-xs ${tab === t.key ? "text-white/60" : t.highlight ? "text-red-500" : "text-muted"}`}>
+                <span className={`ml-0.5 text-[9px] md:ml-1 md:text-[10px] ${tab === t.key ? "text-white/60" : t.highlight ? "text-red-500" : "text-muted"}`}>
                   ({t.count})
                 </span>
               )}
