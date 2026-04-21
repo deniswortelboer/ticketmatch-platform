@@ -1,6 +1,13 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+
+export const metadata: Metadata = {
+  title: "Page Not Found — TicketMatch.ai",
+  robots: { index: false, follow: false },
+  alternates: { canonical: undefined },
+};
 
 export default function NotFound() {
   return (

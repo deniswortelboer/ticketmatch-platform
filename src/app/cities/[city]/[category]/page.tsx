@@ -44,9 +44,9 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { city: citySlug, category: catSlug } = await params;
   const city = allCities.find((c) => c.slug === citySlug);
-  if (!city) return {};
+  if (!city) notFound();
   const cat = city.topCategories.find((c) => c.slug === catSlug);
-  if (!cat) return {};
+  if (!cat) notFound();
 
   const title = `${cat.name} in ${city.name} — ${cat.count} B2B Group Experiences | TicketMatch.ai`;
   const description = `Book ${cat.count} ${cat.name.toLowerCase()} experiences in ${city.name} at exclusive B2B rates. ${cat.description.slice(0, 120)}`;

@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 // ════════════════════════════════════════════════════════════
-// MIDDLEWARE: Authentication + Rate Limiting
+// PROXY: Authentication + Rate Limiting
 // - Protects /dashboard routes (redirect to login)
 // - Redirects logged-in users away from /auth pages
 // - Rate limits public API routes (60 req/min per IP)
@@ -58,7 +58,7 @@ const RATE_LIMITED_PATHS = [
   "/api/agent",
 ];
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // ── Rate limiting for public API routes ──
