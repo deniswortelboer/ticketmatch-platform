@@ -131,13 +131,14 @@ export async function POST(request: Request) {
   try {
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://ticketmatch.ai";
 
-    // Start with the 3 methods we know are activated in the Stripe account
-    // (verified by the working initial deploy). Add more here only after
-    // activating them in Stripe Dashboard → Settings → Payment Methods.
-    // Card auto-enables Apple Pay + Google Pay on supported devices.
+    // Let Stripe decide which payment methods to surface based on what is
+    // activated in Dashboard → Settings → Payment Methods and on buyer
+    // context (currency, country, device). This is the recommended 2026
+    // approach and avoids silently blocking Dashboard-enabled methods
+    // (PayPal, Apple Pay, Google Pay, Link, Alipay, Klarna, etc.).
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
-      payment_method_types: ["card", "ideal", "bancontact"],
+      automatic_payment_methods: { enabled: true },
       line_items: [
         {
           price_data: {
