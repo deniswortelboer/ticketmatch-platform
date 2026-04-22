@@ -131,11 +131,12 @@ export async function POST(request: Request) {
   try {
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://ticketmatch.ai";
 
+    // Let Stripe auto-pick payment methods per customer region (iDEAL in NL,
+    // WeChat Pay for Chinese users, Cash App for US, etc.) based on what's
+    // enabled in the Stripe dashboard. The SDK's TypeScript types lag behind
+    // the runtime API on automatic_payment_methods, so we cast the params.
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
-      // Let Stripe auto-pick payment methods per customer region (iDEAL in NL,
-      // WeChat Pay for Chinese users, Cash App for US, etc.) based on what's
-      // enabled in the Stripe dashboard. No hardcoded restrictions.
       automatic_payment_methods: { enabled: true },
       line_items: [
         {
@@ -160,7 +161,7 @@ export async function POST(request: Request) {
       },
       success_url: `${siteUrl}/pay/success?invoice=${invoiceNumber}`,
       cancel_url: `${siteUrl}/dashboard/bookings?cancelled=${invoiceNumber}`,
-    });
+    } as unknown as Stripe.Checkout.SessionCreateParams);
 
     paymentUrl = session.url || undefined;
     console.log(`[invoice ${invoiceNumber}] Stripe checkout session created:`, session.id);
