@@ -229,6 +229,12 @@ export default async function TicketPage({
               🍎 Voeg toe aan Apple Wallet
             </a>
             <a
+              href={`/t/${booking.access_token}/google`}
+              className="flex items-center justify-center gap-2 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-900 px-5 py-3 text-sm font-semibold transition"
+            >
+              <span className="text-lg">🅖</span> Voeg toe aan Google Wallet
+            </a>
+            <a
               href={`/t/${booking.access_token}/pdf`}
               className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 px-5 py-3 text-sm font-semibold text-slate-900 transition"
             >
