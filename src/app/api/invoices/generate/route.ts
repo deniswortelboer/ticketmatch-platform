@@ -179,7 +179,11 @@ export async function POST(request: Request) {
       cancel_url: `${siteUrl}/dashboard/bookings?cancelled=${invoiceNumber}`,
     });
 
-    paymentUrl = session.url || undefined;
+    // Use our own short branded URL instead of the long checkout.stripe.com link.
+    // /pay/[invoice] looks up the Stripe session by invoice number and redirects.
+    if (session.url) {
+      paymentUrl = `${siteUrl}/pay/${invoiceNumber}`;
+    }
     console.log(`[invoice ${invoiceNumber}] Stripe checkout session created:`, session.id);
   } catch (err) {
     console.error(`[invoice ${invoiceNumber}] Failed to create Stripe checkout session:`, err);
