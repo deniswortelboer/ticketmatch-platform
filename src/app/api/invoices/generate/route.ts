@@ -133,7 +133,10 @@ export async function POST(request: Request) {
 
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
-      payment_method_types: ["card", "ideal", "bancontact"],
+      // Let Stripe auto-pick payment methods per customer region (iDEAL in NL,
+      // WeChat Pay for Chinese users, Cash App for US, etc.) based on what's
+      // enabled in the Stripe dashboard. No hardcoded restrictions.
+      automatic_payment_methods: { enabled: true },
       line_items: [
         {
           price_data: {
