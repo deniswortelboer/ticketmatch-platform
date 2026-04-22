@@ -223,6 +223,12 @@ export default async function TicketPage({
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <a
+              href={`/t/${booking.access_token}/apple.pkpass`}
+              className="flex items-center justify-center gap-2 rounded-xl bg-black hover:bg-slate-900 text-white px-5 py-3 text-sm font-semibold transition"
+            >
+              🍎 Voeg toe aan Apple Wallet
+            </a>
+            <a
               href={`/t/${booking.access_token}/pdf`}
               className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 px-5 py-3 text-sm font-semibold text-slate-900 transition"
             >
