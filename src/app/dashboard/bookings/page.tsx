@@ -20,6 +20,8 @@ interface Booking {
   access_token?: string | null;
   delivered_at?: string | null;
   delivery_channels?: string[] | null;
+  musement_status?: string | null;
+  musement_order_id?: string | null;
 }
 
 interface Group {
@@ -108,6 +110,37 @@ export default function BookingsPage() {
     try {
       await navigator.clipboard.writeText(text);
     } catch {}
+  };
+
+  // ── Confirm Order (Musement) ──
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const handleConfirmOrder = async (bookingId: string) => {
+    setConfirmingId(bookingId);
+    try {
+      const res = await fetch(`/api/bookings/${bookingId}/confirm-order`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(`Order failed: ${data.error || "unknown"}`);
+        return;
+      }
+      // Refresh bookings
+      fetch("/api/bookings")
+        .then((r) => r.json())
+        .then((b) => setBookings(b.bookings || []));
+      alert(
+        data.alreadyConfirmed
+          ? "Order was already confirmed."
+          : `✅ Order confirmed (${data.mode} mode) — ${data.tickets_count} tickets ready`
+      );
+    } catch {
+      alert("Network error");
+    } finally {
+      setConfirmingId(null);
+    }
   };
 
   useEffect(() => {
@@ -294,6 +327,29 @@ export default function BookingsPage() {
                       </svg>
                     </a>
                   )}
+                  <button
+                    onClick={() => handleConfirmOrder(booking.id)}
+                    disabled={confirmingId === booking.id || booking.musement_status === "confirmed"}
+                    className={`rounded-lg p-2 transition-colors disabled:opacity-50 ${
+                      booking.musement_status === "confirmed"
+                        ? "text-emerald-600 hover:bg-emerald-50"
+                        : "text-muted hover:bg-purple-50 hover:text-purple-600"
+                    }`}
+                    title={
+                      booking.musement_status === "confirmed"
+                        ? `Order confirmed (${booking.musement_order_id?.slice(0, 12) || "ok"})`
+                        : "Place Musement order (generates QR codes)"
+                    }
+                  >
+                    {confirmingId === booking.id ? (
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                    ) : (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M9 11l3 3L22 4" />
+                        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+                      </svg>
+                    )}
+                  </button>
                   <button
                     onClick={() => openSendModal(booking)}
                     className={`rounded-lg p-2 transition-colors ${
