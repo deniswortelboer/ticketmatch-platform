@@ -147,6 +147,14 @@ export default function SettingsPage() {
     marketing: false,
     whatsapp_enabled: false,
     whatsapp_number: "",
+    // Billing notifications (added 2026-04-22)
+    payment_succeeded: true,
+    payment_failed: true,
+    invoice_ready: true,
+    subscription_renewed: true,
+    subscription_renewal_warning: true,
+    subscription_cancelled: true,
+    payment_method_expiring: true,
   });
 
   // White Label state
@@ -857,19 +865,22 @@ export default function SettingsPage() {
                     <h2 className="text-lg font-semibold">WhatsApp Notifications</h2>
                     <p className="text-xs text-muted">Get instant booking updates on WhatsApp.</p>
                   </div>
-                  <span className="ml-auto rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-700">Coming Soon</span>
                 </div>
 
-                <div className="flex items-center justify-between rounded-xl border border-border/40 px-5 py-4 opacity-60">
+                <div className="flex items-center justify-between rounded-xl border border-border/40 px-5 py-4 hover:bg-gray-50/50 transition-colors">
                   <div>
                     <p className="text-sm font-medium">Enable WhatsApp notifications</p>
                     <p className="text-xs text-muted">Receive booking confirmations and reminders via WhatsApp.</p>
                   </div>
                   <button
-                    disabled
-                    className="relative h-6 w-11 shrink-0 rounded-full bg-gray-200 cursor-not-allowed"
+                    onClick={() => setNotifications({ ...notifications, whatsapp_enabled: !notifications.whatsapp_enabled })}
+                    className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
+                      notifications.whatsapp_enabled ? "bg-accent" : "bg-gray-200"
+                    }`}
                   >
-                    <span className="absolute top-[2px] left-[2px] h-5 w-5 rounded-full bg-white shadow" />
+                    <span className={`absolute top-[2px] left-[2px] h-5 w-5 rounded-full bg-white shadow transition-transform ${
+                      notifications.whatsapp_enabled ? "translate-x-5" : ""
+                    }`} />
                   </button>
                 </div>
 
@@ -883,14 +894,55 @@ export default function SettingsPage() {
                       placeholder="+31 6 1234 5678"
                       className="h-11 w-full max-w-sm rounded-xl border border-border bg-white px-4 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/10"
                     />
+                    <p className="mt-2 text-xs text-muted">
+                      Include country code. We&apos;ll send you a one-time hello template to verify.
+                    </p>
                   </div>
                 )}
+              </div>
 
-                <div className="mt-4 rounded-xl bg-green-50 p-4 border border-green-100">
-                  <p className="text-xs text-green-700">
-                    <strong>Coming Q3 2026:</strong> WhatsApp Business integration for instant notifications.
-                    You&apos;ll receive booking confirmations, reminders, and status updates directly on WhatsApp.
-                  </p>
+              {/* Billing & Payment Notifications */}
+              <div className="rounded-2xl border border-border/60 bg-white p-6 shadow-sm">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-100 text-purple-600">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="2" y="5" width="20" height="14" rx="2" />
+                      <line x1="2" y1="10" x2="22" y2="10" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold">Billing &amp; Payments</h2>
+                    <p className="text-xs text-muted">Get notified about invoices, subscriptions, and payment issues.</p>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  {[
+                    { key: "payment_succeeded", label: "Payment succeeded", desc: "When a booking invoice or subscription is paid." },
+                    { key: "payment_failed", label: "Payment failed", desc: "When a card is declined or a payment fails — high urgency." },
+                    { key: "invoice_ready", label: "Invoice ready", desc: "When a new invoice is available to download." },
+                    { key: "subscription_renewed", label: "Subscription renewed", desc: "After a successful monthly or yearly renewal." },
+                    { key: "subscription_renewal_warning", label: "Renewal in 7 days", desc: "Reminder before your next subscription charge." },
+                    { key: "subscription_cancelled", label: "Subscription cancelled", desc: "When a subscription ends or is cancelled." },
+                    { key: "payment_method_expiring", label: "Card expiring in 30 days", desc: "Warning so you can update your card before it lapses." },
+                  ].map((item) => (
+                    <div key={item.key} className="flex items-center justify-between rounded-xl border border-border/40 px-5 py-4 hover:bg-gray-50/50 transition-colors">
+                      <div>
+                        <p className="text-sm font-medium">{item.label}</p>
+                        <p className="text-xs text-muted">{item.desc}</p>
+                      </div>
+                      <button
+                        onClick={() => setNotifications({ ...notifications, [item.key]: !notifications[item.key as keyof typeof notifications] })}
+                        className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
+                          notifications[item.key as keyof typeof notifications] ? "bg-accent" : "bg-gray-200"
+                        }`}
+                      >
+                        <span className={`absolute top-[2px] left-[2px] h-5 w-5 rounded-full bg-white shadow transition-transform ${
+                          notifications[item.key as keyof typeof notifications] ? "translate-x-5" : ""
+                        }`} />
+                      </button>
+                    </div>
+                  ))}
                 </div>
               </div>
 

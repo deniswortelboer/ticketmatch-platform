@@ -173,14 +173,17 @@ export async function generateTicketPDF(input: TicketPDFInput): Promise<ArrayBuf
       }
     } else {
       doc.text(`Met vriendelijke groet, ${input.companyName}`, margin, pageH - 24);
-      doc.setFontSize(8);
-      doc.setTextColor(148, 163, 184);
-      doc.text(
-        "Verzonden via TicketMatch — ticketmatch.ai",
-        pageW - margin,
-        pageH - 12,
-        { align: "right" }
-      );
+      // Powered-by only on co_branded; white_label_light hides it
+      if (input.brandingMode === "co_branded") {
+        doc.setFontSize(8);
+        doc.setTextColor(148, 163, 184);
+        doc.text(
+          "Verzonden via TicketMatch — ticketmatch.ai",
+          pageW - margin,
+          pageH - 12,
+          { align: "right" }
+        );
+      }
     }
   }
 

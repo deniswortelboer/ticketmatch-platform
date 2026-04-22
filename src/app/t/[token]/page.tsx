@@ -328,16 +328,27 @@ export default async function TicketPage({
                 <br />
                 <strong>{companyName}</strong>
               </p>
-              <p className="mt-4 text-xs text-slate-400">
-                Verzonden via{" "}
-                <a
-                  href="https://ticketmatch.ai"
-                  className="font-semibold hover:underline"
-                  style={{ color: primaryColor }}
-                >
-                  TicketMatch
-                </a>
-              </p>
+              {supportEmail && (
+                <p className="mt-2">
+                  📧 <a href={`mailto:${supportEmail}`}>{supportEmail}</a>
+                </p>
+              )}
+              {supportPhone && (
+                <p className="mt-1">📞 {supportPhone}</p>
+              )}
+              {/* Powered-by only on co_branded; white_label_light hides it */}
+              {brandingMode === "co_branded" && (
+                <p className="mt-4 text-xs text-slate-400">
+                  Verzonden via{" "}
+                  <a
+                    href="https://ticketmatch.ai"
+                    className="font-semibold hover:underline"
+                    style={{ color: primaryColor }}
+                  >
+                    TicketMatch
+                  </a>
+                </p>
+              )}
             </>
           )}
         </footer>
