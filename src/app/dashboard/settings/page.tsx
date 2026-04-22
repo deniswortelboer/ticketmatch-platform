@@ -709,6 +709,8 @@ export default function SettingsPage() {
                         {company.plan_id.includes("annual") ? "Annual billing" : "Monthly billing"}
                         {company.plan_activated_at && ` \u00b7 Active since ${new Date(company.plan_activated_at).toLocaleDateString()}`}
                       </p>
+                    ) : company.plan && company.plan !== "free" ? (
+                      <p className="text-xs text-muted capitalize">{company.plan} features unlocked.</p>
                     ) : (
                       <p className="text-xs text-muted">You&apos;re on the free plan with basic features.</p>
                     )}
@@ -724,7 +726,7 @@ export default function SettingsPage() {
 
               <div className="rounded-2xl border border-border/60 bg-white p-6 shadow-sm">
                 <h2 className="text-lg font-semibold mb-2">Billing Information</h2>
-                <p className="text-sm text-muted mb-4">Payments are processed securely via Mollie.</p>
+                <p className="text-sm text-muted mb-4">Payments are processed securely via Stripe.</p>
                 <div className="space-y-3">
                   <div className="flex items-center gap-3 rounded-xl border border-border/40 px-5 py-4">
                     <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-green-50">
@@ -733,9 +735,9 @@ export default function SettingsPage() {
                         <line x1="1" y1="10" x2="23" y2="10" />
                       </svg>
                     </div>
-                    <div>
+                    <div className="flex-1">
                       <p className="text-sm font-medium">Payment Method</p>
-                      <p className="text-xs text-muted">Managed by Mollie &middot; iDEAL, Credit Card, PayPal &amp; more</p>
+                      <p className="text-xs text-muted">Managed by Stripe &middot; Card, iDEAL, Apple Pay, Google Pay &amp; more</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3 rounded-xl border border-border/40 px-5 py-4">
@@ -745,11 +747,30 @@ export default function SettingsPage() {
                         <polyline points="14 2 14 8 20 8" />
                       </svg>
                     </div>
-                    <div>
-                      <p className="text-sm font-medium">Invoices</p>
-                      <p className="text-xs text-muted">Coming soon &middot; Download your invoices here</p>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">Invoices &amp; payment method</p>
+                      <p className="text-xs text-muted">Update card, cancel subscription, download invoices</p>
                     </div>
                   </div>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        const res = await fetch("/api/stripe/portal", { method: "POST" });
+                        const json = await res.json();
+                        if (json.url) {
+                          window.location.href = json.url;
+                        } else {
+                          alert(json.error || "Could not open billing portal. Subscribe to a paid plan first.");
+                        }
+                      } catch {
+                        alert("Could not open billing portal. Please try again.");
+                      }
+                    }}
+                    className="w-full rounded-xl bg-accent px-5 py-3 text-sm font-semibold text-white transition-all hover:bg-blue-700"
+                  >
+                    Open Stripe Billing Portal
+                  </button>
                 </div>
               </div>
             </div>
