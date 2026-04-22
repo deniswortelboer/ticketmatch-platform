@@ -14,7 +14,7 @@ import crypto from "crypto";
 
 const ISSUER_ID = process.env.GOOGLE_WALLET_ISSUER_ID || "";
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://ticketmatch.ai";
-const CLASS_SUFFIX = "TM_TICKET_V1";
+const CLASS_SUFFIX = "TM_BOOKING_VOUCHER"; // reuses the already-Active class in Google Pay Console
 
 function getCredentials() {
   return {
