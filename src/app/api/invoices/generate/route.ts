@@ -131,14 +131,16 @@ export async function POST(request: Request) {
   try {
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://ticketmatch.ai";
 
-    // Let Stripe decide which payment methods to surface based on what is
-    // activated in Dashboard → Settings → Payment Methods and on buyer
-    // context (currency, country, device). This is the recommended 2026
-    // approach and avoids silently blocking Dashboard-enabled methods
-    // (PayPal, Apple Pay, Google Pay, Link, Alipay, Klarna, etc.).
+    // Omit payment_method_types entirely so Stripe falls back to whatever
+    // is activated in Dashboard → Settings → Payment Methods, matched to
+    // buyer context (currency, country, device). This unlocks PayPal,
+    // Apple Pay, Google Pay, Link, Alipay, Klarna and all other Dashboard-
+    // enabled methods without code changes.
+    //
+    // (automatic_payment_methods is a PaymentIntent-only parameter; for
+    // Checkout Sessions the documented pattern is simply to omit the list.)
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
-      automatic_payment_methods: { enabled: true },
       line_items: [
         {
           price_data: {
