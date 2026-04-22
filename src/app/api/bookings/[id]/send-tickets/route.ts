@@ -203,7 +203,7 @@ export async function POST(
       support_phone?: string | null;
     } | null;
   };
-  const booking = bookingRaw as BookingRow;
+  const booking = bookingRaw as unknown as BookingRow;
 
   // Ensure access_token (should exist from migration backfill, but safety)
   let accessToken = booking.access_token;

@@ -69,7 +69,7 @@ async function fetchBookingByToken(token: string): Promise<Booking | null> {
     .eq("access_token", token)
     .maybeSingle();
 
-  return data as Booking | null;
+  return data as unknown as Booking | null;
 }
 
 function formatDate(isoDate: string | null) {

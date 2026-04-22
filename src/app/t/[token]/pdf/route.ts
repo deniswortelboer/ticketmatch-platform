@@ -54,7 +54,7 @@ export async function GET(
       support_phone?: string | null;
     } | null;
   };
-  const b = booking as Row;
+  const b = booking as unknown as Row;
 
   const tickets: TicketPDFTicket[] = Array.isArray(b.tickets) ? b.tickets : [];
 
