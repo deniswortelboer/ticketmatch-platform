@@ -131,13 +131,29 @@ export async function POST(request: Request) {
   try {
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://ticketmatch.ai";
 
-    // Let Stripe auto-pick payment methods per customer region (iDEAL in NL,
-    // WeChat Pay for Chinese users, Cash App for US, etc.) based on what's
-    // enabled in the Stripe dashboard. The SDK's TypeScript types lag behind
-    // the runtime API on automatic_payment_methods, so we cast the params.
+    // Hardcoded list of payment methods. Stripe will only present methods
+    // that (a) are activated in the Stripe dashboard, and (b) are valid for
+    // the customer's region/currency. So this is safe to keep broad.
+    // Card automatically enables Apple Pay + Google Pay on supported devices.
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
-      automatic_payment_methods: { enabled: true },
+      payment_method_types: [
+        "card",
+        "ideal",
+        "bancontact",
+        "sepa_debit",
+        "eps",
+        "p24",
+        "giropay",
+        "klarna",
+        "link",
+        "paypal",
+        "alipay",
+        "wechat_pay",
+      ],
+      payment_method_options: {
+        wechat_pay: { client: "web" },
+      },
       line_items: [
         {
           price_data: {
@@ -161,7 +177,7 @@ export async function POST(request: Request) {
       },
       success_url: `${siteUrl}/pay/success?invoice=${invoiceNumber}`,
       cancel_url: `${siteUrl}/dashboard/bookings?cancelled=${invoiceNumber}`,
-    } as unknown as Stripe.Checkout.SessionCreateParams);
+    });
 
     paymentUrl = session.url || undefined;
     console.log(`[invoice ${invoiceNumber}] Stripe checkout session created:`, session.id);
