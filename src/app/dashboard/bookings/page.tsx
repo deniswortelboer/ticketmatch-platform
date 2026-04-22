@@ -16,7 +16,10 @@ interface Booking {
   notes: string | null;
   created_at: string;
   group_id: string;
-  groups: { name: string } | null;
+  groups: { name: string; contact_person?: string | null } | null;
+  access_token?: string | null;
+  delivered_at?: string | null;
+  delivery_channels?: string[] | null;
 }
 
 interface Group {
@@ -41,6 +44,71 @@ export default function BookingsPage() {
   const [invoiceError, setInvoiceError] = useState("");
   const { currency, format } = useCurrency();
   const isConverted = currency.code !== "EUR";
+
+  // ── Send Tickets modal state ──
+  const [sendBooking, setSendBooking] = useState<Booking | null>(null);
+  const [sendEmail, setSendEmail] = useState("");
+  const [sendPhone, setSendPhone] = useState("");
+  const [sendLoading, setSendLoading] = useState(false);
+  const [sendError, setSendError] = useState("");
+  const [sendResult, setSendResult] = useState<{
+    ticket_url: string;
+    delivered_channels: string[];
+    tickets_count: number;
+  } | null>(null);
+
+  const openSendModal = (b: Booking) => {
+    setSendBooking(b);
+    setSendEmail(b.groups?.contact_person || "");
+    setSendPhone("");
+    setSendError("");
+    setSendResult(null);
+  };
+
+  const closeSendModal = () => {
+    setSendBooking(null);
+    setSendResult(null);
+  };
+
+  const handleSendTickets = async () => {
+    if (!sendBooking) return;
+    setSendLoading(true);
+    setSendError("");
+    try {
+      const res = await fetch(`/api/bookings/${sendBooking.id}/send-tickets`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recipientEmail: sendEmail.trim() || undefined,
+          recipientPhone: sendPhone.trim() || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setSendError(data.error || "Failed to send tickets");
+        return;
+      }
+      setSendResult({
+        ticket_url: data.ticket_url,
+        delivered_channels: data.delivered_channels || [],
+        tickets_count: data.tickets_count || 0,
+      });
+      // Refresh bookings to show delivered_at
+      fetch("/api/bookings")
+        .then((r) => r.json())
+        .then((b) => setBookings(b.bookings || []));
+    } catch {
+      setSendError("Network error");
+    } finally {
+      setSendLoading(false);
+    }
+  };
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {}
+  };
 
   useEffect(() => {
     Promise.all([
@@ -212,6 +280,38 @@ export default function BookingsPage() {
                       <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" />
                     </svg>
                   </a>
+                  {booking.access_token && (
+                    <a
+                      href={`/t/${booking.access_token}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="rounded-lg p-2 text-muted hover:bg-emerald-50 hover:text-emerald-600 transition-colors"
+                      title="Preview customer ticket page"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                        <circle cx="12" cy="12" r="3" />
+                      </svg>
+                    </a>
+                  )}
+                  <button
+                    onClick={() => openSendModal(booking)}
+                    className={`rounded-lg p-2 transition-colors ${
+                      booking.delivered_at
+                        ? "text-emerald-600 hover:bg-emerald-50"
+                        : "text-muted hover:bg-accent/10 hover:text-accent"
+                    }`}
+                    title={
+                      booking.delivered_at
+                        ? `Tickets verzonden ${new Date(booking.delivered_at).toLocaleDateString("nl-NL")}`
+                        : "Send tickets to customer"
+                    }
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="22" y1="2" x2="11" y2="13" />
+                      <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                    </svg>
+                  </button>
                   <button
                     onClick={() => handleDelete(booking.id)}
                     className="rounded-lg p-2 text-muted hover:bg-red-50 hover:text-red-600 transition-colors"
@@ -287,6 +387,148 @@ export default function BookingsPage() {
               <div className="mt-4 flex items-center justify-center gap-2 text-sm text-muted">
                 <div className="h-4 w-4 animate-spin rounded-full border-2 border-accent border-t-transparent" />
                 Generating invoice...
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Send Tickets Modal */}
+      {sendBooking && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={closeSendModal}
+        >
+          <div
+            className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-lg font-bold">📤 Send Tickets</h3>
+              <button
+                onClick={closeSendModal}
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-muted hover:bg-gray-100 transition-colors"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+
+            <p className="mb-5 text-sm text-muted">
+              <strong>{sendBooking.venue_name}</strong>
+              {sendBooking.scheduled_date &&
+                ` — ${new Date(sendBooking.scheduled_date).toLocaleDateString("nl-NL")}`}
+              {sendBooking.number_of_guests ? ` · ${sendBooking.number_of_guests} gasten` : ""}
+            </p>
+
+            {sendResult ? (
+              /* ── SUCCESS STATE ── */
+              <div className="space-y-4">
+                <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-4">
+                  <p className="font-semibold text-emerald-900">
+                    ✅ Tickets verzonden
+                  </p>
+                  <p className="mt-1 text-sm text-emerald-800">
+                    {sendResult.tickets_count} ticket{sendResult.tickets_count !== 1 ? "s" : ""} gegenereerd. Kanalen:{" "}
+                    {sendResult.delivered_channels.length
+                      ? sendResult.delivered_channels.join(", ")
+                      : "geen directe aflevering (admin notificatie verzonden)"}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-muted uppercase tracking-wider mb-1">
+                    Ticket URL
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      readOnly
+                      value={sendResult.ticket_url}
+                      className="flex-1 rounded-lg border border-border bg-gray-50 px-3 py-2 text-sm font-mono"
+                    />
+                    <button
+                      onClick={() => copyToClipboard(sendResult.ticket_url)}
+                      className="rounded-lg border border-border bg-white px-3 py-2 text-sm hover:bg-gray-50"
+                      title="Copy URL"
+                    >
+                      📋
+                    </button>
+                    <a
+                      href={sendResult.ticket_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="rounded-lg border border-border bg-white px-3 py-2 text-sm hover:bg-gray-50"
+                      title="Open in new tab"
+                    >
+                      ↗
+                    </a>
+                  </div>
+                </div>
+                <button
+                  onClick={closeSendModal}
+                  className="w-full rounded-xl bg-accent px-5 py-2.5 text-sm font-semibold text-white hover:bg-accent/90 transition"
+                >
+                  Klaar
+                </button>
+              </div>
+            ) : (
+              /* ── INPUT STATE ── */
+              <div className="space-y-4">
+                {sendError && (
+                  <div className="rounded-xl bg-red-50 p-3 text-sm text-red-700">
+                    {sendError}
+                  </div>
+                )}
+                <div>
+                  <label className="block text-xs font-semibold text-muted uppercase tracking-wider mb-1">
+                    Recipient email
+                  </label>
+                  <input
+                    type="email"
+                    value={sendEmail}
+                    onChange={(e) => setSendEmail(e.target.value)}
+                    placeholder="booker@example.com"
+                    className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm focus:border-accent outline-none"
+                  />
+                  <p className="mt-1 text-xs text-muted/70">
+                    De boeker/groepsleider krijgt hier de ticket-link op.
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-muted uppercase tracking-wider mb-1">
+                    WhatsApp phone <span className="text-muted/70">(optioneel)</span>
+                  </label>
+                  <input
+                    type="tel"
+                    value={sendPhone}
+                    onChange={(e) => setSendPhone(e.target.value)}
+                    placeholder="31612345678"
+                    className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm focus:border-accent outline-none"
+                  />
+                  <p className="mt-1 text-xs text-muted/70">
+                    International format zonder + (bv. <code>31612345678</code>). Alleen
+                    binnen 24u na klant-initiatief.
+                  </p>
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <button
+                    onClick={closeSendModal}
+                    className="flex-1 rounded-xl border border-border bg-white px-5 py-2.5 text-sm font-semibold hover:bg-gray-50"
+                  >
+                    Annuleer
+                  </button>
+                  <button
+                    onClick={handleSendTickets}
+                    disabled={sendLoading}
+                    className="flex-1 rounded-xl bg-accent px-5 py-2.5 text-sm font-semibold text-white hover:bg-accent/90 disabled:opacity-50 transition flex items-center justify-center gap-2"
+                  >
+                    {sendLoading && (
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    )}
+                    Verstuur tickets
+                  </button>
+                </div>
               </div>
             )}
           </div>

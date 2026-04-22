@@ -56,7 +56,7 @@ export async function GET() {
 
   const { data: bookings } = await admin
     .from("bookings")
-    .select("*, groups(name)")
+    .select("*, groups(name, contact_person)")
     .eq("company_id", profile.company_id)
     .order("created_at", { ascending: false });
 
