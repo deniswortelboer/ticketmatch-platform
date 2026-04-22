@@ -131,29 +131,13 @@ export async function POST(request: Request) {
   try {
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://ticketmatch.ai";
 
-    // Hardcoded list of payment methods. Stripe will only present methods
-    // that (a) are activated in the Stripe dashboard, and (b) are valid for
-    // the customer's region/currency. So this is safe to keep broad.
-    // Card automatically enables Apple Pay + Google Pay on supported devices.
+    // Start with the 3 methods we know are activated in the Stripe account
+    // (verified by the working initial deploy). Add more here only after
+    // activating them in Stripe Dashboard → Settings → Payment Methods.
+    // Card auto-enables Apple Pay + Google Pay on supported devices.
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
-      payment_method_types: [
-        "card",
-        "ideal",
-        "bancontact",
-        "sepa_debit",
-        "eps",
-        "p24",
-        "giropay",
-        "klarna",
-        "link",
-        "paypal",
-        "alipay",
-        "wechat_pay",
-      ],
-      payment_method_options: {
-        wechat_pay: { client: "web" },
-      },
+      payment_method_types: ["card", "ideal", "bancontact"],
       line_items: [
         {
           price_data: {
@@ -179,10 +163,27 @@ export async function POST(request: Request) {
       cancel_url: `${siteUrl}/dashboard/bookings?cancelled=${invoiceNumber}`,
     });
 
-    // Use our own short branded URL instead of the long checkout.stripe.com link.
-    // /pay/[invoice] looks up the Stripe session by invoice number and redirects.
+    // Persist the session URL keyed by invoice number so the branded
+    // /pay/[invoice] redirect can look it up from the DB (no Stripe
+    // Search API — not available for Checkout Sessions).
     if (session.url) {
-      paymentUrl = `${siteUrl}/pay/${invoiceNumber}`;
+      const { error: insertErr } = await admin.from("invoices").insert({
+        invoice_number: invoiceNumber,
+        company_id: profile.company_id,
+        group_id: group.id,
+        booking_ids: bookings.map((b) => b.id),
+        stripe_session_id: session.id,
+        stripe_session_url: session.url,
+        grand_total: grandTotal,
+        status: "open",
+      });
+      if (insertErr) {
+        console.error(`[invoice ${invoiceNumber}] Failed to persist invoice row:`, insertErr);
+        // Fall back to the long Stripe URL so the PDF still has a working link.
+        paymentUrl = session.url;
+      } else {
+        paymentUrl = `${siteUrl}/pay/${invoiceNumber}`;
+      }
     }
     console.log(`[invoice ${invoiceNumber}] Stripe checkout session created:`, session.id);
   } catch (err) {

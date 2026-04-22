@@ -159,6 +159,18 @@ async function handleTicketInvoicePaid(
     return;
   }
 
+  // Flip the invoice row to paid so /pay/[invoice] stops redirecting to
+  // an already-used checkout session. Non-fatal if the row is missing
+  // (old invoices created before the invoices table existed).
+  const { error: invErr } = await admin
+    .from("invoices")
+    .update({ status: "paid", paid_at: new Date().toISOString() })
+    .eq("invoice_number", invoiceNumber)
+    .eq("company_id", companyId);
+  if (invErr) {
+    console.warn(`[${ts}] ticket_invoice webhook: failed to flag invoice paid`, invErr);
+  }
+
   console.log(
     `[${ts}] STRIPE PAID (ticket_invoice ${invoiceNumber}): ${ids.length} booking(s) confirmed for company ${companyId}`,
   );
