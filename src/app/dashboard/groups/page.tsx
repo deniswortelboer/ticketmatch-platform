@@ -68,6 +68,51 @@ export default function GroupsPage() {
   const [rebooking, setRebooking] = useState(false);
   const [rebookSuccess, setRebookSuccess] = useState("");
 
+  // Send to passengers state
+  const [sendingPassengersId, setSendingPassengersId] = useState<string | null>(null);
+  const [sendPassengersIncludeWA, setSendPassengersIncludeWA] = useState(false);
+  const [sendPassengersGroup, setSendPassengersGroup] = useState<Group | null>(null);
+  const [sendPassengersResult, setSendPassengersResult] = useState<{
+    passengersCount: number;
+    emailsSent: number;
+    whatsappSent: number;
+  } | null>(null);
+  const [sendPassengersError, setSendPassengersError] = useState("");
+
+  const openSendPassengers = (g: Group) => {
+    setSendPassengersGroup(g);
+    setSendPassengersIncludeWA(false);
+    setSendPassengersResult(null);
+    setSendPassengersError("");
+  };
+
+  const handleSendToPassengers = async () => {
+    if (!sendPassengersGroup) return;
+    setSendingPassengersId(sendPassengersGroup.id);
+    setSendPassengersError("");
+    try {
+      const res = await fetch(`/api/groups/${sendPassengersGroup.id}/send-to-passengers`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ includeWhatsApp: sendPassengersIncludeWA }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setSendPassengersError(data.error || "Failed to send");
+        return;
+      }
+      setSendPassengersResult({
+        passengersCount: data.passengersCount || 0,
+        emailsSent: data.emailsSent || 0,
+        whatsappSent: data.whatsappSent || 0,
+      });
+    } catch {
+      setSendPassengersError("Network error");
+    } finally {
+      setSendingPassengersId(null);
+    }
+  };
+
   const loadGroups = async () => {
     const res = await fetch("/api/groups");
     const data = await res.json();
@@ -557,6 +602,17 @@ export default function GroupsPage() {
                 </div>
                 <div className="ml-4 flex items-center gap-1">
                   <button
+                    onClick={() => openSendPassengers(group)}
+                    className="rounded-lg p-2 text-muted hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
+                    title="Send co-branded tickets to each passenger"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                      <circle cx="9" cy="7" r="4" />
+                      <path d="M22 11l-3 3-2-2" />
+                    </svg>
+                  </button>
+                  <button
                     onClick={() => openRebook(group)}
                     className="rounded-lg p-2 text-muted hover:bg-blue-50 hover:text-blue-600 transition-colors"
                     title="Rebook this trip"
@@ -591,6 +647,108 @@ export default function GroupsPage() {
           </div>
         </>
       )}
+      {/* Send to Passengers Modal */}
+      {sendPassengersGroup && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={() => !sendingPassengersId && setSendPassengersGroup(null)}
+        >
+          <div
+            className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-lg font-bold">🎫 Verstuur tickets naar alle passagiers</h3>
+              <button
+                onClick={() => !sendingPassengersId && setSendPassengersGroup(null)}
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-muted hover:bg-gray-100 transition-colors"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+
+            <p className="mb-5 text-sm text-muted">
+              <strong>{sendPassengersGroup.name}</strong>
+              {sendPassengersGroup.number_of_guests
+                ? ` · ${sendPassengersGroup.number_of_guests} passagiers`
+                : ""}
+            </p>
+
+            {sendPassengersResult ? (
+              <div className="space-y-4">
+                <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-4">
+                  <p className="font-semibold text-emerald-900">
+                    ✅ Verzending voltooid
+                  </p>
+                  <ul className="mt-2 text-sm text-emerald-800 space-y-1">
+                    <li>👥 Passagiers gevonden: <strong>{sendPassengersResult.passengersCount}</strong></li>
+                    <li>📧 Emails verstuurd: <strong>{sendPassengersResult.emailsSent}</strong></li>
+                    <li>💬 WhatsApp verstuurd: <strong>{sendPassengersResult.whatsappSent}</strong></li>
+                  </ul>
+                </div>
+                <button
+                  onClick={() => setSendPassengersGroup(null)}
+                  className="w-full rounded-xl bg-accent px-5 py-2.5 text-sm font-semibold text-white hover:bg-accent/90 transition"
+                >
+                  Klaar
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {sendPassengersError && (
+                  <div className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{sendPassengersError}</div>
+                )}
+                <div className="rounded-xl bg-blue-50 border border-blue-200 p-4 text-sm text-blue-900">
+                  <p className="font-semibold mb-1">Wat gebeurt er:</p>
+                  <ul className="space-y-1 text-blue-800 text-xs">
+                    <li>📧 Elke passagier met een email krijgt een eigen link naar hun persoonlijke tickets (co-branded jouw bedrijf)</li>
+                    <li>🔒 Elke passagier ziet ALLEEN hun eigen QR — niet die van andere passagiers</li>
+                    <li>📱 Klant kan tickets opslaan in Apple/Google Wallet, PDF downloaden, of printen</li>
+                  </ul>
+                </div>
+                <label className="flex items-start gap-3 text-sm cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={sendPassengersIncludeWA}
+                    onChange={(e) => setSendPassengersIncludeWA(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 rounded border-border"
+                  />
+                  <span>
+                    <strong>Ook via WhatsApp</strong>{" "}
+                    <span className="text-muted/70">
+                      (stuurt naar passagier.phone — alleen binnen 24u als klant eerst
+                      jouw WhatsApp contacteerde)
+                    </span>
+                  </span>
+                </label>
+                <div className="flex gap-2 pt-2">
+                  <button
+                    onClick={() => setSendPassengersGroup(null)}
+                    disabled={!!sendingPassengersId}
+                    className="flex-1 rounded-xl border border-border bg-white px-5 py-2.5 text-sm font-semibold hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    Annuleer
+                  </button>
+                  <button
+                    onClick={handleSendToPassengers}
+                    disabled={!!sendingPassengersId}
+                    className="flex-1 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50 transition flex items-center justify-center gap-2"
+                  >
+                    {sendingPassengersId && (
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    )}
+                    Verstuur aan alle passagiers
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Rebook Modal */}
       {showRebookModal && rebookGroup && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => !rebooking && setShowRebookModal(false)}>
