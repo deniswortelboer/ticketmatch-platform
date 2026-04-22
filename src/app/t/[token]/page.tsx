@@ -14,8 +14,30 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Je tickets — TicketMatch.ai",
+  description: "Bekijk, download of print je tickets. Opslaan in Apple Wallet of Google Wallet.",
   robots: { index: false, follow: false },
   alternates: { canonical: undefined },
+  openGraph: {
+    title: "🎟️ Je tickets zijn klaar",
+    description: "Bekijk, download of print je tickets. Opslaan in Apple Wallet of Google Wallet.",
+    url: "https://ticketmatch.ai",
+    siteName: "TicketMatch.ai",
+    type: "website",
+    images: [
+      {
+        url: "https://ticketmatch.ai/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "TicketMatch.ai",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "🎟️ Je tickets zijn klaar",
+    description: "Bekijk, download of print je tickets.",
+    images: ["https://ticketmatch.ai/og-image.png"],
+  },
 };
 
 type Ticket = {

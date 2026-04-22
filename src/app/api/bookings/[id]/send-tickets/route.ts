@@ -281,6 +281,7 @@ export async function POST(
             to,
             type: "text",
             text: {
+              preview_url: true,
               body: `🎟️ Je tickets voor ${booking.venue_name}${dateText ? ` op ${dateText}` : ""} zijn klaar.\n\nBekijk je tickets: ${ticketUrl}\n\n— ${headerTitle}`,
             },
           }),

@@ -34,7 +34,7 @@ export function sendWhatsApp(message: string) {
       messaging_product: "whatsapp",
       to,
       type: "text",
-      text: { body: message },
+      text: { preview_url: true, body: message },
     }),
   }).catch(() => {});
 }
