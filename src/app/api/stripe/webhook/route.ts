@@ -36,6 +36,14 @@ export async function POST(request: Request) {
     const session = event.data.object as Stripe.Checkout.Session;
     const metadata = session.metadata || {};
 
+    // Route by metadata.kind — invoice payments and membership upgrades
+    // both come through this event but need different fulfillment.
+    if (metadata.kind === "ticket_invoice") {
+      await handleTicketInvoicePaid(admin, session, metadata, ts);
+      return NextResponse.json({ ok: true });
+    }
+
+    // Default = membership subscription (no kind, or kind = membership)
     if (!metadata.companyId) {
       console.warn(`[${ts}] Stripe webhook: no companyId in metadata`);
       return NextResponse.json({ ok: true });
@@ -73,7 +81,7 @@ export async function POST(request: Request) {
       }),
     }).eq("id", metadata.companyId);
 
-    console.log(`[${ts}] STRIPE PAID: ${planName} for ${metadata.companyId}`);
+    console.log(`[${ts}] STRIPE PAID (membership): ${planName} for ${metadata.companyId}`);
   }
 
   if (event.type === "customer.subscription.deleted") {
@@ -106,4 +114,52 @@ export async function POST(request: Request) {
   }
 
   return NextResponse.json({ ok: true });
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// Ticket invoice paid — mark all bookings in the invoice as confirmed
+// and stamp them with the Stripe session for reconciliation.
+//
+// Ticket delivery itself stays a deliberate action by the reseller
+// (they often want to time it, e.g. send 24h before the activity).
+// The Bookings UI will enable the ✈️ Send Tickets button once status
+// flips to "confirmed".
+// ═══════════════════════════════════════════════════════════════════════
+async function handleTicketInvoicePaid(
+  admin: ReturnType<typeof getAdminClient>,
+  session: Stripe.Checkout.Session,
+  metadata: Record<string, string>,
+  ts: string,
+) {
+  const { invoiceNumber, groupId, companyId, bookingIds } = metadata;
+  if (!invoiceNumber || !groupId || !companyId || !bookingIds) {
+    console.warn(`[${ts}] ticket_invoice webhook: missing required metadata`, metadata);
+    return;
+  }
+
+  const ids = bookingIds.split(",").filter(Boolean);
+  if (ids.length === 0) {
+    console.warn(`[${ts}] ticket_invoice webhook: empty bookingIds for ${invoiceNumber}`);
+    return;
+  }
+
+  const paymentNote = `Paid via Stripe ${session.id} on ${ts} (invoice ${invoiceNumber})`;
+
+  const { error } = await admin
+    .from("bookings")
+    .update({
+      status: "confirmed",
+      notes: paymentNote,
+    })
+    .in("id", ids)
+    .eq("company_id", companyId);
+
+  if (error) {
+    console.error(`[${ts}] ticket_invoice webhook: failed to mark bookings paid`, error);
+    return;
+  }
+
+  console.log(
+    `[${ts}] STRIPE PAID (ticket_invoice ${invoiceNumber}): ${ids.length} booking(s) confirmed for company ${companyId}`,
+  );
 }

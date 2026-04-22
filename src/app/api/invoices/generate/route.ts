@@ -1,7 +1,10 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import Stripe from "stripe";
 import { generateInvoicePDF } from "@/lib/pdf-invoice";
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 async function getAuthUser() {
   const cookieStore = await cookies();
@@ -116,84 +119,50 @@ export async function POST(request: Request) {
   dueDateObj.setDate(dueDateObj.getDate() + 30);
   const dueDate = dueDateObj.toISOString().split("T")[0];
 
-  // Calculate total for Mollie payment
+  // Calculate totals
   const subtotal = bookings.reduce((sum, b) => sum + Number(b.total_price), 0);
   const vatAmount = subtotal * 0.21;
   const grandTotal = subtotal + vatAmount;
 
-  // Create Mollie payment link so customer can pay online
+  // Create Stripe Checkout Session so customer can pay online.
+  // We use a one-time Checkout Session (not Payment Link) because Sessions
+  // give us per-invoice metadata routing in the webhook for fulfillment.
   let paymentUrl: string | undefined;
-  const mollieKey = process.env.MOLLIE_API_KEY;
-  if (mollieKey) {
-    try {
-      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://ticketmatch.ai";
+  try {
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://ticketmatch.ai";
 
-      // First try Payment Links API (reusable, doesn't expire quickly)
-      const paymentLinkBody = {
-        description: `Invoice ${invoiceNumber} - ${group.name}`,
-        amount: {
-          currency: "EUR",
-          value: grandTotal.toFixed(2),
-        },
-        redirectUrl: `${siteUrl}/pay/success?invoice=${invoiceNumber}`,
-        webhookUrl: `${siteUrl}/api/mollie/invoice-webhook`,
-      };
-
-      console.log("Creating Mollie payment link:", JSON.stringify(paymentLinkBody));
-
-      const mollieRes = await fetch("https://api.mollie.com/v2/payment-links", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${mollieKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(paymentLinkBody),
-      });
-
-      const paymentLink = await mollieRes.json();
-      console.log("Mollie response status:", mollieRes.status, "body:", JSON.stringify(paymentLink));
-
-      if (mollieRes.ok && paymentLink._links?.paymentLink?.href) {
-        paymentUrl = paymentLink._links.paymentLink.href;
-        console.log("Mollie payment URL created:", paymentUrl);
-      } else {
-        // Fallback: try regular Payments API
-        console.log("Payment Links failed, trying regular Payments API...");
-        const paymentRes = await fetch("https://api.mollie.com/v2/payments", {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${mollieKey}`,
-            "Content-Type": "application/json",
+    const session = await stripe.checkout.sessions.create({
+      mode: "payment",
+      payment_method_types: ["card", "ideal", "bancontact"],
+      line_items: [
+        {
+          price_data: {
+            currency: "eur",
+            product_data: {
+              name: `Invoice ${invoiceNumber} — ${group.name}`,
+              description: `${bookings.length} booking${bookings.length === 1 ? "" : "s"} · ${group.number_of_guests || ""} guests`,
+            },
+            // Stripe expects integer amount in smallest currency unit (cents)
+            unit_amount: Math.round(grandTotal * 100),
           },
-          body: JSON.stringify({
-            amount: { currency: "EUR", value: grandTotal.toFixed(2) },
-            description: `Invoice ${invoiceNumber} - ${group.name}`,
-            redirectUrl: `${siteUrl}/pay/success?invoice=${invoiceNumber}`,
-            webhookUrl: `${siteUrl}/api/mollie/invoice-webhook`,
-            metadata: JSON.stringify({
-              invoiceNumber,
-              groupId: group.id,
-              companyId: profile.company_id,
-              companyName: company?.name || "",
-            }),
-          }),
-        });
+          quantity: 1,
+        },
+      ],
+      metadata: {
+        kind: "ticket_invoice",
+        invoiceNumber,
+        groupId: group.id,
+        companyId: profile.company_id,
+        bookingIds: bookings.map((b) => b.id).join(","),
+      },
+      success_url: `${siteUrl}/pay/success?invoice=${invoiceNumber}`,
+      cancel_url: `${siteUrl}/dashboard/bookings?cancelled=${invoiceNumber}`,
+    });
 
-        const payment = await paymentRes.json();
-        console.log("Mollie payment response:", paymentRes.status, JSON.stringify(payment));
-
-        if (paymentRes.ok && payment._links?.checkout?.href) {
-          paymentUrl = payment._links.checkout.href;
-          console.log("Mollie checkout URL created:", paymentUrl);
-        } else {
-          console.error("Both Mollie APIs failed:", JSON.stringify(payment));
-        }
-      }
-    } catch (err) {
-      console.error("Failed to create Mollie payment link:", err);
-    }
-  } else {
-    console.log("No MOLLIE_API_KEY set, skipping payment link");
+    paymentUrl = session.url || undefined;
+    console.log(`[invoice ${invoiceNumber}] Stripe checkout session created:`, session.id);
+  } catch (err) {
+    console.error(`[invoice ${invoiceNumber}] Failed to create Stripe checkout session:`, err);
   }
 
   // Generate PDF with real payment link

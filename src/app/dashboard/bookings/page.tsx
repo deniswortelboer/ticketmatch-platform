@@ -351,16 +351,21 @@ export default function BookingsPage() {
                     )}
                   </button>
                   <button
-                    onClick={() => openSendModal(booking)}
+                    onClick={() => booking.status !== "pending" && openSendModal(booking)}
+                    disabled={booking.status === "pending"}
                     className={`rounded-lg p-2 transition-colors ${
-                      booking.delivered_at
-                        ? "text-emerald-600 hover:bg-emerald-50"
-                        : "text-muted hover:bg-accent/10 hover:text-accent"
+                      booking.status === "pending"
+                        ? "cursor-not-allowed text-muted/40"
+                        : booking.delivered_at
+                          ? "text-emerald-600 hover:bg-emerald-50"
+                          : "text-muted hover:bg-accent/10 hover:text-accent"
                     }`}
                     title={
-                      booking.delivered_at
-                        ? `Tickets verzonden ${new Date(booking.delivered_at).toLocaleDateString("nl-NL")}`
-                        : "Send tickets to customer"
+                      booking.status === "pending"
+                        ? "Generate & pay invoice first to unlock ticket delivery"
+                        : booking.delivered_at
+                          ? `Tickets verzonden ${new Date(booking.delivered_at).toLocaleDateString("nl-NL")}`
+                          : "Send tickets to customer"
                     }
                   >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">

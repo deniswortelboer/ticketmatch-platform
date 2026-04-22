@@ -28,6 +28,7 @@ function RegisterPageInner() {
   const [error, setError] = useState("");
   const [affiliateRef, setAffiliateRef] = useState<{ code: string; companyId: string; companyName: string } | null>(null);
   const [phoneCode, setPhoneCode] = useState("+31");
+  const [submitted, setSubmitted] = useState(false);
 
   // Check for affiliate referral code (URL param or cookie)
   useEffect(() => {
@@ -103,29 +104,8 @@ function RegisterPageInner() {
     setLoading(true);
     setError("");
 
-    const supabase = createClient();
-
-    // 1. Create auth user
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email: form.email,
-      password: form.password,
-      options: {
-        data: {
-          full_name: form.contactName,
-          company_name: form.companyName,
-        },
-      },
-    });
-
-    if (authError) {
-      setError(authError.message);
-      setLoading(false);
-      return;
-    }
-
-    if (authData.user) {
-      // 2. Create company + profile via server-side API (bypasses RLS)
-      // Build message object, include affiliate referral if present
+    try {
+      // Build message payload with affiliate info if present
       let messagePayload: string | Record<string, unknown> = form.message;
       if (affiliateRef) {
         const msgObj: Record<string, unknown> = {};
@@ -137,41 +117,33 @@ function RegisterPageInner() {
 
       const fullPhone = form.phone ? `${phoneCode} ${form.phone}` : "";
 
+      // 1. Create user + company + profile via server-side API
       const regRes = await fetch("/api/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          userId: authData.user.id,
           companyName: form.companyName,
           companyType: form.companyType,
           phone: fullPhone,
+          password: form.password,
           message: messagePayload,
           contactName: form.contactName,
           email: form.email,
         }),
       });
 
+      const regData = await regRes.json();
+
       if (!regRes.ok) {
-        const regData = await regRes.json();
-        setError(regData.error || "Registration failed");
+        setError(regData.error || "Registration failed. Please try again.");
         setLoading(false);
         return;
       }
 
-      // 3. Send to HubSpot (non-blocking)
-      fetch("/api/hubspot", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          companyName: form.companyName,
-          contactName: form.contactName,
-          email: form.email,
-          phone: fullPhone,
-          companyType: form.companyType,
-        }),
-      }).catch(() => {}); // Silent fail
-
-      router.push("/dashboard");
+      // Show confirmation screen — no auto-login, account needs admin approval first
+      setSubmitted(true);
+    } catch {
+      setError("Something went wrong. Please try again.");
     }
 
     setLoading(false);
@@ -198,6 +170,58 @@ function RegisterPageInner() {
 
             {/* ═══════ LEFT: Form ═══════ */}
             <div className="mx-auto w-full max-w-md">
+              {submitted ? (
+                <div className="py-8">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-green-100 dark:bg-green-500/10 mb-6">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-600">
+                      <path d="M9 12l2 2 4-4" />
+                      <path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" />
+                    </svg>
+                  </div>
+                  <h1 className="text-[2rem] font-extrabold leading-[1.1] tracking-tight md:text-[2.5rem]">
+                    Request{" "}
+                    <span className="bg-gradient-to-r from-green-500 to-emerald-500 bg-clip-text text-transparent">
+                      submitted
+                    </span>
+                  </h1>
+                  <p className="mt-4 text-[15px] leading-[1.7] text-muted">
+                    Thank you for your interest! Your account request is being reviewed by our team.
+                  </p>
+                  <div className="mt-6 rounded-2xl border border-border bg-card-bg p-5 space-y-3">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-500/10">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-600">
+                          <circle cx="12" cy="12" r="10" />
+                          <polyline points="12 6 12 12 16 14" />
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold">Review in progress</p>
+                        <p className="text-xs text-muted">We typically review requests within 24 hours.</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-500/10">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-600">
+                          <rect x="2" y="4" width="20" height="16" rx="2" />
+                          <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold">Check your email</p>
+                        <p className="text-xs text-muted">You&apos;ll receive an email once your account is approved.</p>
+                      </div>
+                    </div>
+                  </div>
+                  <Link
+                    href="/"
+                    className="mt-8 inline-flex h-12 items-center justify-center rounded-xl bg-accent px-8 text-sm font-semibold text-white shadow-lg shadow-accent/25 transition-all hover:shadow-accent/40 hover:brightness-110"
+                  >
+                    Back to Homepage
+                  </Link>
+                </div>
+              ) : (
+              <>
               <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-accent/20 bg-accent/5 px-4 py-1.5">
                 <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
                 <span className="text-[12px] font-semibold text-accent uppercase tracking-[0.15em]">Request Access</span>
@@ -353,10 +377,10 @@ function RegisterPageInner() {
                     type="password"
                     value={form.password}
                     onChange={(e) => update("password", e.target.value)}
-                    placeholder="Min. 6 characters"
+                    placeholder="Min. 8 characters"
                     className={inputClass}
                     required
-                    minLength={6}
+                    minLength={8}
                   />
                 </div>
 
@@ -413,6 +437,8 @@ function RegisterPageInner() {
                   Sign In
                 </Link>
               </p>
+              </>
+              )}
             </div>
 
             {/* ═══════ RIGHT: Visual Showcase ═══════ */}

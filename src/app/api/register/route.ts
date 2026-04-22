@@ -5,10 +5,10 @@ import { notifyAdmin } from "@/lib/notify";
 
 // ════════════════════════════════════════════════════════════
 // SECURITY: Registration endpoint with input validation
+// - Creates auth user server-side (avoids browser fetch issues)
 // - Validates all required fields
 // - Whitelist on companyType
 // - Length limits on strings
-// - UUID format check on userId
 // ════════════════════════════════════════════════════════════
 
 const supabaseAdmin = createClient(
@@ -16,9 +16,8 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const ALLOWED_COMPANY_TYPES = ["tour_operator", "tour-operator", "dmc", "travel_agency", "travel-agency", "reseller", "corporate", "developer", "other"];
+const ALLOWED_COMPANY_TYPES = ["tour_operator", "tour-operator", "dmc", "travel_agency", "travel-agency", "reseller", "corporate", "developer", "mice", "other"];
 
 function sanitize(str: string | undefined | null, maxLength = 255): string {
   if (!str || typeof str !== "string") return "";
@@ -28,7 +27,10 @@ function sanitize(str: string | undefined | null, maxLength = 255): string {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+
+    // Support both old flow (userId provided) and new flow (password provided, server creates user)
     const userId = sanitize(body.userId, 36);
+    const password = sanitize(body.password, 128);
     const companyName = sanitize(body.companyName, 200);
     const companyType = sanitize(body.companyType, 50);
     const phone = sanitize(body.phone, 30);
@@ -37,9 +39,6 @@ export async function POST(request: Request) {
     const message = body.message;
 
     // ── Required field validation ──
-    if (!userId || !UUID_REGEX.test(userId)) {
-      return NextResponse.json({ error: "Invalid user ID" }, { status: 400 });
-    }
     if (!companyName || companyName.length < 2) {
       return NextResponse.json({ error: "Company name is required (min 2 characters)" }, { status: 400 });
     }
@@ -51,6 +50,38 @@ export async function POST(request: Request) {
     }
     if (!email || !EMAIL_REGEX.test(email)) {
       return NextResponse.json({ error: "Valid email is required" }, { status: 400 });
+    }
+
+    let finalUserId = userId;
+
+    // New flow: create auth user server-side
+    if (!userId && password) {
+      if (password.length < 8) {
+        return NextResponse.json({ error: "Password must be at least 8 characters" }, { status: 400 });
+      }
+
+      const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: {
+          full_name: contactName,
+          company_name: companyName,
+        },
+      });
+
+      if (authError) {
+        if (authError.message.includes("already been registered") || authError.message.includes("already exists")) {
+          return NextResponse.json({ error: "This email is already registered. Please sign in instead." }, { status: 409 });
+        }
+        return NextResponse.json({ error: authError.message }, { status: 500 });
+      }
+
+      finalUserId = authData.user.id;
+    }
+
+    if (!finalUserId) {
+      return NextResponse.json({ error: "User ID or password is required" }, { status: 400 });
     }
 
     // Merge approval flag into the message JSON
@@ -81,7 +112,7 @@ export async function POST(request: Request) {
     const { error: profileError } = await supabaseAdmin
       .from("profiles")
       .insert({
-        id: userId,
+        id: finalUserId,
         company_id: company.id,
         full_name: contactName,
         email,
