@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { generateTicketToken } from "@/lib/ticket-token";
-import { notifyAdmin, sendWhatsApp } from "@/lib/notify";
+import { notifyAdmin } from "@/lib/notify";
 
 // ═══════════════════════════════════════════════════════════════
 // POST /api/bookings/:id/send-tickets
@@ -292,14 +292,11 @@ export async function POST(
     }
   }
 
-  // ─── TELEGRAM (admin notification) + optional customer WhatsApp fallback ───
-  sendWhatsApp(
-    `📤 Tickets verstuurd\n\n🏢 ${companyName}\n📍 ${booking.venue_name}\n👥 ${booking.number_of_guests} gasten\n📅 ${dateText || "-"}\n\n→ ${ticketUrl}`
-  );
+  // ─── ADMIN notification (single, detailed) — fires both WhatsApp + Telegram ──
   notifyAdmin(
-    `📤 Tickets verstuurd voor ${booking.venue_name}\n→ ${ticketUrl}${
-      recipientEmail ? `\n📧 ${recipientEmail}` : ""
-    }`
+    `📤 Tickets verstuurd\n\n🏢 ${companyName}\n📍 ${booking.venue_name}\n👥 ${booking.number_of_guests} gasten\n📅 ${
+      dateText || "-"
+    }${recipientEmail ? `\n📧 ${recipientEmail}` : ""}\n\n→ ${ticketUrl}`
   );
 
   // ─── Persist ──────────────────────────────────────────────
