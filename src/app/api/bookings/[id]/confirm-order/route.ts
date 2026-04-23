@@ -172,9 +172,11 @@ export async function POST(
       const cartUuid = await createCart("en");
       if (!cartUuid) throw new Error("createCart returned null");
 
+      // Note: `musement_date_id` historically stored what Musement v3 now
+      // calls `product_identifier` (numeric product_id from the date detail
+      // endpoint). Schema rename is a follow-up cleanup.
       const added = await addToCart(
         cartUuid,
-        booking.musement_activity_uuid!,
         booking.musement_date_id!,
         quantity,
         "en"
