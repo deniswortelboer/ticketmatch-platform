@@ -268,6 +268,11 @@ export async function POST(
   if (body.recipientPhone?.trim() && process.env.WHATSAPP_TOKEN && process.env.WHATSAPP_PHONE_ID) {
     try {
       const to = body.recipientPhone.replace(/[^0-9]/g, "");
+      // Send as image message with hero banner + caption so WhatsApp shows the
+      // branded visual prominently (instead of a tiny text link-preview tile).
+      // Falls back silently on any error.
+      const heroImageUrl = `${siteUrl()}/og-image.png`;
+      const caption = `🎟️ *Je tickets voor ${booking.venue_name}${dateText ? ` op ${dateText}` : ""} zijn klaar.*\n\nBekijk, download of print je tickets (of sla ze op in Apple/Google Wallet):\n${ticketUrl}\n\n— ${headerTitle}`;
       await fetch(
         `https://graph.facebook.com/v21.0/${process.env.WHATSAPP_PHONE_ID}/messages`,
         {
@@ -279,10 +284,10 @@ export async function POST(
           body: JSON.stringify({
             messaging_product: "whatsapp",
             to,
-            type: "text",
-            text: {
-              preview_url: true,
-              body: `🎟️ Je tickets voor ${booking.venue_name}${dateText ? ` op ${dateText}` : ""} zijn klaar.\n\nBekijk je tickets: ${ticketUrl}\n\n— ${headerTitle}`,
+            type: "image",
+            image: {
+              link: heroImageUrl,
+              caption,
             },
           }),
         }
