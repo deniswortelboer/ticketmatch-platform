@@ -13,38 +13,36 @@ import AdminAgentDock from "@/components/ui/AdminAgentDock";
 
 const ADMIN_EMAILS = ["wortelboerdenis@gmail.com", "patekrolexvc@gmail.com", "denis.wortelboer@w69.nl"];
 
-/* ── Grouped navigation ── */
-type NavItem = { href: string; label: string; icon: string };
+/* ── Grouped navigation ──
+ * Main items follow the reseller workflow: Overview → Groups (who) →
+ * Experiences (browse) → Discover (plan) → Bookings (commit) →
+ * Packages (templates). Numbered badges make the journey explicit for
+ * new resellers. City Map + Weather + Itinerary were absorbed elsewhere
+ * (Discover / Group-detail tabs) to keep the nav lean.
+ */
+type NavItem = { href: string; label: string; icon: string; step?: number };
 type NavGroup = { label: string; items: NavItem[] };
 
 const mainNavGroups: NavGroup[] = [
   {
     label: "Main",
     items: [
-      { href: "/dashboard", label: "Overview", icon: "grid" },
-      { href: "/dashboard/command", label: "Command Center", icon: "map" },
-      { href: "/dashboard/experiences", label: "Experiences", icon: "search" },
-      { href: "/dashboard/bookings", label: "Bookings", icon: "ticket" },
-      { href: "/dashboard/groups", label: "Groups", icon: "users" },
-    ],
-  },
-  {
-    label: "Planning",
-    items: [
-      { href: "/dashboard/itinerary", label: "Itinerary", icon: "calendar" },
-      { href: "/dashboard/packages", label: "Packages", icon: "package" },
-      { href: "/dashboard/map", label: "City Map", icon: "map" },
-      { href: "/dashboard/weather", label: "Weather", icon: "cloud" },
+      { href: "/dashboard", label: "Overview", icon: "grid", step: 1 },
+      { href: "/dashboard/groups", label: "Groups", icon: "users", step: 2 },
+      { href: "/dashboard/experiences", label: "Experiences", icon: "search", step: 3 },
+      { href: "/dashboard/command", label: "Discover", icon: "map", step: 4 },
+      { href: "/dashboard/bookings", label: "Bookings", icon: "ticket", step: 5 },
+      { href: "/dashboard/packages", label: "Packages", icon: "package", step: 6 },
     ],
   },
   {
     label: "Account",
     items: [
       { href: "/dashboard/team", label: "Team", icon: "users" },
+      { href: "/dashboard/settings", label: "Settings", icon: "settings" },
       { href: "/dashboard/pricing", label: "Plans", icon: "zap" },
       { href: "/dashboard/knowledge", label: "Knowledge Base", icon: "book" },
       { href: "/dashboard/affiliate", label: "Refer & Earn", icon: "gift" },
-      { href: "/dashboard/settings", label: "Settings", icon: "settings" },
     ],
   },
 ];
@@ -149,7 +147,19 @@ function NavGroupSection({ group, pathname, isAdmin: isAdminGroup }: { group: Na
                   : "text-white/45 hover:bg-white/8 hover:text-white/80"
             }`}
           >
-            <NavIcon type={item.icon} />
+            {item.step ? (
+              <span
+                className={`flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full text-[11px] font-bold transition-all ${
+                  isActive
+                    ? "bg-white text-slate-900 shadow-sm"
+                    : "border border-white/25 text-white/70"
+                }`}
+              >
+                {item.step}
+              </span>
+            ) : (
+              <NavIcon type={item.icon} />
+            )}
             {item.label}
           </Link>
         );

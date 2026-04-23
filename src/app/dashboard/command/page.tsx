@@ -495,7 +495,7 @@ export default function CommandCenterPage() {
                 </svg>
               </div>
               <div>
-                <h1 className="text-xl font-bold">Command Center</h1>
+                <h1 className="text-xl font-bold">Discover</h1>
                 <p className="text-sm text-blue-200">
                   Map + Experiences + Busyness for {city.name}
                 </p>

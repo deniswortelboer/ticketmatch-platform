@@ -72,7 +72,7 @@ function NewBookingForm() {
           if (list[0].travel_date) setScheduledDate(list[0].travel_date);
         }
       } catch {
-        setError("Kon groepen niet laden — probeer opnieuw.");
+        setError("Could not load groups — please try again.");
       }
     }
     void load();
@@ -99,7 +99,7 @@ function NewBookingForm() {
     if (!scheduledDate) {
       setSlots([]);
       setSelectedProductId("");
-      setSlotsMessage("Kies een reisdatum om beschikbare tijden te zien.");
+      setSlotsMessage("Pick a travel date to see available times.");
       return;
     }
 
@@ -109,7 +109,7 @@ function NewBookingForm() {
       setSlots([]);
       setSelectedProductId("");
       setSlotsMessage(
-        "Deze datum ligt te dichtbij — Musement sandbox vraagt minstens 1 maand vooruit. Kies een latere datum of laat leeg (systeem kiest dan automatisch).",
+        "This date is too close — Musement sandbox requires at least 1 month ahead. Pick a later date or leave empty (system will auto-pick).",
       );
       return;
     }
@@ -131,8 +131,8 @@ function NewBookingForm() {
           setSelectedProductId("");
           setSlotsMessage(
             json.error
-              ? `Musement heeft geen data voor ${scheduledDate}. Probeer andere datum.`
-              : "Kon timeslots niet laden.",
+              ? `No Musement availability for ${scheduledDate}. Try another date.`
+              : "Could not load timeslots.",
           );
           return;
         }
@@ -158,8 +158,8 @@ function NewBookingForm() {
   }, [source, activityUuid, scheduledDate]);
 
   async function submit() {
-    if (!groupId) return setError("Kies eerst een groep.");
-    if (numberOfGuests < 1) return setError("Aantal gasten moet minstens 1 zijn.");
+    if (!groupId) return setError("Pick a group first.");
+    if (numberOfGuests < 1) return setError("Number of guests must be at least 1.");
     setError("");
     setSubmitting(true);
     try {
@@ -182,7 +182,7 @@ function NewBookingForm() {
         }),
       });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Booking aanmaken mislukt");
+      if (!res.ok) throw new Error(json.error || "Could not create booking");
       // Navigate to Bookings list so reseller sees the new pending row
       router.push("/dashboard/bookings");
     } catch (e) {
@@ -197,7 +197,7 @@ function NewBookingForm() {
         onClick={() => router.back()}
         className="mb-4 text-sm text-muted hover:text-foreground"
       >
-        ← Terug naar Experiences
+        ← Back to Experiences
       </button>
 
       {/* Activity header */}
@@ -213,7 +213,7 @@ function NewBookingForm() {
             <h1 className="text-xl font-bold mt-1">{title}</h1>
             {price > 0 && (
               <p className="text-sm text-muted mt-1">
-                Vanaf <strong className="text-foreground">{currency === "EUR" ? "€" : currency} {price.toFixed(2)}</strong> per persoon
+                From <strong className="text-foreground">{currency === "EUR" ? "€" : currency} {price.toFixed(2)}</strong> per person
               </p>
             )}
           </div>
@@ -222,11 +222,11 @@ function NewBookingForm() {
 
       {/* Booking form */}
       <div className="rounded-2xl border border-border/60 bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-semibold mb-4">Boek voor een groep</h2>
+        <h2 className="text-lg font-semibold mb-4">Book for a group</h2>
 
         {/* Group */}
         <label className="block mb-4">
-          <span className="text-xs font-semibold uppercase tracking-wider text-muted/70">Groep</span>
+          <span className="text-xs font-semibold uppercase tracking-wider text-muted/70">Group</span>
           {groups.length === 0 ? (
             <p className="mt-2 text-sm text-muted">
               Je hebt nog geen groepen — maak er eerst eentje aan op{" "}
@@ -240,7 +240,7 @@ function NewBookingForm() {
             >
               {groups.map((g) => (
                 <option key={g.id} value={g.id}>
-                  {g.name} {g.number_of_guests ? `(${g.number_of_guests} gasten)` : ""}
+                  {g.name} {g.number_of_guests ? `(${g.number_of_guests} guests)` : ""}
                 </option>
               ))}
             </select>
@@ -249,7 +249,7 @@ function NewBookingForm() {
 
         {/* Guests */}
         <label className="block mb-4">
-          <span className="text-xs font-semibold uppercase tracking-wider text-muted/70">Aantal gasten</span>
+          <span className="text-xs font-semibold uppercase tracking-wider text-muted/70">Number of guests</span>
           <input
             type="number"
             min={1}
@@ -262,7 +262,7 @@ function NewBookingForm() {
 
         {/* Date */}
         <label className="block mb-6">
-          <span className="text-xs font-semibold uppercase tracking-wider text-muted/70">Reisdatum (optioneel)</span>
+          <span className="text-xs font-semibold uppercase tracking-wider text-muted/70">Travel date (optional)</span>
           <input
             type="date"
             value={scheduledDate}
@@ -270,7 +270,7 @@ function NewBookingForm() {
             className="mt-1.5 h-11 w-full rounded-xl border border-border bg-white px-4 text-sm"
           />
           <p className="text-xs text-muted mt-1">
-            Laat leeg als je de exacte datum bij invoicing oppakt. Musement beschikbaarheid wordt later gecheckt.
+            Leave empty if you&apos;ll finalize the date at invoice time. Musement availability is checked later.
           </p>
         </label>
 
@@ -278,10 +278,10 @@ function NewBookingForm() {
         {source === "musement" && scheduledDate && (
           <div className="mb-4">
             <span className="text-xs font-semibold uppercase tracking-wider text-muted/70">
-              Beschikbare tijden op {scheduledDate}
+              Available times on {scheduledDate}
             </span>
             {slotsLoading && (
-              <p className="mt-2 text-sm text-muted">🔄 Musement beschikbaarheid ophalen...</p>
+              <p className="mt-2 text-sm text-muted">🔄 Checking Musement availability…</p>
             )}
             {!slotsLoading && slots.length > 0 && (
               <div className="mt-2 space-y-2 max-h-60 overflow-y-auto">
@@ -309,7 +309,7 @@ function NewBookingForm() {
                       </div>
                       {s.languages.length > 0 && (
                         <div className="text-[11px] text-muted mt-0.5">
-                          Talen: {s.languages.join(", ").toUpperCase()}
+                          Languages: {s.languages.join(", ").toUpperCase()}
                         </div>
                       )}
                     </div>
@@ -332,11 +332,11 @@ function NewBookingForm() {
         {price > 0 && (
           <div className="mb-6 rounded-xl bg-gray-50 p-4 text-sm">
             <div className="flex justify-between">
-              <span className="text-muted">Indicatieprijs</span>
+              <span className="text-muted">Indicative total</span>
               <span>{currency === "EUR" ? "€" : currency} {(price * numberOfGuests).toFixed(2)}</span>
             </div>
             <p className="text-xs text-muted mt-1">
-              Definitieve prijs wordt bij de invoice bepaald op basis van Musement beschikbaarheid.
+              Final price is set at invoice time based on live Musement availability.
             </p>
           </div>
         )}
@@ -350,14 +350,14 @@ function NewBookingForm() {
             onClick={() => router.back()}
             className="rounded-xl border border-border px-5 py-3 text-sm font-semibold"
           >
-            Annuleer
+            Cancel
           </button>
           <button
             onClick={submit}
             disabled={submitting || !groupId}
             className="flex-1 rounded-xl bg-orange-500 px-5 py-3 text-sm font-semibold text-white disabled:opacity-60"
           >
-            {submitting ? "Bezig..." : "Pending booking aanmaken"}
+            {submitting ? "Working…" : "Create pending booking"}
           </button>
         </div>
       </div>
@@ -367,7 +367,7 @@ function NewBookingForm() {
 
 export default function NewBookingPage() {
   return (
-    <Suspense fallback={<div className="p-6 text-sm text-muted">Laden…</div>}>
+    <Suspense fallback={<div className="p-6 text-sm text-muted">Loading…</div>}>
       <NewBookingForm />
     </Suspense>
   );
