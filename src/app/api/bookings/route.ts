@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { sendBookingStatusEmail } from "@/lib/email";
 import { notifyAdmin } from "@/lib/notify";
+import { generateTicketToken } from "@/lib/ticket-token";
 
 // ════════════════════════════════════════════════════════════
 // SECURITY: Bookings endpoint with input validation
@@ -131,6 +132,8 @@ export async function POST(request: Request) {
       total_price: totalPrice,
       notes,
       status: "pending",
+      // Unique per-booking token used in /t/[token] ticket URLs (NOT NULL in schema)
+      access_token: generateTicketToken(),
       ...(musementActivityUuid && { musement_activity_uuid: musementActivityUuid }),
       ...(musementDateId && { musement_date_id: musementDateId }),
     })
