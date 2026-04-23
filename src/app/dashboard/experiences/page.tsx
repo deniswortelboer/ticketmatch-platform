@@ -19,6 +19,100 @@ type ViatorProduct = {
   flags: string[];
 };
 
+type MusementProduct = {
+  uuid: string;
+  title: string;
+  description: string;
+  duration: string;
+  rating: number;
+  reviewCount: number;
+  pricing: {
+    currency: string;
+    netPrice: number;
+    retailPrice: number;
+    formatted: string;
+    margin: number;
+  };
+  images: { url: string; caption?: string }[];
+  categories: string[];
+  location: { city: string; country: string; lat?: number; lng?: number };
+  bookingType: "merchant";
+  flags: string[];
+  languages: string[];
+  isOwnOffer: boolean;
+  cancellationPolicy?: string;
+  musementUrl: string;
+};
+
+// Unified product type for display
+type UnifiedProduct = {
+  id: string;
+  source: "viator" | "musement";
+  title: string;
+  description: string;
+  duration: string;
+  rating: number;
+  reviewCount: number;
+  price: number;
+  priceFormatted: string;
+  currency: string;
+  images: { url: string; caption?: string }[];
+  categories: string[];
+  location: { city: string; country: string; lat?: number; lng?: number };
+  bookingUrl?: string;     // Viator affiliate link
+  bookingType: "affiliate" | "merchant";
+  flags: string[];
+  isOwnOffer?: boolean;    // Musement TUI in-house
+  cancellationPolicy?: string;
+  margin?: number;         // Musement margin %
+};
+
+function viatorToUnified(p: ViatorProduct): UnifiedProduct {
+  return {
+    id: p.productCode,
+    source: "viator",
+    title: p.title,
+    description: p.description,
+    duration: p.duration,
+    rating: p.rating,
+    reviewCount: p.reviewCount,
+    price: p.pricing.amount,
+    priceFormatted: p.pricing.formatted,
+    currency: p.pricing.currency,
+    images: p.images,
+    categories: p.categories,
+    location: p.location,
+    bookingUrl: p.bookingUrl,
+    bookingType: "affiliate",
+    flags: p.flags,
+  };
+}
+
+function musementToUnified(p: MusementProduct): UnifiedProduct {
+  return {
+    id: p.uuid,
+    source: "musement",
+    title: p.title,
+    description: p.description,
+    duration: p.duration,
+    rating: p.rating,
+    reviewCount: p.reviewCount,
+    price: p.pricing.retailPrice,
+    priceFormatted: p.pricing.formatted,
+    currency: p.pricing.currency,
+    images: p.images,
+    categories: p.categories,
+    location: p.location,
+    bookingType: "merchant",
+    flags: p.flags,
+    isOwnOffer: p.isOwnOffer,
+    cancellationPolicy: p.cancellationPolicy,
+    margin: p.pricing.margin,
+  };
+}
+
+type ProductSource = "all" | "viator" | "musement";
+
 /* ───── Constants ───── */
 const NL_CITIES = [
   { label: "Amsterdam", value: "amsterdam" },
@@ -215,13 +309,16 @@ export default function ExperiencesPage() {
   const [categoryFilter, setCategoryFilter] = useState("21514");
   const [subCategoryFilter, setSubCategoryFilter] = useState("");
   const [search, setSearch] = useState("");
-  const [products, setProducts] = useState<ViatorProduct[]>([]);
+  const [products, setProducts] = useState<UnifiedProduct[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState("");
   const [page, setPage] = useState(1);
   const [showMoreNL, setShowMoreNL] = useState(false);
+  // Musement is primary supplier (live since 2026-04-23). Viator Affiliate
+  // kept as fallback for cities Musement doesn't cover yet.
+  const [source, setSource] = useState<ProductSource>("musement");
 
   // City search with debounce
   useEffect(() => {
@@ -237,6 +334,58 @@ export default function ExperiencesPage() {
     return () => clearTimeout(timer);
   }, [citySearch]);
 
+  // Fetch from Viator
+  const fetchViator = useCallback(async (selectedCity: string, selectedCategory: string, destId?: number, startPage = 1): Promise<{ products: UnifiedProduct[]; totalCount: number }> => {
+    const payload: Record<string, unknown> = {
+      limit: PAGE_SIZE,
+      start: (startPage - 1) * PAGE_SIZE + 1,
+      currency: "EUR",
+    };
+    if (destId) {
+      payload.destinationId = destId;
+      payload.city = selectedCity;
+    } else {
+      payload.city = selectedCity;
+    }
+    if (selectedCategory) {
+      payload.category = selectedCategory;
+    }
+    const res = await fetch("/api/viator/search", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) return { products: [], totalCount: 0 };
+    const data = await res.json();
+    return {
+      products: (data.products || []).map(viatorToUnified),
+      totalCount: data.totalCount || 0,
+    };
+  }, []);
+
+  // Fetch from Musement
+  const fetchMusement = useCallback(async (selectedCity: string, startPage = 1): Promise<{ products: UnifiedProduct[]; totalCount: number }> => {
+    const payload: Record<string, unknown> = {
+      cityName: selectedCity,
+      limit: PAGE_SIZE,
+      offset: (startPage - 1) * PAGE_SIZE,
+      currency: "EUR",
+      language: "en",
+      sortBy: "relevance",
+    };
+    const res = await fetch("/api/musement/search", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) return { products: [], totalCount: 0 };
+    const data = await res.json();
+    return {
+      products: (data.products || []).map(musementToUnified),
+      totalCount: data.totalCount || 0,
+    };
+  }, []);
+
   const fetchExperiences = useCallback(async (selectedCity: string, selectedCategory: string, destId?: number, startPage = 1, append = false) => {
     if (append) {
       setLoadingMore(true);
@@ -245,33 +394,37 @@ export default function ExperiencesPage() {
     }
     setError("");
     try {
-      const payload: Record<string, unknown> = {
-        limit: PAGE_SIZE,
-        start: (startPage - 1) * PAGE_SIZE + 1,
-        currency: "EUR",
-      };
-      if (destId) {
-        payload.destinationId = destId;
-        payload.city = selectedCity;
-      } else {
-        payload.city = selectedCity;
+      let allProducts: UnifiedProduct[] = [];
+      let allCount = 0;
+
+      if (source === "viator" || source === "all") {
+        const viatorData = await fetchViator(selectedCity, selectedCategory, destId, startPage);
+        allProducts = [...allProducts, ...viatorData.products];
+        allCount += viatorData.totalCount;
       }
-      if (selectedCategory) {
-        payload.category = selectedCategory;
+
+      if (source === "musement" || source === "all") {
+        const musementData = await fetchMusement(selectedCity, startPage);
+        allProducts = [...allProducts, ...musementData.products];
+        allCount += musementData.totalCount;
       }
-      const res = await fetch("/api/viator/search", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) throw new Error("Failed to load experiences");
-      const data = await res.json();
+
+      // Sort merged results: Musement first (higher margin), then by rating
+      if (source === "all") {
+        allProducts.sort((a, b) => {
+          // Musement products first
+          if (a.source !== b.source) return a.source === "musement" ? -1 : 1;
+          // Then by rating
+          return b.rating - a.rating;
+        });
+      }
+
       if (append) {
-        setProducts((prev) => [...prev, ...(data.products || [])]);
+        setProducts((prev) => [...prev, ...allProducts]);
       } else {
-        setProducts(data.products || []);
+        setProducts(allProducts);
       }
-      setTotalCount(data.totalCount || 0);
+      setTotalCount(allCount);
       setPage(startPage);
     } catch {
       setError("Could not load experiences. Please try again.");
@@ -280,7 +433,7 @@ export default function ExperiencesPage() {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, []);
+  }, [source, fetchViator, fetchMusement]);
 
   useEffect(() => {
     setPage(1);
@@ -291,7 +444,7 @@ export default function ExperiencesPage() {
     } else {
       fetchExperiences(city, activeTag, undefined, 1, false);
     }
-  }, [city, customCity, categoryFilter, subCategoryFilter, fetchExperiences]);
+  }, [city, customCity, categoryFilter, subCategoryFilter, source, fetchExperiences]);
 
   const handleLoadMore = () => {
     const activeTag = subCategoryFilter || categoryFilter;
@@ -319,7 +472,7 @@ export default function ExperiencesPage() {
 
   const subCats = SUB_CATEGORIES[categoryFilter] || [];
 
-  // Client-side search filter only (categories are handled server-side)
+  // Client-side search filter
   const filtered = search
     ? products.filter((p) => {
         const q = search.toLowerCase();
@@ -330,6 +483,9 @@ export default function ExperiencesPage() {
         );
       })
     : products;
+
+  const viatorCount = products.filter((p) => p.source === "viator").length;
+  const musementCount = products.filter((p) => p.source === "musement").length;
 
   const hasMore = products.length < totalCount;
 
@@ -360,6 +516,41 @@ export default function ExperiencesPage() {
           onChange={(e) => setSearch(e.target.value)}
           className="h-10 w-64 rounded-xl border border-border bg-white px-4 text-sm outline-none transition-colors focus:border-accent focus:ring-2 focus:ring-accent/10"
         />
+      </div>
+
+      {/* Source Toggle */}
+      <div className="mb-4 flex items-center gap-2">
+        <span className="mr-1 text-xs font-semibold uppercase tracking-wider text-muted/70">Source</span>
+        {([
+          { key: "musement" as ProductSource, label: "Musement", icon: "🎫", sublabel: "Primary · Merchant" },
+          { key: "viator" as ProductSource, label: "Viator", icon: "🌐", sublabel: "Fallback · Affiliate" },
+          { key: "all" as ProductSource, label: "All Sources", icon: "🔗" },
+        ]).map((s) => (
+          <button
+            key={s.key}
+            onClick={() => setSource(s.key)}
+            className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-semibold transition-all ${
+              source === s.key
+                ? s.key === "musement"
+                  ? "bg-orange-500 text-white shadow-md shadow-orange-500/20"
+                  : s.key === "viator"
+                  ? "bg-accent text-white shadow-md shadow-accent/20"
+                  : "bg-foreground text-white shadow-md"
+                : "border border-border bg-white text-muted hover:text-foreground hover:border-foreground/30"
+            }`}
+          >
+            <span>{s.icon}</span>
+            <span>{s.label}</span>
+            {source === s.key && s.sublabel && (
+              <span className="ml-1 rounded-full bg-white/20 px-2 py-0.5 text-[10px]">{s.sublabel}</span>
+            )}
+          </button>
+        ))}
+        {source === "all" && musementCount > 0 && (
+          <span className="ml-2 text-xs text-muted">
+            {musementCount} Musement + {viatorCount} Viator
+          </span>
+        )}
       </div>
 
       {/* Banner 1: The Netherlands */}
@@ -545,8 +736,12 @@ export default function ExperiencesPage() {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {filtered.map((product) => (
               <div
-                key={product.productCode}
-                className="group overflow-hidden rounded-2xl border border-border/60 bg-white transition-all hover:border-border hover:shadow-lg hover:shadow-black/[0.03]"
+                key={`${product.source}-${product.id}`}
+                className={`group overflow-hidden rounded-2xl border bg-white transition-all hover:shadow-lg hover:shadow-black/[0.03] ${
+                  product.source === "musement"
+                    ? "border-orange-200 hover:border-orange-300"
+                    : "border-border/60 hover:border-border"
+                }`}
               >
                 {/* Image */}
                 <div className="relative h-44 w-full overflow-hidden bg-gray-100">
@@ -570,15 +765,27 @@ export default function ExperiencesPage() {
                       {product.duration}
                     </span>
                   )}
+                  {/* Source badge */}
+                  <span className={`absolute right-2 bottom-2 rounded-lg px-2 py-0.5 text-[10px] font-bold text-white backdrop-blur-sm ${
+                    product.source === "musement" ? "bg-orange-500" : "bg-accent"
+                  }`}>
+                    {product.source === "musement" ? "Musement" : "Viator"}
+                  </span>
                   {/* Flags */}
                   {product.flags.includes("LIKELY_TO_SELL_OUT") && (
                     <span className="absolute right-2 top-2 rounded-lg bg-red-500 px-2 py-0.5 text-[11px] font-bold text-white">
                       Selling fast!
                     </span>
                   )}
-                  {product.flags.includes("FREE_CANCELLATION") && (
+                  {(product.cancellationPolicy === "Free cancellation" || product.flags.includes("FREE_CANCELLATION")) && (
                     <span className="absolute left-2 top-2 rounded-lg bg-green-600 px-2 py-0.5 text-[11px] font-medium text-white">
                       Free cancellation
+                    </span>
+                  )}
+                  {/* Musement: Own Offer badge */}
+                  {product.isOwnOffer && (
+                    <span className="absolute left-2 top-8 rounded-lg bg-orange-600 px-2 py-0.5 text-[10px] font-bold text-white">
+                      TUI Original
                     </span>
                   )}
                 </div>
@@ -590,11 +797,20 @@ export default function ExperiencesPage() {
                     {product.categories.slice(0, 2).map((cat) => (
                       <span
                         key={cat}
-                        className="rounded-full bg-accent/10 px-2.5 py-0.5 text-[11px] font-medium text-accent"
+                        className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium ${
+                          product.source === "musement"
+                            ? "bg-orange-50 text-orange-600"
+                            : "bg-accent/10 text-accent"
+                        }`}
                       >
                         {cat}
                       </span>
                     ))}
+                    {product.source === "musement" && product.margin && (
+                      <span className="rounded-full bg-green-50 px-2.5 py-0.5 text-[10px] font-bold text-green-700">
+                        {product.margin.toFixed(0)}% margin
+                      </span>
+                    )}
                   </div>
 
                   {/* Title */}
@@ -615,23 +831,33 @@ export default function ExperiencesPage() {
                   {/* Price + Book button */}
                   <div className="mt-4 flex items-end justify-between border-t border-border/40 pt-4">
                     <div>
-                      {product.pricing.amount > 0 ? (
+                      {product.price > 0 ? (
                         <>
-                          <p className="text-lg font-bold text-accent">{product.pricing.formatted}</p>
+                          <p className={`text-lg font-bold ${product.source === "musement" ? "text-orange-600" : "text-accent"}`}>
+                            {product.priceFormatted}
+                          </p>
                           <p className="text-xs text-muted">per person</p>
                         </>
                       ) : (
                         <p className="text-sm font-medium text-muted">Price on request</p>
                       )}
                     </div>
-                    <a
-                      href={product.bookingUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="rounded-xl bg-foreground px-4 py-2.5 text-xs font-semibold text-white transition-all hover:bg-gray-800"
-                    >
-                      View & Book
-                    </a>
+                    {product.bookingType === "merchant" ? (
+                      <button
+                        className="rounded-xl bg-orange-500 px-4 py-2.5 text-xs font-semibold text-white transition-all hover:bg-orange-600 hover:shadow-md"
+                      >
+                        Book Direct
+                      </button>
+                    ) : (
+                      <a
+                        href={product.bookingUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="rounded-xl bg-foreground px-4 py-2.5 text-xs font-semibold text-white transition-all hover:bg-gray-800"
+                      >
+                        View & Book
+                      </a>
+                    )}
                   </div>
                 </div>
               </div>
@@ -685,7 +911,7 @@ export default function ExperiencesPage() {
       {/* Powered by */}
       <div className="mt-8 text-center">
         <p className="text-xs text-muted/60">
-          Experiences powered by Viator &mdash; Prices shown are retail rates
+          Experiences powered by Musement &amp; Viator &mdash; Prices shown are retail rates
         </p>
       </div>
     </div>
