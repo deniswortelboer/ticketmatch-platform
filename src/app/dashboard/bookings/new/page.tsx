@@ -85,14 +85,35 @@ function NewBookingForm() {
     if (g?.travel_date) setScheduledDate(g.travel_date);
   }, [groupId, groups]);
 
-  // Fetch Musement timeslots when activityUuid + scheduledDate are both set
+  // Fetch Musement timeslots when activityUuid + scheduledDate are both set.
+  // Sandbox quirk: Musement requires dates ≥1 month out. We gate the fetch
+  // so the UI doesn't slam the user with a "no availability" warning for
+  // a date that was never going to be bookable anyway.
   useEffect(() => {
-    if (source !== "musement" || !activityUuid || !scheduledDate) {
+    if (source !== "musement" || !activityUuid) {
       setSlots([]);
       setSelectedProductId("");
       setSlotsMessage("");
       return;
     }
+    if (!scheduledDate) {
+      setSlots([]);
+      setSelectedProductId("");
+      setSlotsMessage("Kies een reisdatum om beschikbare tijden te zien.");
+      return;
+    }
+
+    const minDate = new Date(Date.now() + 30 * 86400_000); // 30d future
+    const chosen = new Date(scheduledDate);
+    if (chosen < minDate) {
+      setSlots([]);
+      setSelectedProductId("");
+      setSlotsMessage(
+        "Deze datum ligt te dichtbij — Musement sandbox vraagt minstens 1 maand vooruit. Kies een latere datum of laat leeg (systeem kiest dan automatisch).",
+      );
+      return;
+    }
+
     let cancelled = false;
     async function loadSlots() {
       setSlotsLoading(true);
@@ -110,23 +131,22 @@ function NewBookingForm() {
           setSelectedProductId("");
           setSlotsMessage(
             json.error
-              ? `Geen beschikbaarheid op ${scheduledDate} — probeer een andere datum.`
-              : "Kon timeslots niet laden."
+              ? `Musement heeft geen data voor ${scheduledDate}. Probeer andere datum.`
+              : "Kon timeslots niet laden.",
           );
           return;
         }
         const list: Slot[] = json.slots || [];
         setSlots(list);
-        // Auto-select the first slot if only one, or none to force explicit choice
         if (list.length === 1) setSelectedProductId(list[0].productId);
         else if (list.length === 0) {
           setSelectedProductId("");
           setSlotsMessage(`Geen timeslots op ${scheduledDate} — kies andere datum.`);
+        } else {
+          setSlotsMessage("");
         }
       } catch (err) {
-        if (!cancelled) {
-          setSlotsMessage((err as Error).message);
-        }
+        if (!cancelled) setSlotsMessage((err as Error).message);
       } finally {
         if (!cancelled) setSlotsLoading(false);
       }
