@@ -4,8 +4,10 @@
  * TicketMatch is Merchant of Record - we handle payments, tickets, and first-line support
  */
 
-const MUSEMENT_API_BASE = process.env.MUSEMENT_API_BASE || "https://api.musement.com/api/v3";
-const MUSEMENT_API_KEY = process.env.MUSEMENT_API_KEY || "";
+const MUSEMENT_API_BASE = process.env.MUSEMENT_API_BASE || "https://sandbox.musement.com/api/v3";
+const MUSEMENT_APP_HEADER = process.env.MUSEMENT_APP_HEADER || "";
+const MUSEMENT_CLIENT_ID = process.env.MUSEMENT_CLIENT_ID || "";
+const MUSEMENT_CLIENT_SECRET = process.env.MUSEMENT_CLIENT_SECRET || "";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -113,14 +115,57 @@ const cityIdCache: Map<string, number> = new Map();
 // ─── API Helpers ────────────────────────────────────────────────────────────
 
 function getHeaders(language = "en") {
+  // Musement Partner API v3 authenticates every request with the
+  // `x-musement-application` header (partner identifier). Bearer-token auth
+  // is only required for specific merchant-of-record endpoints; for reads
+  // and standard merchant booking flows the header is sufficient.
   return {
     "Accept": "application/json",
     "Accept-Language": language,
     "X-Musement-Version": "3.5.0",
     "X-Musement-Currency": "EUR",
-    ...(MUSEMENT_API_KEY ? { "Authorization": `Bearer ${MUSEMENT_API_KEY}` } : {}),
+    ...(MUSEMENT_APP_HEADER ? { "x-musement-application": MUSEMENT_APP_HEADER } : {}),
     "Content-Type": "application/json",
   };
+}
+
+/**
+ * Returns true if Musement credentials are configured and the lib will
+ * attempt live API calls. Useful to gate mock/live behavior from callers.
+ */
+export function isMusementLive(): boolean {
+  return Boolean(MUSEMENT_APP_HEADER && MUSEMENT_API_BASE);
+}
+
+/**
+ * Health-check / debug helper — verifies connectivity and auth by fetching
+ * the first city from the configured environment.
+ */
+export async function musementHealthCheck(): Promise<{
+  ok: boolean;
+  env: string;
+  base: string;
+  sampleCity?: string;
+  error?: string;
+}> {
+  const env = MUSEMENT_API_BASE.includes("sandbox") ? "sandbox" : "production";
+  try {
+    const res = await fetch(`${MUSEMENT_API_BASE}/cities?limit=1`, {
+      headers: getHeaders(),
+    });
+    if (!res.ok) {
+      return { ok: false, env, base: MUSEMENT_API_BASE, error: `HTTP ${res.status}` };
+    }
+    const data = (await res.json()) as Array<{ name?: string }>;
+    return {
+      ok: true,
+      env,
+      base: MUSEMENT_API_BASE,
+      sampleCity: Array.isArray(data) && data[0]?.name,
+    };
+  } catch (err) {
+    return { ok: false, env, base: MUSEMENT_API_BASE, error: (err as Error).message };
+  }
 }
 
 function formatPrice(amount: number | undefined, currency: string): string {
