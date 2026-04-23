@@ -265,15 +265,21 @@ export async function POST(
   }
 
   // ─── WHATSAPP (if recipientPhone provided — free-form text only works in 24h window) ───
+  // Debug log (left intentional so Vercel logs show env resolution on each call)
+  console.log(
+    `[send-tickets:${id}] whatsapp env — token_present=${!!process.env.WHATSAPP_TOKEN} phone_id=${
+      process.env.WHATSAPP_PHONE_ID ?? "(unset)"
+    } recipientPhone=${body.recipientPhone || "(none)"}`
+  );
+  let whatsappError: string | null = null;
   if (body.recipientPhone?.trim() && process.env.WHATSAPP_TOKEN && process.env.WHATSAPP_PHONE_ID) {
     try {
       const to = body.recipientPhone.replace(/[^0-9]/g, "");
       // Send as image message with hero banner + caption so WhatsApp shows the
       // branded visual prominently (instead of a tiny text link-preview tile).
-      // Falls back silently on any error.
       const heroImageUrl = `${siteUrl()}/og-image.png`;
       const caption = `🎟️ *Je tickets voor ${booking.venue_name}${dateText ? ` op ${dateText}` : ""} zijn klaar.*\n\nBekijk, download of print je tickets (of sla ze op in Apple/Google Wallet):\n${ticketUrl}\n\n— ${headerTitle}`;
-      await fetch(
+      const res = await fetch(
         `https://graph.facebook.com/v21.0/${process.env.WHATSAPP_PHONE_ID}/messages`,
         {
           method: "POST",
@@ -292,10 +298,21 @@ export async function POST(
           }),
         }
       );
-      usedChannels.push("whatsapp");
+      const resText = await res.text();
+      if (res.ok) {
+        usedChannels.push("whatsapp");
+        console.log(`[send-tickets:${id}] whatsapp ok — ${resText.slice(0, 200)}`);
+      } else {
+        whatsappError = `HTTP ${res.status}: ${resText.slice(0, 400)}`;
+        console.error(`[send-tickets:${id}] whatsapp failed — ${whatsappError}`);
+      }
     } catch (err) {
-      console.error("WhatsApp send failed:", err);
+      whatsappError = `exception: ${(err as Error).message}`;
+      console.error(`[send-tickets:${id}] whatsapp exception:`, err);
     }
+  } else if (body.recipientPhone?.trim()) {
+    whatsappError = "WHATSAPP_TOKEN or WHATSAPP_PHONE_ID missing in env";
+    console.error(`[send-tickets:${id}] ${whatsappError}`);
   }
 
   // ─── ADMIN notification (single, detailed) — fires both WhatsApp + Telegram ──
@@ -325,5 +342,6 @@ export async function POST(
     tickets_count: tickets.length,
     delivered_channels: usedChannels,
     recipient_email: recipientEmail || null,
+    whatsapp_error: whatsappError,
   });
 }
