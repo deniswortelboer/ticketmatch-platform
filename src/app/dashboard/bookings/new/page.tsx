@@ -43,6 +43,20 @@ function NewBookingForm() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
+  // Musement timeslot state
+  type Slot = {
+    time: string;
+    groupName: string;
+    productId: string;
+    priceEur: number;
+    currency: string;
+    languages: string[];
+  };
+  const [slots, setSlots] = useState<Slot[]>([]);
+  const [selectedProductId, setSelectedProductId] = useState<string>("");
+  const [slotsLoading, setSlotsLoading] = useState(false);
+  const [slotsMessage, setSlotsMessage] = useState<string>("");
+
   // Fetch reseller's own groups
   useEffect(() => {
     async function load() {
@@ -71,6 +85,58 @@ function NewBookingForm() {
     if (g?.travel_date) setScheduledDate(g.travel_date);
   }, [groupId, groups]);
 
+  // Fetch Musement timeslots when activityUuid + scheduledDate are both set
+  useEffect(() => {
+    if (source !== "musement" || !activityUuid || !scheduledDate) {
+      setSlots([]);
+      setSelectedProductId("");
+      setSlotsMessage("");
+      return;
+    }
+    let cancelled = false;
+    async function loadSlots() {
+      setSlotsLoading(true);
+      setSlotsMessage("");
+      try {
+        const res = await fetch("/api/musement/timeslots", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ activityUuid, date: scheduledDate }),
+        });
+        const json = await res.json();
+        if (cancelled) return;
+        if (!res.ok) {
+          setSlots([]);
+          setSelectedProductId("");
+          setSlotsMessage(
+            json.error
+              ? `Geen beschikbaarheid op ${scheduledDate} — probeer een andere datum.`
+              : "Kon timeslots niet laden."
+          );
+          return;
+        }
+        const list: Slot[] = json.slots || [];
+        setSlots(list);
+        // Auto-select the first slot if only one, or none to force explicit choice
+        if (list.length === 1) setSelectedProductId(list[0].productId);
+        else if (list.length === 0) {
+          setSelectedProductId("");
+          setSlotsMessage(`Geen timeslots op ${scheduledDate} — kies andere datum.`);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setSlotsMessage((err as Error).message);
+        }
+      } finally {
+        if (!cancelled) setSlotsLoading(false);
+      }
+    }
+    void loadSlots();
+    return () => {
+      cancelled = true;
+    };
+  }, [source, activityUuid, scheduledDate]);
+
   async function submit() {
     if (!groupId) return setError("Kies eerst een groep.");
     if (numberOfGuests < 1) return setError("Aantal gasten moet minstens 1 zijn.");
@@ -90,7 +156,9 @@ function NewBookingForm() {
           unitPrice: price,
           notes: `Musement booking · activity ${activityUuid}`,
           musementActivityUuid: activityUuid,
-          // musementDateId wordt later gevuld bij confirm-order step
+          // If reseller picked a specific timeslot, save the product_id.
+          // If not, confirm-order will auto-resolve it later from scheduled_date.
+          ...(selectedProductId && { musementDateId: selectedProductId }),
         }),
       });
       const json = await res.json();
@@ -185,6 +253,60 @@ function NewBookingForm() {
             Laat leeg als je de exacte datum bij invoicing oppakt. Musement beschikbaarheid wordt later gecheckt.
           </p>
         </label>
+
+        {/* Timeslot picker (Musement activities only, when date is set) */}
+        {source === "musement" && scheduledDate && (
+          <div className="mb-4">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted/70">
+              Beschikbare tijden op {scheduledDate}
+            </span>
+            {slotsLoading && (
+              <p className="mt-2 text-sm text-muted">🔄 Musement beschikbaarheid ophalen...</p>
+            )}
+            {!slotsLoading && slots.length > 0 && (
+              <div className="mt-2 space-y-2 max-h-60 overflow-y-auto">
+                {slots.map((s) => (
+                  <label
+                    key={s.productId}
+                    className={`flex items-center gap-3 rounded-xl border p-3 cursor-pointer transition ${
+                      selectedProductId === s.productId
+                        ? "border-orange-500 bg-orange-50"
+                        : "border-border hover:border-orange-300"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="timeslot"
+                      value={s.productId}
+                      checked={selectedProductId === s.productId}
+                      onChange={() => setSelectedProductId(s.productId)}
+                      className="accent-orange-500"
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-baseline gap-2">
+                        <span className="font-semibold">{s.time || "Whole day"}</span>
+                        <span className="text-xs text-muted">· {s.groupName}</span>
+                      </div>
+                      {s.languages.length > 0 && (
+                        <div className="text-[11px] text-muted mt-0.5">
+                          Talen: {s.languages.join(", ").toUpperCase()}
+                        </div>
+                      )}
+                    </div>
+                    <div className="text-sm font-bold text-orange-600">
+                      {s.currency === "EUR" ? "€" : s.currency} {s.priceEur.toFixed(2)}
+                    </div>
+                  </label>
+                ))}
+              </div>
+            )}
+            {!slotsLoading && slotsMessage && (
+              <p className="mt-2 rounded-xl bg-yellow-50 text-yellow-800 p-3 text-xs">
+                {slotsMessage} Systeem kiest automatisch eerste beschikbare slot bij invoice-creatie.
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Total */}
         {price > 0 && (
