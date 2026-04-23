@@ -84,7 +84,7 @@ export default function TermsPage() {
                   <h2 className="mb-3 text-lg font-semibold text-foreground">5. Subscriptions & Payments</h2>
                   <ul className="list-disc space-y-2 pl-5">
                     <li>The Platform offers Free, Pro, and Enterprise subscription plans.</li>
-                    <li>Paid subscriptions are billed monthly or annually via our payment provider (Mollie).</li>
+                    <li>Paid subscriptions are billed monthly or annually via our payment provider (Stripe).</li>
                     <li>Prices are in EUR and exclusive of VAT unless stated otherwise.</li>
                     <li>You may cancel your subscription at any time. Cancellation takes effect at the end of the current billing period.</li>
                     <li>We reserve the right to change pricing with 30 days notice.</li>

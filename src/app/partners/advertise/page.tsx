@@ -285,7 +285,7 @@ export default function AdvertiseTariffPage() {
             </div>
             <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
               <h3 className="text-sm font-bold text-blue-900">Flexible Payment</h3>
-              <p className="text-xs text-blue-700/70 mt-1">Via Mollie (iDEAL, credit card, SEPA) or invoice. No setup fees. Cancel anytime.</p>
+              <p className="text-xs text-blue-700/70 mt-1">Via Stripe (card, iDEAL, Apple Pay, Google Pay, SEPA &amp; more) or invoice. No setup fees. Cancel anytime.</p>
             </div>
           </div>
 

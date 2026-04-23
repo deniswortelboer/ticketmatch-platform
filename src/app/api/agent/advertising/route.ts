@@ -82,7 +82,7 @@ TicketMatch has multiple AI agents that talk to tour operators:
 When an operator asks "What should my group visit in Amsterdam?", the AI naturally recommends advertising partners based on their tier. No banners, no pop-ups — just genuine, personalized suggestions that convert to real bookings.
 
 ## Payment & Billing
-- Pay via Mollie: iDEAL, credit card, SEPA direct debit
+- Pay via Stripe: card, iDEAL, Apple Pay, Google Pay, Link, SEPA Direct Debit and more
 - Or pay via invoice
 - No setup fees
 - Cancel anytime
@@ -160,7 +160,7 @@ function getAdvertisingFallback(message: string): string | null {
     return "**Our AI Agents Drive Bookings:**\n\n- **Emma** (Homepage) — talks to new visitors, suggests venues\n- **Dashboard AI** — helps active operators find the right venues\n- **Itinerary AI** — builds day programs with venue suggestions\n\nWhen an operator asks \"What should my group visit?\", our AI naturally recommends advertising partners. Higher tiers = more prominent recommendations.\n\n- Silver: Dashboard Agent recommends you\n- Gold: Emma + Dashboard Agent both recommend you\n- Platinum: ALL agents prioritize you as #1";
   }
   if (q.includes("payment") || q.includes("betaling") || q.includes("pay") || q.includes("betaal")) {
-    return "**Payment Options:**\n\n- **Mollie:** iDEAL, credit card, SEPA direct debit\n- **Invoice:** for businesses that prefer traditional billing\n- No setup fees\n- Cancel anytime\n- **Annual billing saves 20%** (up to €2,400/year on Platinum!)\n\nReady to start? Email **partners@ticketmatch.ai**";
+    return "**Payment Options:**\n\n- **Stripe:** card, iDEAL, Apple Pay, Google Pay, Link, SEPA Direct Debit and more\n- **Invoice:** for businesses that prefer traditional billing\n- No setup fees\n- Cancel anytime\n- **Annual billing saves 20%** (up to €2,400/year on Platinum!)\n\nReady to start? Email **partners@ticketmatch.ai**";
   }
 
   return null;

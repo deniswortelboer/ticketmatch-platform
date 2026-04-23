@@ -74,7 +74,7 @@ export default function PrivacyPage() {
                     <li><strong className="text-foreground">Authentication data:</strong> Login method (Google, Microsoft, email OTP), session tokens.</li>
                     <li><strong className="text-foreground">Booking data:</strong> Group details, passenger names, travel dates, venue selections, booking history.</li>
                     <li><strong className="text-foreground">Usage data:</strong> Pages visited, features used, timestamps, IP address, browser type.</li>
-                    <li><strong className="text-foreground">Payment data:</strong> Processed by Mollie; we do not store credit card or bank details.</li>
+                    <li><strong className="text-foreground">Payment data:</strong> Processed by Stripe; we do not store credit card or bank details.</li>
                     <li><strong className="text-foreground">Uploaded data:</strong> Passenger lists (Excel, CSV, Word files) uploaded by you.</li>
                   </ul>
                 </section>
@@ -107,7 +107,7 @@ export default function PrivacyPage() {
                   <p>We may share your data with:</p>
                   <ul className="mt-2 list-disc space-y-2 pl-5">
                     <li><strong className="text-foreground">Venue/ticket providers:</strong> To process and confirm your bookings (group name, number of guests, date).</li>
-                    <li><strong className="text-foreground">Payment provider:</strong> Mollie B.V. (Amsterdam, NL) for payment processing.</li>
+                    <li><strong className="text-foreground">Payment provider:</strong> Stripe Payments Europe Ltd. (Dublin, IE) for payment processing.</li>
                     <li><strong className="text-foreground">Hosting provider:</strong> Vercel Inc. and Supabase Inc. for platform hosting and database services.</li>
                     <li><strong className="text-foreground">CRM:</strong> HubSpot for customer relationship management.</li>
                   </ul>

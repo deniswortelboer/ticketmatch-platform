@@ -386,7 +386,7 @@ const jsonLd = {
           name: "What payment methods does TicketMatch accept?",
           acceptedAnswer: {
             "@type": "Answer",
-            text: "TicketMatch accepts credit cards, iDEAL, Bancontact, and SEPA direct debit through Mollie. All prices are in EUR and exclusive of VAT. No setup fees, cancel anytime.",
+            text: "TicketMatch accepts all major cards, iDEAL, Bancontact, Apple Pay, Google Pay, Link, SEPA Direct Debit and more through Stripe. All prices are in EUR and exclusive of VAT. No setup fees, cancel anytime.",
           },
         },
         {

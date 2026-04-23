@@ -102,7 +102,7 @@ export default async function PaymentSuccess({
             </span>
           </div>
           <p className="mt-2 text-xs text-white/40">
-            Secure payment powered by Mollie
+            Secure payment powered by Stripe
           </p>
         </div>
       </div>

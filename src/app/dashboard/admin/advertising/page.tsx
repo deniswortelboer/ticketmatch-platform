@@ -442,7 +442,7 @@ export default function AdvertisingPage() {
         <h2 className="text-2xl font-bold mb-2">Ready to grow your bookings?</h2>
         <p className="text-sm text-muted mb-6 max-w-lg mx-auto">
           Join the TicketMatch.ai partner network. All tiers include a free Enterprise account,
-          direct payment via Mollie or invoice, and cancellation at any time.
+          direct payment via Stripe or invoice, and cancellation at any time.
         </p>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
           <a href="mailto:partners@ticketmatch.ai" className="flex items-center gap-2 rounded-xl bg-foreground px-6 py-3.5 text-sm font-semibold text-white hover:bg-gray-800 transition-all shadow-sm">
@@ -460,7 +460,7 @@ export default function AdvertisingPage() {
           </a>
         </div>
         <p className="mt-6 text-xs text-muted">
-          Payment via Mollie (iDEAL, credit card, SEPA) or invoice. Cancel anytime. No setup fees.
+          Payment via Stripe (card, iDEAL, Apple Pay, Google Pay, SEPA &amp; more) or invoice. Cancel anytime. No setup fees.
         </p>
       </div>
 

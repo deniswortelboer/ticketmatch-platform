@@ -50,7 +50,7 @@ const faqs = [
       },
       {
         q: "What payment methods do you accept?",
-        a: "We accept credit cards, iDEAL, Bancontact, and SEPA direct debit through our payment provider Mollie. All prices are in EUR and exclusive of VAT.",
+        a: "We accept all major cards, iDEAL, Bancontact, Apple Pay, Google Pay, Link, SEPA Direct Debit, and more through our payment provider Stripe. All prices are in EUR and exclusive of VAT.",
       },
     ],
   },

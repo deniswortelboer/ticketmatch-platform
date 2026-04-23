@@ -77,7 +77,7 @@ export async function GET() {
   lines.push("| Enterprise | €149/month | Unlimited | + API access, white-label, dedicated account manager |");
   lines.push("");
   lines.push("No setup fees. No commitments. Cancel anytime.");
-  lines.push("Payment methods: Credit card, iDEAL, Bancontact, SEPA (via Mollie). Prices excl. VAT.");
+  lines.push("Payment methods: Card, iDEAL, Bancontact, Apple Pay, Google Pay, Link, SEPA, and more (via Stripe). Prices excl. VAT.");
   lines.push("");
 
   // Categories

@@ -36,7 +36,7 @@ TicketMatch.ai is a B2B marketplace connecting venues/attractions with tour oper
 - Next.js on Vercel (Hobby plan)
 - Supabase (database + auth)
 - AI Agents on Synology NAS (Node.js + Claude Haiku)
-- Mollie for payments
+- Stripe for payments
 - HubSpot for CRM
 
 ### Admin dashboard features:
