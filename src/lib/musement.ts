@@ -464,28 +464,43 @@ export async function createCart(language = "en"): Promise<string | null> {
 }
 
 /**
- * Add an item to the cart
+ * Add an item to the cart.
+ *
+ * Per Musement Partner API v3 docs:
+ * - Body is an **array of items** (not a single object)
+ * - Each item has `type`, `product_identifier`, `quantity`, optional `language`, optional `pickup`
+ * - `product_identifier` comes from GET /activities/{uuid}/dates/{date} → products[].product_id
+ *
+ * @param productIdentifier numeric string id from the date-detail endpoint (e.g. "4445382728")
  */
 export async function addToCart(
   cartUuid: string,
-  activityUuid: string,
-  dateId: string,
+  productIdentifier: string,
   quantity: number,
-  language = "en"
+  language = "en",
+  opts?: { pickup?: string }
 ): Promise<boolean> {
   try {
+    const item: Record<string, unknown> = {
+      type: "musement",
+      product_identifier: productIdentifier,
+      quantity,
+      language,
+    };
+    if (opts?.pickup) item.pickup = opts.pickup;
+
     const res = await fetch(`${MUSEMENT_API_BASE}/carts/${cartUuid}/items`, {
       method: "POST",
       headers: getHeaders(language),
-      body: JSON.stringify({
-        activity_uuid: activityUuid,
-        date_id: dateId,
-        quantity,
-        type: "FULL_PRICE",
-      }),
+      body: JSON.stringify([item]),
     });
 
-    return res.ok;
+    if (!res.ok) {
+      const body = await res.text();
+      console.error(`Musement addToCart HTTP ${res.status}:`, body.slice(0, 400));
+      return false;
+    }
+    return true;
   } catch (err) {
     console.error("Musement add to cart error:", err);
     return false;
@@ -520,36 +535,57 @@ export async function setCartCustomer(
 }
 
 /**
- * Confirm the order (creates a Reservation Notification to Musement)
- * Returns the order with E-tickets
+ * Confirm the order — creates an order from a cart.
+ *
+ * Per Musement Partner API v3 docs: `POST /orders` (not `/carts/{id}/order`).
+ * Body must include `cart_uuid`. Email notification is disabled via
+ * "NONE" because sandbox doesn't send emails and in production we
+ * send our own TicketMatch branded emails via Resend.
+ *
+ * Returns the normalized booking with the Musement identifier,
+ * status, and ticket data per item.
  */
 export async function confirmOrder(
   cartUuid: string,
   language = "en"
 ): Promise<MusementBooking | null> {
   try {
-    const res = await fetch(`${MUSEMENT_API_BASE}/carts/${cartUuid}/order`, {
+    const res = await fetch(`${MUSEMENT_API_BASE}/orders`, {
       method: "POST",
       headers: getHeaders(language),
+      body: JSON.stringify({
+        cart_uuid: cartUuid,
+        email_notification: "NONE",
+      }),
     });
 
     if (!res.ok) {
-      console.error(`Musement order error: ${res.status} ${res.statusText}`);
+      const body = await res.text();
+      console.error(`Musement confirmOrder HTTP ${res.status}:`, body.slice(0, 400));
       return null;
     }
 
     const order = await res.json();
     return {
-      orderId: (order.uuid as string) || (order.id as string),
+      orderId:
+        (order.identifier as string) ||
+        (order.uuid as string) ||
+        (order.id as string),
       status: mapOrderStatus(order.status as string),
-      tickets: ((order.items || []) as Record<string, unknown>[]).map((item) => ({
-        ticketId: (item.uuid as string) || "",
-        barcode: item.barcode as string,
-        qrCode: item.qr_code as string,
-        pdfUrl: item.voucher_url as string,
-      })),
-      totalNetPrice: order.total_net_price as number || 0,
-      totalRetailPrice: order.total_retail_price as number || 0,
+      tickets: ((order.items || []) as Record<string, unknown>[]).map((item) => {
+        const product = (item.product || {}) as Record<string, unknown>;
+        return {
+          ticketId:
+            (item.uuid as string) ||
+            (item.transaction_code as string) ||
+            "",
+          barcode: (item.barcode as string) || (product.barcode as string),
+          qrCode: (item.qr_code as string),
+          pdfUrl: (item.voucher_url as string) || (item.voucher_pdf_url as string),
+        };
+      }),
+      totalNetPrice: (order.total_net_price as number) || 0,
+      totalRetailPrice: (order.total_retail_price as number) || 0,
     };
   } catch (err) {
     console.error("Musement confirm order error:", err);

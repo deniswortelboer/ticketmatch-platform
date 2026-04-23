@@ -17,17 +17,17 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const {
-      activityUuid,
-      dateId,
+      productIdentifier, // numeric id from /activities/{uuid}/dates/{date}
       quantity,
       customer,
       language = "en",
+      pickup,
     } = body;
 
     // Validate required fields
-    if (!activityUuid || !dateId || !quantity || !customer) {
+    if (!productIdentifier || !quantity || !customer) {
       return NextResponse.json(
-        { error: "activityUuid, dateId, quantity, and customer are required" },
+        { error: "productIdentifier, quantity, and customer are required" },
         { status: 400 }
       );
     }
@@ -49,7 +49,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Step 2: Add item to cart
-    const added = await addToCart(cartUuid, activityUuid, dateId, quantity, language);
+    const added = await addToCart(
+      cartUuid,
+      String(productIdentifier),
+      quantity,
+      language,
+      pickup ? { pickup } : undefined
+    );
     if (!added) {
       return NextResponse.json(
         { error: "Failed to add activity to cart" },
