@@ -161,7 +161,7 @@ export async function musementHealthCheck(): Promise<{
       ok: true,
       env,
       base: MUSEMENT_API_BASE,
-      sampleCity: Array.isArray(data) && data[0]?.name,
+      sampleCity: Array.isArray(data) ? data[0]?.name : undefined,
     };
   } catch (err) {
     return { ok: false, env, base: MUSEMENT_API_BASE, error: (err as Error).message };
