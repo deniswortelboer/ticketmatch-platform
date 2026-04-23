@@ -6,6 +6,7 @@ import {
   addToCart,
   setCartCustomer,
   confirmOrder,
+  resolveProductIdentifier,
 } from "@/lib/musement";
 import { notifyAdmin } from "@/lib/notify";
 
@@ -157,10 +158,12 @@ export async function POST(
     .eq("id", id);
 
   const quantity = Math.max(1, booking.number_of_guests || 1);
+  // Go live with Musement if we have credentials + an activity UUID. The
+  // product_identifier (stored in musement_date_id historically) can be
+  // resolved from the travel date when missing.
   const canPlaceReal =
-    !!process.env.MUSEMENT_API_KEY &&
-    !!booking.musement_activity_uuid &&
-    !!booking.musement_date_id;
+    !!process.env.MUSEMENT_APP_HEADER &&
+    !!booking.musement_activity_uuid;
 
   let tickets: TicketRow[] = [];
   let musementOrderId: string | null = null;
@@ -169,18 +172,37 @@ export async function POST(
   try {
     if (canPlaceReal) {
       mode = "real";
+
+      // Resolve product_identifier if missing. We use the booking's
+      // scheduled_date as anchor; the helper widens the window to +14 days
+      // to accommodate sparse sandbox availability and picks first open slot.
+      let productIdentifier = booking.musement_date_id;
+      if (!productIdentifier) {
+        const anchor =
+          booking.scheduled_date ||
+          new Date(Date.now() + 31 * 86400_000).toISOString().slice(0, 10); // 31 days out — default, sandbox requires ≥1 month
+        const resolved = await resolveProductIdentifier(
+          booking.musement_activity_uuid!,
+          anchor,
+          14
+        );
+        if (!resolved) {
+          throw new Error(
+            `No Musement availability for activity ${booking.musement_activity_uuid} around ${anchor}`
+          );
+        }
+        productIdentifier = resolved.productId;
+        // Persist what we resolved so retries are idempotent
+        await admin
+          .from("bookings")
+          .update({ musement_date_id: productIdentifier })
+          .eq("id", id);
+      }
+
       const cartUuid = await createCart("en");
       if (!cartUuid) throw new Error("createCart returned null");
 
-      // Note: `musement_date_id` historically stored what Musement v3 now
-      // calls `product_identifier` (numeric product_id from the date detail
-      // endpoint). Schema rename is a follow-up cleanup.
-      const added = await addToCart(
-        cartUuid,
-        booking.musement_date_id!,
-        quantity,
-        "en"
-      );
+      const added = await addToCart(cartUuid, productIdentifier, quantity, "en");
       if (!added) throw new Error("addToCart failed");
 
       // Use group contact_person for customer info (split name heuristically)

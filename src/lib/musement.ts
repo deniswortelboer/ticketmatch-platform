@@ -440,6 +440,76 @@ export async function getAvailability(
   }
 }
 
+/**
+ * Resolve a bookable `product_identifier` for an activity on (or near) a
+ * given travel date. Required when we have `musement_activity_uuid` but
+ * never picked a specific slot (e.g. pending bookings created from the
+ * Experiences "Book Direct" flow).
+ *
+ * Strategy:
+ *   1. Fetch the date range [targetDate, targetDate + toleranceDays]
+ *   2. If toleranceDays=0 and no hit, widen to +14 (sandbox test data has gaps)
+ *   3. For the first non-sold-out day, fetch the detail endpoint to get
+ *      groups[].slots[].products[].product_id (first adult-priced product)
+ *
+ * Returns { date, productId, priceEur } or null if nothing is bookable.
+ */
+export async function resolveProductIdentifier(
+  activityUuid: string,
+  targetDate: string,
+  toleranceDays = 14,
+  language = "en"
+): Promise<{ date: string; productId: string; priceEur: number } | null> {
+  try {
+    const from = targetDate;
+    const to = toleranceDays > 0
+      ? new Date(new Date(targetDate).getTime() + toleranceDays * 86400_000)
+          .toISOString()
+          .slice(0, 10)
+      : targetDate;
+
+    const datesRes = await fetch(
+      `${MUSEMENT_API_BASE}/activities/${activityUuid}/dates?date_from=${from}&date_to=${to}`,
+      { headers: getHeaders(language) }
+    );
+    if (!datesRes.ok) {
+      console.error(`Musement resolveProductIdentifier dates HTTP ${datesRes.status}`);
+      return null;
+    }
+    const dates = (await datesRes.json()) as Array<Record<string, unknown>>;
+    if (!Array.isArray(dates) || dates.length === 0) return null;
+
+    // Pick first non-sold-out day
+    const firstOpen = dates.find((d) => !d.sold_out) ?? dates[0];
+    const day = firstOpen.day as string;
+
+    const detailRes = await fetch(
+      `${MUSEMENT_API_BASE}/activities/${activityUuid}/dates/${day}`,
+      { headers: getHeaders(language) }
+    );
+    if (!detailRes.ok) return null;
+
+    const detail = (await detailRes.json()) as Array<Record<string, unknown>>;
+    // Navigate: [0].groups[0].slots[0].products[0]
+    const group = (detail[0]?.groups as Array<Record<string, unknown>>)?.[0];
+    const slot = (group?.slots as Array<Record<string, unknown>>)?.[0];
+    const product = (slot?.products as Array<Record<string, unknown>>)?.[0];
+    if (!product?.product_id) return null;
+
+    const priceEur =
+      (product.retail_price as Record<string, unknown>)?.value as number || 0;
+
+    return {
+      date: day,
+      productId: String(product.product_id),
+      priceEur,
+    };
+  } catch (err) {
+    console.error("Musement resolveProductIdentifier error:", err);
+    return null;
+  }
+}
+
 // ─── Cart & Booking (Merchant of Record) ────────────────────────────────────
 
 /**
