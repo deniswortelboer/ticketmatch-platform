@@ -7,7 +7,9 @@ const nextConfig: NextConfig = {
   },
 
   // ════════════════════════════════════════════════════════
-  // IMAGE OPTIMIZATION — Allow external Viator image domains
+  // IMAGE OPTIMIZATION — Allow external supplier image domains
+  //   - Viator / TripAdvisor (affiliate fallback)
+  //   - Musement sandbox + production (primary supplier)
   // ════════════════════════════════════════════════════════
   images: {
     remotePatterns: [
@@ -20,6 +22,16 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "hare-media-cdn.tripadvisor.com",
         pathname: "/media/**",
+      },
+      {
+        protocol: "https",
+        hostname: "images-sandbox.musement.com",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "images.musement.com",
+        pathname: "/**",
       },
     ],
   },
@@ -54,9 +66,9 @@ const nextConfig: NextConfig = {
               "default-src 'self'",
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com https://js.mollie.com https://*.sentry.io https://*.googleapis.com https://*.gstatic.com",
               "style-src 'self' 'unsafe-inline' https://*.googleapis.com",
-              "img-src 'self' data: blob: https://*.tacdn.com https://*.tripadvisor.com https://*.googleusercontent.com https://www.google-analytics.com https://*.supabase.co https://*.viator.com https://*.googleapis.com https://*.gstatic.com https://*.ggpht.com https://*.google.com https://*.google.nl",
+              "img-src 'self' data: blob: https://*.tacdn.com https://*.tripadvisor.com https://*.googleusercontent.com https://www.google-analytics.com https://*.supabase.co https://*.viator.com https://*.musement.com https://*.googleapis.com https://*.gstatic.com https://*.ggpht.com https://*.google.com https://*.google.nl",
               "font-src 'self' data: https://*.gstatic.com",
-              "connect-src 'self' https://*.supabase.co https://www.google-analytics.com https://api.viator.com https://*.sentry.io https://*.ingest.sentry.io https://js.mollie.com https://*.googleapis.com https://*.gstatic.com https://*.google.com",
+              "connect-src 'self' https://*.supabase.co https://auth.ticketmatch.ai https://www.google-analytics.com https://api.viator.com https://*.sentry.io https://*.ingest.sentry.io https://js.mollie.com https://*.googleapis.com https://*.gstatic.com https://*.google.com",
               "frame-src 'self' https://js.mollie.com https://*.googleapis.com https://*.google.com",
               "worker-src 'self' blob:",
               "object-src 'none'",
@@ -85,6 +97,10 @@ export default withSentryConfig(nextConfig, {
   // Upload source maps for better error stack traces
   widenClientFileUpload: true,
 
-  // Automatically tree-shake Sentry logger in production
-  disableLogger: true,
+  // Automatically tree-shake Sentry debug logging in production
+  webpack: {
+    treeshake: {
+      removeDebugLogging: true,
+    },
+  },
 });
