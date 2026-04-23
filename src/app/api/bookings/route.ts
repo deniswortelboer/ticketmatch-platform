@@ -111,6 +111,12 @@ export async function POST(request: Request) {
 
   const totalPrice = Math.round(numberOfGuests * unitPrice * 100) / 100;
 
+  // Optional Musement fields — populated when the reseller picks a Musement
+  // activity from Experiences or Discover. Stored on the pending booking so
+  // the later confirm-order flow can execute the real Musement API call.
+  const musementActivityUuid = sanitize(body.musementActivityUuid, 64);
+  const musementDateId = sanitize(body.musementDateId, 64);
+
   const { data: booking, error } = await admin
     .from("bookings")
     .insert({
@@ -125,6 +131,8 @@ export async function POST(request: Request) {
       total_price: totalPrice,
       notes,
       status: "pending",
+      ...(musementActivityUuid && { musement_activity_uuid: musementActivityUuid }),
+      ...(musementDateId && { musement_date_id: musementDateId }),
     })
     .select()
     .single();

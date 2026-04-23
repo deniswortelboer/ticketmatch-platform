@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 
 /* ───── Types ───── */
 type ViatorProduct = {
@@ -301,6 +302,7 @@ function StarRating({ rating, count }: { rating: number; count: number }) {
 type CustomCity = { id: number; name: string } | null;
 
 export default function ExperiencesPage() {
+  const router = useRouter();
   const [city, setCity] = useState("amsterdam");
   const [customCity, setCustomCity] = useState<CustomCity>(null);
   const [citySearch, setCitySearch] = useState("");
@@ -782,10 +784,10 @@ export default function ExperiencesPage() {
                       Free cancellation
                     </span>
                   )}
-                  {/* Musement: Own Offer badge */}
+                  {/* Musement: Own Offer badge — public label scrubs TUI per brand rules */}
                   {product.isOwnOffer && (
                     <span className="absolute left-2 top-8 rounded-lg bg-orange-600 px-2 py-0.5 text-[10px] font-bold text-white">
-                      TUI Original
+                      Featured
                     </span>
                   )}
                 </div>
@@ -806,11 +808,7 @@ export default function ExperiencesPage() {
                         {cat}
                       </span>
                     ))}
-                    {product.source === "musement" && product.margin && (
-                      <span className="rounded-full bg-green-50 px-2.5 py-0.5 text-[10px] font-bold text-green-700">
-                        {product.margin.toFixed(0)}% margin
-                      </span>
-                    )}
+                    {/* Removed internal margin %-chip per brand rule (never show percentages publicly) */}
                   </div>
 
                   {/* Title */}
@@ -844,6 +842,11 @@ export default function ExperiencesPage() {
                     </div>
                     {product.bookingType === "merchant" ? (
                       <button
+                        onClick={() =>
+                          router.push(
+                            `/dashboard/bookings/new?source=musement&activityUuid=${product.id}&title=${encodeURIComponent(product.title)}&price=${product.price}&currency=${product.currency}`
+                          )
+                        }
                         className="rounded-xl bg-orange-500 px-4 py-2.5 text-xs font-semibold text-white transition-all hover:bg-orange-600 hover:shadow-md"
                       >
                         Book Direct
