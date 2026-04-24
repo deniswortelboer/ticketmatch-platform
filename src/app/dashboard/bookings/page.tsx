@@ -22,7 +22,23 @@ interface Booking {
   delivery_channels?: string[] | null;
   musement_status?: string | null;
   musement_order_id?: string | null;
+  musement_activity_uuid?: string | null;
 }
+
+type RequirementField = {
+  fieldName: string;
+  title: string;
+  type: string;
+  required: boolean;
+  enum?: string[];
+  enumTitles?: string[];
+};
+type ActivityRequirements = {
+  extraCustomerData: RequirementField[];
+  participantsRequired: boolean;
+  participantFields: RequirementField[];
+};
+type ParticipantValues = Record<string, string | number>;
 
 interface Group {
   id: string;
@@ -114,20 +130,69 @@ export default function BookingsPage() {
 
   // ── Confirm Order (Musement) ──
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
-  const handleConfirmOrder = async (bookingId: string) => {
-    setConfirmingId(bookingId);
+
+  // ── Booking questions modal (Musement Quality Check #8) ──
+  const [questionsBooking, setQuestionsBooking] = useState<Booking | null>(null);
+  const [questionsReqs, setQuestionsReqs] = useState<ActivityRequirements | null>(null);
+  const [questionsAnswers, setQuestionsAnswers] = useState<Record<string, unknown>>({});
+  const [questionsParticipants, setQuestionsParticipants] = useState<ParticipantValues[]>([]);
+  const [questionsSubmitting, setQuestionsSubmitting] = useState(false);
+  const [questionsError, setQuestionsError] = useState("");
+
+  const closeQuestionsModal = () => {
+    setQuestionsBooking(null);
+    setQuestionsReqs(null);
+    setQuestionsAnswers({});
+    setQuestionsParticipants([]);
+    setQuestionsError("");
+  };
+
+  const submitConfirmOrder = async (
+    bookingId: string,
+    payload: Record<string, unknown>
+  ) => {
+    const res = await fetch(`/api/bookings/${bookingId}/confirm-order`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    return { ok: res.ok, status: res.status, data };
+  };
+
+  const handleConfirmOrder = async (booking: Booking) => {
+    setConfirmingId(booking.id);
     try {
-      const res = await fetch(`/api/bookings/${bookingId}/confirm-order`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
-      });
-      const data = await res.json();
-      if (!res.ok) {
+      // Step 1 — if this is a Musement booking, check for required
+      // booking-question fields / participant info BEFORE we try to confirm.
+      if (booking.musement_activity_uuid) {
+        const schemaRes = await fetch(
+          `/api/musement/activity-schema?uuid=${encodeURIComponent(booking.musement_activity_uuid)}`
+        );
+        if (schemaRes.ok) {
+          const reqs = (await schemaRes.json()) as ActivityRequirements;
+          const needsAnswers =
+            reqs.extraCustomerData.some((f) => f.required) || reqs.participantsRequired;
+          if (needsAnswers) {
+            setQuestionsBooking(booking);
+            setQuestionsReqs(reqs);
+            setQuestionsAnswers({});
+            setQuestionsParticipants(
+              Array.from({ length: booking.number_of_guests }, () => ({}))
+            );
+            setQuestionsError("");
+            setConfirmingId(null);
+            return;
+          }
+        }
+      }
+
+      // Step 2 — no booking questions required → confirm straight through.
+      const { ok, data } = await submitConfirmOrder(booking.id, {});
+      if (!ok) {
         alert(`Order failed: ${data.error || "unknown"}`);
         return;
       }
-      // Refresh bookings
       fetch("/api/bookings")
         .then((r) => r.json())
         .then((b) => setBookings(b.bookings || []));
@@ -140,6 +205,84 @@ export default function BookingsPage() {
       alert("Network error");
     } finally {
       setConfirmingId(null);
+    }
+  };
+
+  const handleQuestionsSubmit = async () => {
+    if (!questionsBooking || !questionsReqs) return;
+    setQuestionsSubmitting(true);
+    setQuestionsError("");
+
+    // Validate required fields client-side before hitting the server.
+    const missingExtras = questionsReqs.extraCustomerData
+      .filter((f) => f.required)
+      .filter((f) => {
+        const v = questionsAnswers[f.fieldName];
+        return v === undefined || v === "" || (Array.isArray(v) && v.length === 0);
+      });
+    if (missingExtras.length > 0) {
+      setQuestionsError(
+        `Please fill in: ${missingExtras.map((f) => f.title).join(", ")}`
+      );
+      setQuestionsSubmitting(false);
+      return;
+    }
+    if (questionsReqs.participantsRequired) {
+      const requiredFieldNames = questionsReqs.participantFields
+        .filter((f) => f.required)
+        .map((f) => f.fieldName);
+      const missingPerson = questionsParticipants.findIndex((p) =>
+        requiredFieldNames.some((fn) => {
+          const v = p[fn];
+          return v === undefined || v === "";
+        })
+      );
+      if (missingPerson >= 0) {
+        setQuestionsError(
+          `Participant ${missingPerson + 1} is missing required fields.`
+        );
+        setQuestionsSubmitting(false);
+        return;
+      }
+    }
+
+    try {
+      // Shape payload: Musement expects `extra_customer_data` keyed by
+      // activity uuid, then per-field values. Our preview endpoint gives us
+      // a flat per-activity list so we re-nest under the booking's activity.
+      const activityUuid = questionsBooking.musement_activity_uuid!;
+      const bookingAnswers: Record<string, Record<string, unknown>> = {};
+      if (questionsReqs.extraCustomerData.length > 0) {
+        bookingAnswers[activityUuid] = {};
+        for (const f of questionsReqs.extraCustomerData) {
+          if (questionsAnswers[f.fieldName] !== undefined && questionsAnswers[f.fieldName] !== "") {
+            bookingAnswers[activityUuid][f.fieldName] = questionsAnswers[f.fieldName];
+          }
+        }
+      }
+
+      const participants = questionsReqs.participantsRequired
+        ? questionsParticipants
+        : [];
+
+      const { ok, data } = await submitConfirmOrder(questionsBooking.id, {
+        bookingAnswers,
+        participants,
+      });
+      if (!ok) {
+        setQuestionsError(data.error || "Order failed");
+        return;
+      }
+      // Success — close modal + refresh list
+      closeQuestionsModal();
+      fetch("/api/bookings")
+        .then((r) => r.json())
+        .then((b) => setBookings(b.bookings || []));
+      alert(`✅ Order confirmed (${data.mode} mode) — ${data.tickets_count} tickets ready`);
+    } catch {
+      setQuestionsError("Network error");
+    } finally {
+      setQuestionsSubmitting(false);
     }
   };
 
@@ -196,6 +339,82 @@ export default function BookingsPage() {
     const res = await fetch(`/api/bookings?id=${id}`, { method: "DELETE" });
     if (res.ok) {
       setBookings((prev) => prev.filter((b) => b.id !== id));
+    }
+  };
+
+  // ── Cancel booking modal (refund-policy-aware) ──
+  type EligibilityPayload = {
+    ok: boolean;
+    source?: "mock" | "musement";
+    refundable?: boolean;
+    refundPercentage?: number;
+    applicableUntil?: string;
+    remainingTime?: string;
+    code?: string;
+    message?: string;
+    error?: string;
+  };
+  const [cancelBooking, setCancelBooking] = useState<Booking | null>(null);
+  const [cancelEligibility, setCancelEligibility] = useState<EligibilityPayload | null>(null);
+  const [cancelLoading, setCancelLoading] = useState(false);
+  const [cancelSubmitting, setCancelSubmitting] = useState(false);
+  const [cancelError, setCancelError] = useState("");
+  const [cancelReason, setCancelReason] = useState("CANCELLED-BY-CUSTOMER");
+
+  const openCancelModal = async (b: Booking) => {
+    setCancelBooking(b);
+    setCancelEligibility(null);
+    setCancelError("");
+    setCancelReason("CANCELLED-BY-CUSTOMER");
+    setCancelLoading(true);
+    try {
+      const res = await fetch(`/api/bookings/${b.id}/cancel`);
+      const data = await res.json();
+      if (!res.ok) {
+        setCancelError(data.error || "Could not check refund eligibility.");
+        setCancelEligibility(null);
+      } else {
+        setCancelEligibility(data);
+      }
+    } catch {
+      setCancelError("Network error");
+    } finally {
+      setCancelLoading(false);
+    }
+  };
+
+  const closeCancelModal = () => {
+    setCancelBooking(null);
+    setCancelEligibility(null);
+    setCancelError("");
+  };
+
+  const handleCancelBooking = async () => {
+    if (!cancelBooking) return;
+    setCancelSubmitting(true);
+    setCancelError("");
+    try {
+      const res = await fetch(`/api/bookings/${cancelBooking.id}/cancel`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: cancelReason }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setCancelError(data.error || "Cancellation failed.");
+        return;
+      }
+      // Optimistic update + refresh
+      setBookings((prev) =>
+        prev.map((b) =>
+          b.id === cancelBooking.id ? { ...b, status: "cancelled" } : b
+        )
+      );
+      closeCancelModal();
+    } catch {
+      setCancelError("Network error");
+    } finally {
+      setCancelSubmitting(false);
     }
   };
 
@@ -328,7 +547,7 @@ export default function BookingsPage() {
                     </a>
                   )}
                   <button
-                    onClick={() => handleConfirmOrder(booking.id)}
+                    onClick={() => handleConfirmOrder(booking)}
                     disabled={confirmingId === booking.id || booking.musement_status === "confirmed"}
                     className={`rounded-lg p-2 transition-colors disabled:opacity-50 ${
                       booking.musement_status === "confirmed"
@@ -373,15 +592,27 @@ export default function BookingsPage() {
                       <polygon points="22 2 15 22 11 13 2 9 22 2" />
                     </svg>
                   </button>
-                  <button
-                    onClick={() => handleDelete(booking.id)}
-                    className="rounded-lg p-2 text-muted hover:bg-red-50 hover:text-red-600 transition-colors"
-                    title="Cancel booking"
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                      <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6" /><path d="M14 11v6" />
-                    </svg>
-                  </button>
+                  {booking.status === "confirmed" ? (
+                    <button
+                      onClick={() => openCancelModal(booking)}
+                      className="rounded-lg p-2 text-muted hover:bg-red-50 hover:text-red-600 transition-colors"
+                      title="Cancel booking (checks Musement refund policy)"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" />
+                      </svg>
+                    </button>
+                  ) : booking.status === "cancelled" ? null : (
+                    <button
+                      onClick={() => handleDelete(booking.id)}
+                      className="rounded-lg p-2 text-muted hover:bg-red-50 hover:text-red-600 transition-colors"
+                      title="Delete pending booking"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                        <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6" /><path d="M14 11v6" />
+                      </svg>
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -592,6 +823,348 @@ export default function BookingsPage() {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Booking Questions Modal (Musement Quality Check #8) */}
+      {questionsBooking && questionsReqs && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={closeQuestionsModal}
+        >
+          <div
+            className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-2xl max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-lg font-bold">Booking questions</h3>
+              <button
+                onClick={closeQuestionsModal}
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-muted hover:bg-gray-100 transition-colors"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+
+            <p className="mb-4 text-sm text-muted">
+              This activity (<strong>{questionsBooking.venue_name}</strong>) requires
+              additional information per Musement's booking rules. Fill in below,
+              then place the order.
+            </p>
+
+            {/* Extra customer data section */}
+            {questionsReqs.extraCustomerData.length > 0 && (
+              <div className="mb-6">
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-muted/70 mb-3">
+                  Booking details
+                </h4>
+                <div className="space-y-3">
+                  {questionsReqs.extraCustomerData.map((f) => (
+                    <label key={f.fieldName} className="block">
+                      <span className="text-xs font-medium text-foreground">
+                        {f.title}
+                        {f.required && <span className="text-red-500 ml-1">*</span>}
+                      </span>
+                      {f.enum && f.enum.length > 0 ? (
+                        <select
+                          value={(questionsAnswers[f.fieldName] as string) || ""}
+                          onChange={(e) =>
+                            setQuestionsAnswers({
+                              ...questionsAnswers,
+                              [f.fieldName]: e.target.value,
+                            })
+                          }
+                          className="mt-1.5 h-10 w-full rounded-lg border border-border bg-white px-3 text-sm"
+                        >
+                          <option value="">— Select —</option>
+                          {f.enum.map((opt, i) => (
+                            <option key={opt} value={opt}>
+                              {f.enumTitles?.[i] || opt}
+                            </option>
+                          ))}
+                        </select>
+                      ) : f.type === "number" ? (
+                        <input
+                          type="number"
+                          value={(questionsAnswers[f.fieldName] as number) ?? ""}
+                          onChange={(e) =>
+                            setQuestionsAnswers({
+                              ...questionsAnswers,
+                              [f.fieldName]: e.target.value === "" ? "" : Number(e.target.value),
+                            })
+                          }
+                          className="mt-1.5 h-10 w-full rounded-lg border border-border bg-white px-3 text-sm"
+                        />
+                      ) : f.type === "array" ? (
+                        <input
+                          type="text"
+                          placeholder="Comma-separated values"
+                          value={((questionsAnswers[f.fieldName] as string[]) || []).join(", ")}
+                          onChange={(e) =>
+                            setQuestionsAnswers({
+                              ...questionsAnswers,
+                              [f.fieldName]: e.target.value
+                                .split(",")
+                                .map((s) => s.trim())
+                                .filter(Boolean),
+                            })
+                          }
+                          className="mt-1.5 h-10 w-full rounded-lg border border-border bg-white px-3 text-sm"
+                        />
+                      ) : f.fieldName.toLowerCase().includes("date") || f.type === "date" ? (
+                        <input
+                          type="date"
+                          value={(questionsAnswers[f.fieldName] as string) || ""}
+                          onChange={(e) =>
+                            setQuestionsAnswers({
+                              ...questionsAnswers,
+                              [f.fieldName]: e.target.value,
+                            })
+                          }
+                          className="mt-1.5 h-10 w-full rounded-lg border border-border bg-white px-3 text-sm"
+                        />
+                      ) : (
+                        <input
+                          type="text"
+                          value={(questionsAnswers[f.fieldName] as string) || ""}
+                          onChange={(e) =>
+                            setQuestionsAnswers({
+                              ...questionsAnswers,
+                              [f.fieldName]: e.target.value,
+                            })
+                          }
+                          className="mt-1.5 h-10 w-full rounded-lg border border-border bg-white px-3 text-sm"
+                        />
+                      )}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Participants section */}
+            {questionsReqs.participantsRequired && (
+              <div className="mb-6">
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-muted/70 mb-3">
+                  Participants ({questionsParticipants.length})
+                </h4>
+                <div className="space-y-4">
+                  {questionsParticipants.map((p, idx) => (
+                    <div
+                      key={idx}
+                      className="rounded-xl border border-border p-4 space-y-3"
+                    >
+                      <p className="text-xs font-semibold text-muted">Participant {idx + 1}</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {questionsReqs.participantFields.map((f) => (
+                          <label key={f.fieldName} className="block">
+                            <span className="text-[11px] font-medium text-foreground">
+                              {f.title}
+                              {f.required && <span className="text-red-500 ml-0.5">*</span>}
+                            </span>
+                            {f.enum && f.enum.length > 0 ? (
+                              <select
+                                value={(p[f.fieldName] as string) || ""}
+                                onChange={(e) => {
+                                  const next = [...questionsParticipants];
+                                  next[idx] = { ...p, [f.fieldName]: e.target.value };
+                                  setQuestionsParticipants(next);
+                                }}
+                                className="mt-1 h-9 w-full rounded-lg border border-border bg-white px-2 text-sm"
+                              >
+                                <option value="">—</option>
+                                {f.enum.map((opt, i) => (
+                                  <option key={opt} value={opt}>
+                                    {f.enumTitles?.[i] || opt}
+                                  </option>
+                                ))}
+                              </select>
+                            ) : (
+                              <input
+                                type={
+                                  f.fieldName.toLowerCase().includes("date") || f.type === "date"
+                                    ? "date"
+                                    : f.type === "number"
+                                    ? "number"
+                                    : "text"
+                                }
+                                value={(p[f.fieldName] as string) ?? ""}
+                                onChange={(e) => {
+                                  const next = [...questionsParticipants];
+                                  next[idx] = {
+                                    ...p,
+                                    [f.fieldName]:
+                                      f.type === "number" && e.target.value !== ""
+                                        ? Number(e.target.value)
+                                        : e.target.value,
+                                  };
+                                  setQuestionsParticipants(next);
+                                }}
+                                className="mt-1 h-9 w-full rounded-lg border border-border bg-white px-2 text-sm"
+                              />
+                            )}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {questionsError && (
+              <div className="mb-4 rounded-xl bg-red-50 p-3 text-sm text-red-700">
+                {questionsError}
+              </div>
+            )}
+
+            <div className="flex gap-2">
+              <button
+                onClick={closeQuestionsModal}
+                disabled={questionsSubmitting}
+                className="flex-1 rounded-xl border border-border bg-white px-5 py-2.5 text-sm font-semibold hover:bg-gray-50 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleQuestionsSubmit}
+                disabled={questionsSubmitting}
+                className="flex-1 rounded-xl bg-accent px-5 py-2.5 text-sm font-semibold text-white hover:bg-accent/90 disabled:opacity-50 transition flex items-center justify-center gap-2"
+              >
+                {questionsSubmitting && (
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                )}
+                Place order
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cancel Booking Modal (refund-policy-aware) */}
+      {cancelBooking && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={closeCancelModal}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-lg font-bold">Cancel booking</h3>
+              <button
+                onClick={closeCancelModal}
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-muted hover:bg-gray-100 transition-colors"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+
+            <p className="mb-4 text-sm text-muted">
+              <strong>{cancelBooking.venue_name}</strong>
+              {cancelBooking.scheduled_date &&
+                ` — ${new Date(cancelBooking.scheduled_date).toLocaleDateString("en-GB")}`}
+              {" · "}
+              {cancelBooking.number_of_guests} guests
+            </p>
+
+            {cancelLoading && (
+              <div className="flex items-center gap-2 text-sm text-muted mb-4">
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+                Checking Musement refund policy…
+              </div>
+            )}
+
+            {!cancelLoading && cancelEligibility && (
+              <div
+                className={`mb-4 rounded-xl border p-4 text-sm ${
+                  cancelEligibility.refundable
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+                    : "border-amber-200 bg-amber-50 text-amber-900"
+                }`}
+              >
+                {cancelEligibility.source === "mock" ? (
+                  <p>
+                    <strong>Mock booking.</strong> This booking was created without a
+                    live Musement order. It will be cancelled locally only.
+                  </p>
+                ) : cancelEligibility.refundable ? (
+                  <>
+                    <p className="font-semibold">
+                      ✅ Refundable — {cancelEligibility.refundPercentage ?? 100}% refund
+                    </p>
+                    {cancelEligibility.applicableUntil && (
+                      <p className="mt-1 text-xs">
+                        Applicable until: {new Date(cancelEligibility.applicableUntil).toLocaleString("en-GB")}
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <p>
+                    <strong>⚠️ Not refundable.</strong> {cancelEligibility.message}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {cancelError && (
+              <div className="mb-4 rounded-xl bg-red-50 p-3 text-sm text-red-700">
+                {cancelError}
+              </div>
+            )}
+
+            {/* Reason dropdown — valid Musement enum values only */}
+            {!cancelLoading && (
+              <label className="block mb-4">
+                <span className="text-xs font-semibold uppercase tracking-wider text-muted/70">
+                  Cancellation reason
+                </span>
+                <select
+                  value={cancelReason}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                  className="mt-1.5 h-11 w-full rounded-xl border border-border bg-white px-3 text-sm"
+                >
+                  <option value="CANCELLED-BY-CUSTOMER">Customer request</option>
+                  <option value="MISSING-PASSENGER-INFO">Missing passenger info</option>
+                  <option value="MISSING-MEETING-POINT-DETAILS">Missing meeting point details</option>
+                  <option value="REJECTED-SCHEDULE-CHANGE">Rejected schedule change</option>
+                  <option value="VENUE-CLOSED">Venue closed</option>
+                  <option value="TECHNICAL-ISSUE">Technical issue</option>
+                </select>
+              </label>
+            )}
+
+            <div className="flex gap-2">
+              <button
+                onClick={closeCancelModal}
+                disabled={cancelSubmitting}
+                className="flex-1 rounded-xl border border-border bg-white px-5 py-2.5 text-sm font-semibold hover:bg-gray-50 disabled:opacity-50"
+              >
+                Keep booking
+              </button>
+              <button
+                onClick={handleCancelBooking}
+                disabled={
+                  cancelSubmitting ||
+                  cancelLoading ||
+                  (cancelEligibility !== null &&
+                    !cancelEligibility.refundable &&
+                    cancelEligibility.source === "musement")
+                }
+                className="flex-1 rounded-xl bg-red-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50 transition flex items-center justify-center gap-2"
+              >
+                {cancelSubmitting && (
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                )}
+                Cancel booking
+              </button>
+            </div>
           </div>
         </div>
       )}

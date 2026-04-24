@@ -7,6 +7,10 @@ import {
   setCartCustomer,
   confirmOrder,
   resolveProductIdentifier,
+  getCustomerSchema,
+  getCartItems,
+  setParticipants,
+  type MusementParticipant,
 } from "@/lib/musement";
 import { notifyAdmin } from "@/lib/notify";
 
@@ -97,7 +101,11 @@ export async function POST(
     return NextResponse.json({ error: "Valid booking ID required" }, { status: 400 });
   }
 
-  const body = (await req.json().catch(() => ({}))) as { guestNames?: string[] };
+  const body = (await req.json().catch(() => ({}))) as {
+    guestNames?: string[];
+    bookingAnswers?: Record<string, Record<string, unknown>>;
+    participants?: MusementParticipant[];
+  };
 
   const admin = getAdminClient();
   const { data: profile } = await admin
@@ -205,6 +213,46 @@ export async function POST(
       const added = await addToCart(cartUuid, productIdentifier, quantity, "en");
       if (!added) throw new Error("addToCart failed");
 
+      // Per Musement Quality Check #8, fetch the cart-scoped schema to see
+      // which booking-question fields this activity requires. If the request
+      // did not supply answers (`body.bookingAnswers`) and the schema has
+      // required fields, return 422 with the schema so the UI can render a
+      // dynamic form and retry with answers.
+      const schema = await getCustomerSchema(cartUuid, "en");
+      const suppliedAnswers = (body.bookingAnswers || {}) as Record<
+        string,
+        Record<string, unknown>
+      >;
+      const suppliedParticipants = (body.participants || []) as MusementParticipant[];
+
+      if (schema && schema.requiredExtraFields.length > 0) {
+        const missing = schema.requiredExtraFields.filter(
+          (f) => suppliedAnswers[f.activityUuid]?.[f.fieldName] === undefined
+        );
+        if (missing.length > 0) {
+          return NextResponse.json(
+            {
+              error: "This activity requires booking-question answers before it can be confirmed.",
+              code: "MISSING_BOOKING_QUESTIONS",
+              requiredFields: schema.requiredExtraFields,
+              missingFields: missing,
+            },
+            { status: 422 }
+          );
+        }
+      }
+
+      if (schema?.participantsRequired && suppliedParticipants.length !== quantity) {
+        return NextResponse.json(
+          {
+            error: `This activity requires per-participant info. Expected ${quantity} participants, got ${suppliedParticipants.length}.`,
+            code: "MISSING_PARTICIPANTS",
+            expectedCount: quantity,
+          },
+          { status: 422 }
+        );
+      }
+
       // Use group contact_person for customer info (split name heuristically)
       const contact = booking.groups?.contact_person || "TicketMatch Customer";
       const [firstName, ...rest] = contact.split(" ");
@@ -216,8 +264,26 @@ export async function POST(
           : "travel@w69.ai",
       };
 
-      const customerSet = await setCartCustomer(cartUuid, customer, "en");
+      const customerSet = await setCartCustomer(
+        cartUuid,
+        customer,
+        "en",
+        Object.keys(suppliedAnswers).length > 0 ? suppliedAnswers : undefined
+      );
       if (!customerSet) throw new Error("setCartCustomer failed");
+
+      // If the activity needs per-participant info, submit it against each
+      // cart item. We only have one cart item in this flow (single activity
+      // per booking), but we fetch and iterate to stay forward-compatible.
+      if (schema?.participantsRequired && suppliedParticipants.length > 0) {
+        const cartItems = await getCartItems(cartUuid, "en");
+        for (const ci of cartItems) {
+          if (!ci.uuid) continue;
+          const slice = suppliedParticipants.slice(0, ci.quantity);
+          const ok = await setParticipants(cartUuid, ci.uuid, slice, "en");
+          if (!ok) throw new Error(`setParticipants failed for item ${ci.uuid}`);
+        }
+      }
 
       const order = await confirmOrder(cartUuid, "en");
       if (!order) throw new Error("confirmOrder returned null");

@@ -238,6 +238,33 @@ export async function POST(
 
   const usedChannels: string[] = [];
 
+  // ─── MUSEMENT VOUCHER ATTACHMENTS ─────────────────────────────────
+  // Per Musement Quality Check #9, the native voucher retrieved from
+  // GET /orders/{uuid} is the customer's primary proof-of-booking. We
+  // attach each voucher PDF alongside our own branded ticket so the
+  // end customer receives BOTH — belt-and-suspenders that satisfies any
+  // reading of the Musement guideline (partners embedding the QR in their
+  // own artefact + partners delivering the native voucher as-is).
+  const voucherUrls: string[] = [];
+  for (const t of tickets as Array<{ notes?: string | null }>) {
+    const match = t?.notes?.match(/Musement voucher: (\S+)/);
+    if (match?.[1]) voucherUrls.push(match[1]);
+  }
+  const voucherAttachments: Array<{ filename: string; content: string }> = [];
+  for (let i = 0; i < voucherUrls.length; i++) {
+    try {
+      const r = await fetch(voucherUrls[i]);
+      if (!r.ok) continue;
+      const buf = Buffer.from(await r.arrayBuffer());
+      voucherAttachments.push({
+        filename: `musement-voucher-${i + 1}.pdf`,
+        content: buf.toString("base64"),
+      });
+    } catch (err) {
+      console.warn(`[send-tickets:${id}] Musement voucher fetch failed:`, err);
+    }
+  }
+
   // ─── EMAIL ─────────────────────────────────────────────────
   if (resend && recipientEmail) {
     try {
@@ -257,6 +284,7 @@ export async function POST(
           supportEmail: booking.companies?.support_email ?? null,
           supportPhone: booking.companies?.support_phone ?? null,
         }),
+        ...(voucherAttachments.length > 0 && { attachments: voucherAttachments }),
       });
       usedChannels.push("email");
     } catch (err) {

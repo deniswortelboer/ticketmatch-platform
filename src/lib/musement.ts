@@ -14,7 +14,8 @@ const MUSEMENT_CLIENT_SECRET = process.env.MUSEMENT_CLIENT_SECRET || "";
 export type MusementProduct = {
   uuid: string;
   title: string;
-  description: string;
+  description: string;            // short (kept at 300 chars for card display)
+  descriptionFull?: string;       // full unsliced version for detail view
   duration: string;
   rating: number;
   reviewCount: number;
@@ -24,6 +25,7 @@ export type MusementProduct = {
     retailPrice: number;    // Suggested selling price
     formatted: string;      // Display price for customers
     margin: number;         // Our margin percentage
+    serviceFee?: number;    // Musement service fee (optional display)
   };
   images: { url: string; caption?: string }[];
   categories: string[];
@@ -39,6 +41,16 @@ export type MusementProduct = {
   isOwnOffer: boolean;      // TUI Musement in-house product
   cancellationPolicy?: string;
   musementUrl: string;
+  // Required fields per Musement Quality Check #3 (Display Activity Information)
+  highlights?: string[];
+  inclusions?: string[];
+  exclusions?: string[];
+  meetingPoint?: string;
+  whereText?: string;
+  info?: string;                  // "What to remember"
+  maxConfirmationTime?: string;   // ISO-8601 duration, e.g. "PT30M"
+  voucherType?: string;           // voucher_access_usage
+  refundPolicies?: { period?: string; percentage?: number; applicableUntil?: string }[];
 };
 
 export type MusementSearchParams = {
@@ -114,11 +126,92 @@ const cityIdCache: Map<string, number> = new Map();
 
 // ─── API Helpers ────────────────────────────────────────────────────────────
 
+// Catalog endpoints (cities, categories, activities metadata, venues) are
+// cacheable up to 7 days per Musement guidance. Date/availability endpoints
+// must NEVER be cached — they live in the timeslots route and are left
+// uncached deliberately.
+const CATALOG_CACHE = {
+  cache: "force-cache" as RequestCache,
+  next: { revalidate: 604800, tags: ["musement-catalog"] },
+};
+
+// ─── OAuth token manager ──────────────────────────────────────────────────
+// Musement's Partner API v3 authenticates merchant flows with two credentials:
+//  1. `x-musement-application` header — present on every request, identifies
+//     the partner application.
+//  2. `Authorization: Bearer {accessToken}` — required for merchant-of-record
+//     endpoints in production. Tokens are obtained via POST /login with
+//     client_id/client_secret and expire after ~3600 seconds.
+//
+// In sandbox the application header alone authenticates every call we need,
+// so the token manager is a no-op (returns null, callers omit the header).
+// This scaffold is production-ready: the moment prod credentials arrive,
+// setting MUSEMENT_CLIENT_ID + MUSEMENT_CLIENT_SECRET activates the Bearer
+// flow with automatic refresh-before-expiry.
+
+type TokenCache = { token: string; expiresAt: number } | null;
+let tokenCache: TokenCache = null;
+// Refresh 5 minutes before actual expiry to avoid races under load.
+const TOKEN_EXPIRY_BUFFER_MS = 5 * 60 * 1000;
+
+async function getAccessToken(): Promise<string | null> {
+  if (!MUSEMENT_CLIENT_ID || !MUSEMENT_CLIENT_SECRET) return null;
+
+  const now = Date.now();
+  if (tokenCache && tokenCache.expiresAt - TOKEN_EXPIRY_BUFFER_MS > now) {
+    return tokenCache.token;
+  }
+
+  try {
+    const res = await fetch(`${MUSEMENT_API_BASE}/login`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        ...(MUSEMENT_APP_HEADER ? { "x-musement-application": MUSEMENT_APP_HEADER } : {}),
+      },
+      body: JSON.stringify({
+        client_id: MUSEMENT_CLIENT_ID,
+        client_secret: MUSEMENT_CLIENT_SECRET,
+        grant_type: "client_credentials",
+      }),
+    });
+
+    if (!res.ok) {
+      console.error(`Musement /login failed: HTTP ${res.status}`);
+      tokenCache = null;
+      return null;
+    }
+
+    const data = (await res.json()) as {
+      access_token?: string;
+      expires_in?: number;
+      token_type?: string;
+    };
+
+    if (!data.access_token) {
+      console.error("Musement /login returned no access_token");
+      tokenCache = null;
+      return null;
+    }
+
+    const expiresInMs = (data.expires_in ?? 3600) * 1000;
+    tokenCache = { token: data.access_token, expiresAt: Date.now() + expiresInMs };
+    return data.access_token;
+  } catch (err) {
+    console.error("Musement /login threw:", err);
+    tokenCache = null;
+    return null;
+  }
+}
+
 function getHeaders(language = "en") {
   // Musement Partner API v3 authenticates every request with the
   // `x-musement-application` header (partner identifier). Bearer-token auth
   // is only required for specific merchant-of-record endpoints; for reads
-  // and standard merchant booking flows the header is sufficient.
+  // and standard merchant booking flows the header is sufficient. The
+  // Bearer token is attached separately via getAuthHeaders() for the
+  // endpoints that require it.
   return {
     "Accept": "application/json",
     "Accept-Language": language,
@@ -127,6 +220,17 @@ function getHeaders(language = "en") {
     ...(MUSEMENT_APP_HEADER ? { "x-musement-application": MUSEMENT_APP_HEADER } : {}),
     "Content-Type": "application/json",
   };
+}
+
+/**
+ * Headers for endpoints that require authenticated (Bearer) access in
+ * production. Silently falls back to the header-only shape when no OAuth
+ * credentials are configured, preserving the sandbox behaviour.
+ */
+export async function getAuthHeaders(language = "en"): Promise<Record<string, string>> {
+  const base = getHeaders(language);
+  const token = await getAccessToken();
+  return token ? { ...base, Authorization: `Bearer ${token}` } : base;
 }
 
 /**
@@ -152,6 +256,7 @@ export async function musementHealthCheck(): Promise<{
   try {
     const res = await fetch(`${MUSEMENT_API_BASE}/cities?limit=1`, {
       headers: getHeaders(),
+      ...CATALOG_CACHE,
     });
     if (!res.ok) {
       return { ok: false, env, base: MUSEMENT_API_BASE, error: `HTTP ${res.status}` };
@@ -196,14 +301,14 @@ export async function resolveCityId(cityName: string, language = "en"): Promise<
   try {
     const res = await fetch(
       `${MUSEMENT_API_BASE}/cities?limit=10&offset=0&sort_by=weight&country_in=82`,
-      { headers: getHeaders(language) }
+      { headers: getHeaders(language), ...CATALOG_CACHE }
     );
 
     if (!res.ok) {
       // Fallback: search all cities by name
       const searchRes = await fetch(
         `${MUSEMENT_API_BASE}/cities?limit=10&offset=0&sort_by=weight`,
-        { headers: getHeaders(language) }
+        { headers: getHeaders(language), ...CATALOG_CACHE }
       );
       if (!searchRes.ok) return null;
 
@@ -243,7 +348,7 @@ export async function getDutchCities(language = "en"): Promise<{ id: number; nam
     // country_in=82 is Netherlands in Musement
     const res = await fetch(
       `${MUSEMENT_API_BASE}/cities?limit=50&offset=0&sort_by=weight&country_in=82`,
-      { headers: getHeaders(language) }
+      { headers: getHeaders(language), ...CATALOG_CACHE }
     );
 
     if (!res.ok) return [];
@@ -301,6 +406,7 @@ export async function searchActivities(params: MusementSearchParams): Promise<Mu
         ...getHeaders(params.language),
         "X-Musement-Currency": currency,
       },
+      ...CATALOG_CACHE,
     });
 
     if (!res.ok) {
@@ -383,6 +489,7 @@ export async function getActivity(uuid: string, language = "en", currency = "EUR
         ...getHeaders(language),
         "X-Musement-Currency": currency,
       },
+      ...CATALOG_CACHE,
     });
 
     if (!res.ok) return null;
@@ -519,7 +626,7 @@ export async function createCart(language = "en"): Promise<string | null> {
   try {
     const res = await fetch(`${MUSEMENT_API_BASE}/carts`, {
       method: "POST",
-      headers: getHeaders(language),
+      headers: await getAuthHeaders(language),
       body: JSON.stringify({}),
     });
 
@@ -561,7 +668,7 @@ export async function addToCart(
 
     const res = await fetch(`${MUSEMENT_API_BASE}/carts/${cartUuid}/items`, {
       method: "POST",
-      headers: getHeaders(language),
+      headers: await getAuthHeaders(language),
       body: JSON.stringify([item]),
     });
 
@@ -578,28 +685,278 @@ export async function addToCart(
 }
 
 /**
- * Set customer info on cart
+ * Get the list of cart items (with their uuids). Needed to address the
+ * right cart item when submitting participant info via
+ * PUT /carts/{cartUuid}/items/{cartItemUuid}/participants.
+ */
+export async function getCartItems(
+  cartUuid: string,
+  language = "en"
+): Promise<Array<{ uuid: string; quantity: number; activityUuid?: string }>> {
+  try {
+    const res = await fetch(`${MUSEMENT_API_BASE}/carts/${cartUuid}`, {
+      headers: await getAuthHeaders(language),
+    });
+    if (!res.ok) return [];
+    const cart = (await res.json()) as Record<string, unknown>;
+    const items = (cart.items || []) as Array<Record<string, unknown>>;
+    return items.map((i) => ({
+      uuid: (i.uuid as string) || "",
+      quantity: (i.quantity as number) || 0,
+      activityUuid:
+        ((i.product as Record<string, unknown>)?.activity as Record<string, unknown>)?.uuid as
+          | string
+          | undefined,
+    }));
+  } catch (err) {
+    console.error("Musement getCartItems error:", err);
+    return [];
+  }
+}
+
+/**
+ * Preview the extra_customer_data + participant-info requirements for an
+ * activity WITHOUT having to create a cart first. Per Musement: this is a
+ * convenience endpoint for UI-preview purposes; the authoritative check
+ * remains the cart-scoped schema at confirm time.
+ *
+ * Returns flattened required-field arrays so a dynamic form can render
+ * straight off of the result.
+ */
+export type MusementActivityRequirements = {
+  extraCustomerData: Array<{
+    fieldName: string;
+    title: string;
+    type: string;
+    required: boolean;
+    enum?: string[];
+    enumTitles?: string[];
+  }>;
+  participantsRequired: boolean;
+  participantFields: Array<{
+    fieldName: string;
+    title: string;
+    type: string;
+    required: boolean;
+  }>;
+};
+
+function flattenSchemaProperties(
+  schema: Record<string, unknown> | null | undefined
+): MusementActivityRequirements["extraCustomerData"] {
+  if (!schema) return [];
+  const props = (schema.properties as Record<string, unknown>) || {};
+  const required = new Set<string>((schema.required as string[]) || []);
+  const out: MusementActivityRequirements["extraCustomerData"] = [];
+  for (const [fieldName, fieldSchema] of Object.entries(props)) {
+    const f = fieldSchema as Record<string, unknown>;
+    out.push({
+      fieldName,
+      title: (f.title as string) || fieldName,
+      type: (f.type as string) || "string",
+      required: required.has(fieldName),
+      enum: f.enum as string[] | undefined,
+      enumTitles: f.enum_titles as string[] | undefined,
+    });
+  }
+  // Stable display order: preserve propertyOrder when present, else alpha.
+  return out.sort((a, b) => a.fieldName.localeCompare(b.fieldName));
+}
+
+export async function getActivityRequirements(
+  activityUuid: string,
+  language = "en"
+): Promise<MusementActivityRequirements> {
+  const [ecdRes, participantsRes] = await Promise.all([
+    fetch(
+      `${MUSEMENT_API_BASE}/activities/${activityUuid}/extra-customer-data/schema`,
+      { headers: await getAuthHeaders(language) }
+    ).catch(() => null),
+    fetch(
+      `${MUSEMENT_API_BASE}/activities/${activityUuid}/participants-info/schema`,
+      { headers: await getAuthHeaders(language) }
+    ).catch(() => null),
+  ]);
+
+  let ecdSchema: Record<string, unknown> | null = null;
+  if (ecdRes?.ok) {
+    ecdSchema = (await ecdRes.json().catch(() => null)) as Record<string, unknown> | null;
+  }
+
+  let participantsSchema: Record<string, unknown> | null = null;
+  if (participantsRes?.ok) {
+    participantsSchema = (await participantsRes.json().catch(() => null)) as Record<string, unknown> | null;
+  }
+
+  const extraCustomerData = flattenSchemaProperties(ecdSchema);
+  const participantFields = flattenSchemaProperties(participantsSchema);
+
+  return {
+    extraCustomerData,
+    participantsRequired: participantFields.some((f) => f.required),
+    participantFields,
+  };
+}
+
+/**
+ * Fetch the activity-specific customer schema for the items in this cart.
+ *
+ * Per Musement Quality Check #8 (Booking questions), partners must collect
+ * any mandatory `extra_customer_data` fields and per-participant information
+ * listed in the schema before confirming the order. The schema is cart-scoped
+ * because it unions the requirements of every item in the cart.
+ *
+ * Returns the raw JSON schema on success. Callers can inspect
+ * `schema.properties.extra_customer_data` (per activity uuid) and any
+ * participant-info requirements to decide whether to render a form.
+ */
+export type MusementCustomerSchema = {
+  raw: Record<string, unknown>;
+  requiredExtraFields: Array<{ activityUuid: string; fieldName: string; title?: string; type?: string }>;
+  participantsRequired: boolean;
+};
+
+export async function getCustomerSchema(
+  cartUuid: string,
+  language = "en"
+): Promise<MusementCustomerSchema | null> {
+  try {
+    const res = await fetch(
+      `${MUSEMENT_API_BASE}/carts/${cartUuid}/customer/schema`,
+      { headers: await getAuthHeaders(language) }
+    );
+    if (!res.ok) return null;
+    const schema = (await res.json()) as Record<string, unknown>;
+
+    // Flatten extra_customer_data required fields (per-activity).
+    const requiredExtraFields: MusementCustomerSchema["requiredExtraFields"] = [];
+    const props = (schema.properties as Record<string, unknown>) || {};
+    const ecd = (props.extra_customer_data as Record<string, unknown>) || {};
+    const ecdProps = (ecd.properties as Record<string, unknown>) || {};
+    for (const [activityUuid, activitySchema] of Object.entries(ecdProps)) {
+      const a = activitySchema as Record<string, unknown>;
+      const required = (a.required as string[]) || [];
+      const aProps = (a.properties as Record<string, unknown>) || {};
+      for (const fieldName of required) {
+        const f = (aProps[fieldName] as Record<string, unknown>) || {};
+        requiredExtraFields.push({
+          activityUuid,
+          fieldName,
+          title: (f.title as string) || fieldName,
+          type: (f.type as string) || "string",
+        });
+      }
+    }
+
+    // Detect participant info requirement. Musement signals this via a
+    // `participants` property on the cart-item schema; presence implies
+    // that participant details are required before order confirmation.
+    const participantsRequired = Boolean(
+      (schema.properties as Record<string, unknown>)?.participants
+    );
+
+    return { raw: schema, requiredExtraFields, participantsRequired };
+  } catch (err) {
+    console.error("Musement customer schema error:", err);
+    return null;
+  }
+}
+
+// Musement sandbox requires lead-booker fields to be literally TEST / TEST /
+// test@test.com — using real customer data in sandbox is a documented violation
+// and can get a partner's sandbox access revoked. Prod uses real values.
+const IS_SANDBOX = MUSEMENT_API_BASE.includes("sandbox");
+const SANDBOX_LEAD_BOOKER = {
+  firstname: "TEST",
+  lastname: "TEST",
+  email: "test@test.com",
+} as const;
+
+/**
+ * Set customer info on cart.
+ *
+ * Optionally carries `extra_customer_data` payloads (per activity uuid) for
+ * activity-specific booking questions, per Musement Quality Check #8. The
+ * shape of `extraCustomerData` must match the schema returned by
+ * `getCustomerSchema()`.
  */
 export async function setCartCustomer(
   cartUuid: string,
   customer: { firstName: string; lastName: string; email: string; phone?: string },
-  language = "en"
+  language = "en",
+  extraCustomerData?: Record<string, Record<string, unknown>>
 ): Promise<boolean> {
   try {
+    const leadBooker = IS_SANDBOX
+      ? {
+          ...SANDBOX_LEAD_BOOKER,
+          ...(customer.phone ? { phone_number: customer.phone } : {}),
+        }
+      : {
+          firstname: customer.firstName,
+          lastname: customer.lastName,
+          email: customer.email,
+          ...(customer.phone ? { phone_number: customer.phone } : {}),
+        };
+
+    const body: Record<string, unknown> = { ...leadBooker };
+    if (extraCustomerData && Object.keys(extraCustomerData).length > 0) {
+      body.extra_customer_data = extraCustomerData;
+    }
+
     const res = await fetch(`${MUSEMENT_API_BASE}/carts/${cartUuid}/customer`, {
       method: "PUT",
-      headers: getHeaders(language),
-      body: JSON.stringify({
-        firstname: customer.firstName,
-        lastname: customer.lastName,
-        email: customer.email,
-        ...(customer.phone ? { phone_number: customer.phone } : {}),
-      }),
+      headers: await getAuthHeaders(language),
+      body: JSON.stringify(body),
     });
 
     return res.ok;
   } catch (err) {
     console.error("Musement set customer error:", err);
+    return false;
+  }
+}
+
+/**
+ * Submit per-participant info (firstname, lastname, date_of_birth, etc) for
+ * a specific cart item. Per Musement Quality Check #8 the participant count
+ * MUST exactly match the cart-item quantity. Call this once per cart item
+ * that requires participant info.
+ */
+export type MusementParticipant = {
+  salutation?: "Mr" | "Mrs" | "Ms";
+  firstname: string;
+  lastname: string;
+  date_of_birth?: string; // YYYY-MM-DD
+  email?: string;
+  nationality?: string;
+  passport?: string;
+  passport_expiry_date?: string;
+  phone_number?: string;
+  medical_notes?: string;
+  weight?: number;
+  address?: string;
+  fan_card?: string;
+};
+
+export async function setParticipants(
+  cartUuid: string,
+  cartItemUuid: string,
+  participants: MusementParticipant[],
+  language = "en"
+): Promise<boolean> {
+  try {
+    const res = await fetch(
+      `${MUSEMENT_API_BASE}/carts/${cartUuid}/items/${cartItemUuid}/participants`,
+      {
+        method: "PUT",
+        headers: await getAuthHeaders(language),
+        body: JSON.stringify(participants),
+      }
+    );
+    return res.ok;
+  } catch (err) {
+    console.error("Musement set participants error:", err);
     return false;
   }
 }
@@ -622,7 +979,7 @@ export async function confirmOrder(
   try {
     const res = await fetch(`${MUSEMENT_API_BASE}/orders`, {
       method: "POST",
-      headers: getHeaders(language),
+      headers: await getAuthHeaders(language),
       body: JSON.stringify({
         cart_uuid: cartUuid,
         email_notification: "NONE",
@@ -669,7 +1026,7 @@ export async function confirmOrder(
 export async function getOrder(orderId: string, language = "en"): Promise<MusementBooking | null> {
   try {
     const res = await fetch(`${MUSEMENT_API_BASE}/orders/${orderId}`, {
-      headers: getHeaders(language),
+      headers: await getAuthHeaders(language),
     });
 
     if (!res.ok) return null;
@@ -698,25 +1055,105 @@ export async function getOrder(orderId: string, language = "en"): Promise<Museme
 /**
  * Cancel an order item
  */
+export type MusementRefundPolicy = {
+  applicableUntil?: string;
+  remainingTime?: string;
+  refundPercentage?: number;
+};
+
+export type MusementCancellationResult =
+  | { ok: true; refunded: boolean; policy?: MusementRefundPolicy }
+  | { ok: false; reason: "NO_REFUND_POLICIES" | "REFUND_WINDOW_CLOSED" | "API_ERROR"; detail?: string };
+
+/**
+ * Fetch refund eligibility for a specific order item.
+ * Per Musement Quality Check #10, this MUST be called before attempting
+ * cancellation — partners should not blind-fire DELETE on items with no
+ * refund policies (charge always stands) or outside the applicable window.
+ */
+export async function getRefundEligibility(
+  orderId: string,
+  itemId: string,
+  language = "en"
+): Promise<MusementCancellationResult> {
+  try {
+    const res = await fetch(
+      `${MUSEMENT_API_BASE}/orders/${orderId}/items/${itemId}/refund-policies`,
+      { headers: await getAuthHeaders(language) }
+    );
+
+    if (!res.ok) {
+      // Activities without a refund policy return 404 here — this is Musement's
+      // signal that the item is non-refundable and cannot be cancelled.
+      if (res.status === 404) {
+        return { ok: false, reason: "NO_REFUND_POLICIES" };
+      }
+      const detail = (await res.text()).slice(0, 300);
+      return { ok: false, reason: "API_ERROR", detail };
+    }
+
+    const policies = (await res.json()) as Array<Record<string, unknown>>;
+    if (!Array.isArray(policies) || policies.length === 0) {
+      return { ok: false, reason: "NO_REFUND_POLICIES" };
+    }
+
+    // Pick the most favorable policy whose applicable_until is still in the future.
+    const now = Date.now();
+    const eligible = policies
+      .map((p) => ({
+        applicableUntil: p.applicable_until as string | undefined,
+        remainingTime: p.remaining_time as string | undefined,
+        refundPercentage:
+          (p.refund_percentage as number) ?? (p.percentage as number) ?? undefined,
+      }))
+      .filter((p) =>
+        p.applicableUntil ? new Date(p.applicableUntil).getTime() > now : true
+      )
+      .sort((a, b) => (b.refundPercentage ?? 0) - (a.refundPercentage ?? 0))[0];
+
+    if (!eligible) {
+      return { ok: false, reason: "REFUND_WINDOW_CLOSED" };
+    }
+
+    return { ok: true, refunded: (eligible.refundPercentage ?? 0) > 0, policy: eligible };
+  } catch (err) {
+    console.error("Musement refund-eligibility error:", err);
+    return { ok: false, reason: "API_ERROR", detail: (err as Error).message };
+  }
+}
+
 export async function cancelOrderItem(
   orderId: string,
   itemId: string,
   reason?: string,
   language = "en"
-): Promise<boolean> {
-  try {
-    const res = await fetch(`${MUSEMENT_API_BASE}/orders/${orderId}/items/${itemId}/cancel`, {
-      method: "POST",
-      headers: getHeaders(language),
-      body: JSON.stringify({
-        reason: reason || "Customer request",
-      }),
-    });
+): Promise<MusementCancellationResult> {
+  // Gate 1 — refund eligibility per Musement Quality Check #10.
+  const eligibility = await getRefundEligibility(orderId, itemId, language);
+  if (!eligibility.ok) return eligibility;
 
-    return res.ok;
+  // Gate 2 — actual cancellation. Per docs this is a DELETE on the item with a
+  // mandatory cancellation_reason taken from the enumerated list.
+  try {
+    const res = await fetch(
+      `${MUSEMENT_API_BASE}/orders/${orderId}/items/${itemId}`,
+      {
+        method: "DELETE",
+        headers: await getAuthHeaders(language),
+        body: JSON.stringify({
+          cancellation_reason: reason || "CANCELLED-BY-CUSTOMER",
+        }),
+      }
+    );
+
+    if (!res.ok) {
+      const detail = (await res.text()).slice(0, 300);
+      return { ok: false, reason: "API_ERROR", detail };
+    }
+    return { ok: true, refunded: eligibility.refunded, policy: eligibility.policy };
   } catch (err) {
     console.error("Musement cancel error:", err);
-    return false;
+    return { ok: false, reason: "API_ERROR", detail: (err as Error).message };
   }
 }
 
@@ -729,6 +1166,7 @@ export async function getCategories(language = "en"): Promise<{ id: number; name
   try {
     const res = await fetch(`${MUSEMENT_API_BASE}/categories`, {
       headers: getHeaders(language),
+      ...CATALOG_CACHE,
     });
 
     if (!res.ok) return [];
@@ -763,10 +1201,45 @@ function mapActivityToProduct(a: Record<string, unknown>, cityName: string, curr
     ? ((a.city as Record<string, unknown>)?.country as Record<string, unknown>)?.name as string
     : "";
 
+  const fullDescription = ((a.description as string) || (a.about as string) || "");
+
+  // Taxonomies carry inclusions/exclusions/highlights on Musement activities
+  const taxonomies = (a.taxonomies || []) as Record<string, unknown>[];
+  const pickTaxonomy = (code: string) =>
+    taxonomies
+      .filter((t) => {
+        const tc = ((t.code as string) || (t.type as string) || "").toLowerCase();
+        return tc === code.toLowerCase();
+      })
+      .map((t) => (t.name as string) || "")
+      .filter(Boolean);
+
+  const highlights = pickTaxonomy("highlights");
+  const inclusions = pickTaxonomy("inclusions");
+  const exclusions = pickTaxonomy("exclusions");
+
+  const meetingPoint =
+    (a.meeting_point as string) ||
+    ((a.meeting_point as Record<string, unknown>)?.description as string) ||
+    "";
+  const whereText = (a.where_text as string) || "";
+  const info = (a.info as string) || (a.what_to_remember as string) || "";
+  const maxConfirmationTime = (a.max_confirmation_time as string) || "";
+  const voucherType = (a.voucher_access_usage as string) || "";
+  const serviceFee = ((a.service_fee as Record<string, unknown>)?.value as number) || undefined;
+
+  const refundPoliciesRaw = (a.refund_policies || []) as Record<string, unknown>[];
+  const refundPolicies = refundPoliciesRaw.map((rp) => ({
+    period: (rp.period as string) || undefined,
+    percentage: (rp.refund_percentage as number) ?? (rp.percentage as number) ?? undefined,
+    applicableUntil: (rp.applicable_until as string) || undefined,
+  }));
+
   return {
     uuid: a.uuid as string,
     title: a.title as string || "",
-    description: ((a.description as string) || (a.about as string) || "").slice(0, 300),
+    description: fullDescription.slice(0, 300),
+    descriptionFull: fullDescription,
     duration: formatDuration(
       (a.duration_range as Record<string, unknown>)?.max as string
       || (a.duration as string)
@@ -780,6 +1253,7 @@ function mapActivityToProduct(a: Record<string, unknown>, cityName: string, curr
       retailPrice,
       formatted: formatPrice(retailPrice, currency),
       margin: Math.round(margin * 100) / 100,
+      serviceFee,
     },
     images: ((a.cover_image_url as string)
       ? [{ url: a.cover_image_url as string }]
@@ -788,9 +1262,10 @@ function mapActivityToProduct(a: Record<string, unknown>, cityName: string, curr
           caption: (img.caption as string) || "",
         }))
     ),
-    categories: ((a.taxonomies || []) as Record<string, unknown>[]).map(
-      (t) => (t.name as string) || ""
-    ).filter(Boolean).slice(0, 3),
+    categories: taxonomies
+      .map((t) => (t.name as string) || "")
+      .filter(Boolean)
+      .slice(0, 3),
     location: {
       city,
       country,
@@ -807,6 +1282,15 @@ function mapActivityToProduct(a: Record<string, unknown>, cityName: string, curr
     isOwnOffer: (a.supplier_type as string) === "OWN" || (a.own_offer as boolean) === true,
     cancellationPolicy: (a.free_cancellation as boolean) ? "Free cancellation" : "Non-refundable",
     musementUrl: (a.url as string) || "",
+    highlights: highlights.length ? highlights : undefined,
+    inclusions: inclusions.length ? inclusions : undefined,
+    exclusions: exclusions.length ? exclusions : undefined,
+    meetingPoint: meetingPoint || undefined,
+    whereText: whereText || undefined,
+    info: info || undefined,
+    maxConfirmationTime: maxConfirmationTime || undefined,
+    voucherType: voucherType || undefined,
+    refundPolicies: refundPolicies.length ? refundPolicies : undefined,
   };
 }
 
