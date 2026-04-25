@@ -229,3 +229,9 @@ body {
 .dark .text-orange-700 { color: #fb923c !important; }
 .dark .text-red-700,
 .dark .text-red-800 { color: #fca5a5 !important; }
+
+/* Primary CTA pattern `bg-foreground text-white` — in light mode the
+ * foreground is near-black so white text contrasts; in dark mode
+ * foreground flips to near-white, making the white text vanish.
+ * Force the label to `--background` so it auto-flips with the theme. */
+.dark .bg-foreground.text-white { color: var(--background) !important; }

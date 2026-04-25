@@ -152,7 +152,7 @@ function NavGroupSection({ group, pathname, isAdmin: isAdminGroup }: { group: Na
               <span
                 className={`flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full text-[11px] font-bold transition-all ${
                   isActive
-                    ? "bg-white text-slate-900 shadow-sm"
+                    ? "bg-[#ffffff] text-slate-900 shadow-sm"
                     : "border border-white/25 text-white/70"
                 }`}
               >

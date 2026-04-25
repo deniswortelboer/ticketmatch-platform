@@ -309,7 +309,7 @@ export default function GroupsPage() {
         </div>
         <button
           onClick={() => { setShowForm(!showForm); setUploadResult(null); }}
-          className="rounded-xl bg-foreground px-5 py-2.5 text-sm font-semibold text-white transition-all hover:bg-gray-800"
+          className="rounded-xl bg-foreground px-5 py-2.5 text-sm font-semibold text-background transition-all hover:opacity-90"
         >
           {showForm ? "Cancel" : "New Group"}
         </button>
