@@ -299,40 +299,50 @@ export async function resolveCityId(cityName: string, language = "en"): Promise<
   }
 
   try {
-    const res = await fetch(
-      `${MUSEMENT_API_BASE}/cities?limit=10&offset=0&sort_by=weight&country_in=82`,
-      { headers: getHeaders(language), ...CATALOG_CACHE }
+    // Musement assigns id=124 to Netherlands (NOT 82, that was a long-standing
+    // bug — for example Rotterdam (id=356) lives on page 2 of NL cities by
+    // weight, so a low limit also missed it). We fetch a generous slice of
+    // each priority country so we can resolve the most-asked NL/EU cities
+    // without paginating per request.
+    const PRIORITY_COUNTRIES: Array<{ iso: string; id: number }> = [
+      { iso: "NL", id: 124 },
+      { iso: "BE", id: 17 },
+      { iso: "DE", id: 64 },
+      { iso: "FR", id: 60 },
+      { iso: "IT", id: 82 },
+      { iso: "ES", id: 161 },
+      { iso: "GB", id: 183 },
+    ];
+
+    // Fetch & cache all cities for our priority markets in parallel.
+    await Promise.all(
+      PRIORITY_COUNTRIES.map(async ({ id }) => {
+        const res = await fetch(
+          `${MUSEMENT_API_BASE}/cities?limit=200&offset=0&sort_by=weight&country_in=${id}`,
+          { headers: getHeaders(language), ...CATALOG_CACHE }
+        );
+        if (!res.ok) return;
+        const cities = (await res.json()) as Record<string, unknown>[];
+        for (const city of cities) {
+          const name = (city.name as string)?.toLowerCase();
+          if (name && city.id) cityIdCache.set(name, city.id as number);
+        }
+      })
     );
 
-    if (!res.ok) {
-      // Fallback: search all cities by name
-      const searchRes = await fetch(
-        `${MUSEMENT_API_BASE}/cities?limit=10&offset=0&sort_by=weight`,
-        { headers: getHeaders(language), ...CATALOG_CACHE }
-      );
-      if (!searchRes.ok) return null;
+    if (cityIdCache.has(key)) return cityIdCache.get(key)!;
 
-      const cities = await searchRes.json();
-      const match = (cities as Record<string, unknown>[]).find(
-        (c) => (c.name as string)?.toLowerCase() === key
-      );
-      if (match) {
-        cityIdCache.set(key, match.id as number);
-        return match.id as number;
-      }
-      return null;
-    }
-
-    const cities = await res.json();
-
-    // Cache all Dutch cities from this response
-    for (const city of cities as Record<string, unknown>[]) {
+    // Last-ditch global fallback for cities outside our priority markets.
+    const fallbackRes = await fetch(
+      `${MUSEMENT_API_BASE}/cities?limit=500&offset=0&sort_by=weight`,
+      { headers: getHeaders(language), ...CATALOG_CACHE }
+    );
+    if (!fallbackRes.ok) return null;
+    const cities = (await fallbackRes.json()) as Record<string, unknown>[];
+    for (const city of cities) {
       const name = (city.name as string)?.toLowerCase();
-      if (name) {
-        cityIdCache.set(name, city.id as number);
-      }
+      if (name && city.id) cityIdCache.set(name, city.id as number);
     }
-
     return cityIdCache.get(key) || null;
   } catch (err) {
     console.error("Musement city resolution error:", err);
