@@ -10,6 +10,10 @@ interface Stats {
   totalValue: number;
   pendingBookings: number;
   totalGuests: number;
+  thisWeekRevenue: number;
+  lastWeekRevenue: number;
+  pendingOver48hCount: number;
+  groupsTravelingTomorrowCount: number;
 }
 
 interface Booking {
@@ -22,32 +26,49 @@ interface Booking {
   groups: { name: string } | null;
 }
 
-const quickActions = [
-  { label: "Browse Catalog", href: "/dashboard/catalog", desc: "Explore museums, attractions and more." },
-  { label: "Create Itinerary", href: "/dashboard/itinerary", desc: "Build a day-by-day plan for your group." },
-  { label: "Manage Groups", href: "/dashboard/groups", desc: "Create and manage your tour groups." },
-  { label: "View Bookings", href: "/dashboard/bookings", desc: "Track all your bookings and vouchers." },
-];
+interface Group {
+  id: string;
+  name: string;
+  number_of_guests?: number;
+  travel_date?: string | null;
+}
+
+function timeOfDayGreeting(): string {
+  const h = new Date().getHours();
+  if (h < 12) return "Good morning";
+  if (h < 18) return "Good afternoon";
+  return "Good evening";
+}
+
+function tomorrowYmd(): string {
+  const t = new Date();
+  t.setDate(t.getDate() + 1);
+  return t.toISOString().slice(0, 10);
+}
 
 export default function DashboardOverview() {
-  const [stats, setStats] = useState<Stats>({ totalBookings: 0, activeGroups: 0, totalValue: 0, pendingBookings: 0, totalGuests: 0 });
+  const [stats, setStats] = useState<Stats>({
+    totalBookings: 0, activeGroups: 0, totalValue: 0, pendingBookings: 0,
+    totalGuests: 0, thisWeekRevenue: 0, lastWeekRevenue: 0,
+    pendingOver48hCount: 0, groupsTravelingTomorrowCount: 0,
+  });
   const [recentBookings, setRecentBookings] = useState<Booking[]>([]);
-  const [companyName, setCompanyName] = useState("");
+  const [firstName, setFirstName] = useState("");
   const [loading, setLoading] = useState(true);
-  const [allBookings, setAllBookings] = useState<Booking[]>([]);
-  const { currency, format } = useCurrency();
+  const { format } = useCurrency();
 
   useEffect(() => {
-    // Load company name
+    // Resolve a friendly first name for the greeting (falls back to email-local).
     import("@/lib/supabase").then(({ createClient }) => {
       const supabase = createClient();
       supabase.auth.getUser().then(({ data: { user } }) => {
-        if (user) {
-          supabase.from("profiles").select("companies(name)").eq("id", user.id).single().then(({ data }) => {
-            const companies = data?.companies as unknown as { name: string } | { name: string }[] | null;
-            const name = Array.isArray(companies) ? companies[0]?.name || "" : companies?.name || "";
-            setCompanyName(name);
-          });
+        if (!user) return;
+        const meta = (user.user_metadata || {}) as { full_name?: string; name?: string };
+        const full = meta.full_name || meta.name || "";
+        if (full) {
+          setFirstName(full.split(" ")[0]);
+        } else if (user.email) {
+          setFirstName(user.email.split("@")[0]);
         }
       });
     });
@@ -56,27 +77,53 @@ export default function DashboardOverview() {
       fetch("/api/groups").then((r) => r.json()),
       fetch("/api/bookings").then((r) => r.json()),
     ]).then(([g, b]) => {
-      const groups = g.groups || [];
-      const bookings = b.bookings || [];
-      const totalValue = bookings.reduce((sum: number, bk: Booking) => sum + Number(bk.total_price), 0);
+      const groups: Group[] = g.groups || [];
+      const bookings: Booking[] = b.bookings || [];
 
-      const totalGuests = groups.reduce((sum: number, gr: { number_of_guests: number }) => sum + (gr.number_of_guests || 0), 0);
+      const now = Date.now();
+      const WEEK = 7 * 24 * 60 * 60 * 1000;
+      const HOURS_48 = 48 * 60 * 60 * 1000;
+      const tmrw = tomorrowYmd();
+
+      const thisWeek = bookings
+        .filter((bk) => now - new Date(bk.created_at).getTime() < WEEK)
+        .reduce((sum, bk) => sum + Number(bk.total_price), 0);
+      const lastWeek = bookings
+        .filter((bk) => {
+          const age = now - new Date(bk.created_at).getTime();
+          return age >= WEEK && age < 2 * WEEK;
+        })
+        .reduce((sum, bk) => sum + Number(bk.total_price), 0);
+
+      const pendingOver48h = bookings.filter(
+        (bk) => bk.status === "pending" && now - new Date(bk.created_at).getTime() > HOURS_48
+      ).length;
+
+      const groupsTravelingTomorrow = groups.filter(
+        (gr) => gr.travel_date && gr.travel_date.slice(0, 10) === tmrw
+      ).length;
+
+      const totalValue = bookings.reduce((sum, bk) => sum + Number(bk.total_price), 0);
+      const totalGuests = groups.reduce((sum, gr) => sum + (gr.number_of_guests || 0), 0);
+
       setStats({
         totalBookings: bookings.length,
         activeGroups: groups.length,
         totalValue,
-        pendingBookings: bookings.filter((bk: Booking) => bk.status === "pending").length,
+        pendingBookings: bookings.filter((bk) => bk.status === "pending").length,
         totalGuests,
+        thisWeekRevenue: thisWeek,
+        lastWeekRevenue: lastWeek,
+        pendingOver48hCount: pendingOver48h,
+        groupsTravelingTomorrowCount: groupsTravelingTomorrow,
       });
-      setAllBookings(bookings);
       setRecentBookings(bookings.slice(0, 5));
       setLoading(false);
     });
   }, []);
 
-  const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
-  };
+  const formatDate = (date: string) =>
+    new Date(date).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 
   if (loading) {
     return (
@@ -86,179 +133,216 @@ export default function DashboardOverview() {
     );
   }
 
+  // ── Needs-your-attention items ──
+  type AttentionItem = { kind: string; severity: "warn" | "alert"; text: React.ReactNode; href: string; cta: string };
+  const attention: AttentionItem[] = [];
+  if (stats.groupsTravelingTomorrowCount > 0) {
+    attention.push({
+      kind: "travel",
+      severity: "alert",
+      text: <><strong>{stats.groupsTravelingTomorrowCount} group{stats.groupsTravelingTomorrowCount > 1 ? "s" : ""}</strong> travel{stats.groupsTravelingTomorrowCount === 1 ? "s" : ""} tomorrow — make sure tickets are sent.</>,
+      href: "/dashboard/bookings",
+      cta: "Send now →",
+    });
+  }
+  if (stats.pendingOver48hCount > 0) {
+    attention.push({
+      kind: "stale",
+      severity: "warn",
+      text: <><strong>{stats.pendingOver48hCount} booking{stats.pendingOver48hCount > 1 ? "s" : ""}</strong> pending venue confirmation &gt;48h.</>,
+      href: "/dashboard/bookings",
+      cta: "Chase →",
+    });
+  }
+  if (stats.pendingBookings > 0 && stats.pendingOver48hCount === 0) {
+    attention.push({
+      kind: "pending",
+      severity: "warn",
+      text: <><strong>{stats.pendingBookings} pending booking{stats.pendingBookings > 1 ? "s" : ""}</strong> awaiting confirmation.</>,
+      href: "/dashboard/bookings",
+      cta: "Review →",
+    });
+  }
+
+  const weekDelta = stats.thisWeekRevenue - stats.lastWeekRevenue;
+  const weekDeltaSign = weekDelta >= 0 ? "+" : "−";
+
+  // Savings (simplified — KPI tile, not hero)
+  const discountRate = 0.20;
+  const savingsPct = stats.totalBookings > 0
+    ? Math.round(discountRate * 100)
+    : 0;
+  const ytdSavings = stats.totalValue * (discountRate / (1 - discountRate));
+
   return (
-    <>
-      {/* Welcome banner */}
-      <div className="mb-8 rounded-2xl bg-gradient-to-r from-[#0f1729] to-[#1e3a5f] p-8 text-white shadow-xl shadow-blue-900/10">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Welcome back{companyName ? `, ${companyName}` : ""}</h1>
-            <p className="mt-1 text-sm text-blue-200/70">Here&apos;s what&apos;s happening with your bookings today.</p>
-          </div>
-          <div className="hidden sm:flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-500/20 ring-1 ring-blue-400/20">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-blue-300">
-              <rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" />
-            </svg>
-          </div>
-        </div>
-      </div>
+    <div className="p-6 space-y-6 max-w-6xl mx-auto">
+      {/* Greeting */}
+      <header>
+        <h1 className="text-2xl font-bold tracking-tight">
+          {timeOfDayGreeting()}{firstName ? `, ${firstName}` : ""}
+        </h1>
+        <p className="mt-1 text-sm text-muted">Here's what needs your attention today.</p>
+      </header>
 
-      {/* Stats */}
-      <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-2xl border border-border/60 bg-white p-6 shadow-sm">
-          <p className="text-xs font-medium uppercase tracking-wider text-muted">Total Bookings</p>
-          <p className="mt-2 text-3xl font-bold">{stats.totalBookings}</p>
+      {/* Needs your attention */}
+      <section className={`rounded-2xl border p-5 shadow-sm ${
+        attention.length > 0
+          ? "border-amber-200 bg-amber-50/60"
+          : "border-emerald-200 bg-emerald-50/40"
+      }`}>
+        <div className="mb-3 flex items-center gap-2">
+          {attention.length > 0 ? (
+            <>
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-amber-100 text-amber-700">⚠</span>
+              <h2 className="text-sm font-bold uppercase tracking-wider text-amber-900">
+                Needs your attention ({attention.length})
+              </h2>
+            </>
+          ) : (
+            <>
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">✓</span>
+              <h2 className="text-sm font-bold uppercase tracking-wider text-emerald-900">All caught up</h2>
+            </>
+          )}
         </div>
-        <div className="rounded-2xl border border-border/60 bg-white p-6 shadow-sm">
-          <p className="text-xs font-medium uppercase tracking-wider text-muted">Active Groups</p>
-          <p className="mt-2 text-3xl font-bold">{stats.activeGroups}</p>
-        </div>
-        <div className="rounded-2xl border border-border/60 bg-white p-6 shadow-sm">
-          <p className="text-xs font-medium uppercase tracking-wider text-muted">Pending</p>
-          <p className="mt-2 text-3xl font-bold text-amber-600">{stats.pendingBookings}</p>
-        </div>
-        <div className="rounded-2xl border border-border/60 bg-white p-6 shadow-sm">
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-medium uppercase tracking-wider text-muted">Total Value</p>
-            <CurrencySelector compact />
-          </div>
-          <p className="mt-2 text-3xl font-bold text-accent">{format(stats.totalValue)}</p>
-        </div>
-      </div>
+        {attention.length > 0 ? (
+          <ul className="divide-y divide-amber-200/40">
+            {attention.map((item) => (
+              <li key={item.kind} className="flex flex-wrap items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
+                <span className="text-sm text-foreground/90">{item.text}</span>
+                <Link href={item.href} className="text-xs font-semibold text-amber-700 hover:text-amber-900 whitespace-nowrap">
+                  {item.cta}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-emerald-800/80">No travel tomorrow, nothing pending too long, nothing overdue.</p>
+        )}
+      </section>
 
-      {/* Savings Calculator */}
-      {stats.totalBookings > 0 && (() => {
-        // Calculate savings: group rate vs individual walk-in prices
-        // TicketMatch offers ~15-25% discount vs walk-in individual prices
-        const discountRate = 0.20; // average 20% group discount
-        const adminSavingsPerBooking = 12.50; // saved time per booking (manual emails, calls, etc.)
-        const walkInTotal = stats.totalValue / (1 - discountRate); // what they'd pay at walk-in rates
-        const ticketSavings = walkInTotal - stats.totalValue;
-        const adminSavings = stats.totalBookings * adminSavingsPerBooking;
-        const totalSavings = ticketSavings + adminSavings;
-        const savingsPercentage = ((totalSavings / (walkInTotal + adminSavings)) * 100).toFixed(0);
-
-        return (
-          <div className="mb-8 rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-green-50 p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-                  </svg>
-                </div>
-                <div>
-                  <h2 className="text-lg font-bold text-emerald-900">Your Savings with TicketMatch</h2>
-                  <p className="text-xs text-emerald-600">Compared to individual walk-in pricing & manual booking</p>
-                </div>
-              </div>
-              <div className="hidden sm:block text-right">
-                <p className="text-3xl font-bold text-emerald-700">{savingsPercentage}%</p>
-                <p className="text-xs text-emerald-500 font-medium">total saved</p>
-              </div>
+      {/* KPI row */}
+      <section className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+        {[
+          {
+            label: "This week",
+            value: format(stats.thisWeekRevenue),
+            sub: stats.lastWeekRevenue > 0
+              ? `${weekDeltaSign}${format(Math.abs(weekDelta))} vs last week`
+              : "first week with bookings",
+            tone: "accent",
+          },
+          {
+            label: "Active groups",
+            value: String(stats.activeGroups),
+            sub: stats.totalGuests > 0 ? `${stats.totalGuests} guests total` : "—",
+            tone: "default",
+          },
+          {
+            label: "Pending bookings",
+            value: String(stats.pendingBookings),
+            sub: stats.pendingOver48hCount > 0
+              ? `${stats.pendingOver48hCount} stale (>48h)`
+              : "all fresh",
+            tone: stats.pendingOver48hCount > 0 ? "warn" : "default",
+          },
+          {
+            label: "Savings YTD",
+            value: format(ytdSavings),
+            sub: `${savingsPct}% group rate vs walk-in`,
+            tone: "success",
+          },
+        ].map((kpi) => (
+          <div key={kpi.label} className="rounded-2xl border border-border/60 bg-white p-5 shadow-sm">
+            <div className="flex items-center justify-between">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">{kpi.label}</p>
+              {kpi.label === "This week" && <CurrencySelector compact />}
             </div>
-
-            <div className="grid gap-3 sm:grid-cols-3">
-              <div className="rounded-xl bg-white/70 p-4 border border-emerald-100">
-                <div className="flex items-center gap-2 mb-1">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-emerald-500">
-                    <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" />
-                  </svg>
-                  <p className="text-xs font-medium text-emerald-600">Group Rate Discount</p>
-                </div>
-                <p className="text-2xl font-bold text-emerald-800">{format(ticketSavings)}</p>
-                <p className="text-[11px] text-emerald-500 mt-0.5">vs. individual walk-in prices</p>
-              </div>
-              <div className="rounded-xl bg-white/70 p-4 border border-emerald-100">
-                <div className="flex items-center gap-2 mb-1">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-emerald-500">
-                    <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
-                  </svg>
-                  <p className="text-xs font-medium text-emerald-600">Time Saved</p>
-                </div>
-                <p className="text-2xl font-bold text-emerald-800">{format(adminSavings)}</p>
-                <p className="text-[11px] text-emerald-500 mt-0.5">{stats.totalBookings} bookings × no manual work</p>
-              </div>
-              <div className="rounded-xl bg-emerald-600 p-4 text-white">
-                <div className="flex items-center gap-2 mb-1">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-emerald-200">
-                    <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" /><polyline points="17 6 23 6 23 12" />
-                  </svg>
-                  <p className="text-xs font-medium text-emerald-200">Total Savings</p>
-                </div>
-                <p className="text-2xl font-bold">{format(totalSavings)}</p>
-                <p className="text-[11px] text-emerald-200 mt-0.5">across {stats.totalBookings} bookings</p>
-              </div>
-            </div>
-
-            {/* Savings bar */}
-            <div className="mt-4 rounded-lg bg-white/50 p-3 border border-emerald-100">
-              <div className="flex items-center justify-between text-xs mb-1.5">
-                <span className="text-emerald-600 font-medium">You paid</span>
-                <span className="text-emerald-400">Walk-in price would be</span>
-              </div>
-              <div className="h-3 rounded-full bg-emerald-100 overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all duration-1000"
-                  style={{ width: `${100 - parseFloat(savingsPercentage)}%` }}
-                />
-              </div>
-              <div className="flex items-center justify-between text-xs mt-1.5">
-                <span className="font-bold text-emerald-800">{format(stats.totalValue)}</span>
-                <span className="text-emerald-400">{format(walkInTotal + adminSavings)}</span>
-              </div>
-            </div>
+            <p className={`mt-2 text-2xl font-bold tracking-tight ${
+              kpi.tone === "accent" ? "text-accent"
+              : kpi.tone === "success" ? "text-emerald-700"
+              : kpi.tone === "warn" ? "text-amber-700"
+              : ""
+            }`}>{kpi.value}</p>
+            <p className="mt-1 text-xs text-muted">{kpi.sub}</p>
           </div>
-        );
-      })()}
+        ))}
+      </section>
 
-      {/* Quick actions */}
-      <div className="mb-8">
-        <h2 className="mb-4 text-lg font-semibold">Quick actions</h2>
-        <div className="grid gap-4 sm:grid-cols-2">
-          {quickActions.map((action) => (
+      {/* Action cards — the three most-frequent daily tasks */}
+      <section>
+        <h2 className="mb-3 text-sm font-bold uppercase tracking-wider text-muted">Quick actions</h2>
+        <div className="grid gap-4 sm:grid-cols-3">
+          {[
+            {
+              icon: "👥",
+              title: "+ New group",
+              desc: "Start with a passenger list or empty.",
+              href: "/dashboard/groups",
+              cls: "from-blue-50 to-white border-blue-200/60",
+            },
+            {
+              icon: "🎫",
+              title: "+ Book venue",
+              desc: "For an existing group.",
+              href: "/dashboard/experiences",
+              cls: "from-orange-50 to-white border-orange-200/60",
+            },
+            {
+              icon: "📄",
+              title: "Generate invoice",
+              desc: "For a group ready to bill.",
+              href: "/dashboard/bookings",
+              cls: "from-emerald-50 to-white border-emerald-200/60",
+            },
+          ].map((a) => (
             <Link
-              key={action.label}
-              href={action.href}
-              className="group rounded-2xl border border-border/60 bg-white p-6 shadow-sm transition-all hover:border-accent/30 hover:shadow-lg hover:shadow-accent/5"
+              key={a.title}
+              href={a.href}
+              className={`group rounded-2xl border bg-gradient-to-br ${a.cls} p-5 transition-all hover:-translate-y-0.5 hover:shadow-md`}
             >
-              <h3 className="font-semibold group-hover:text-accent transition-colors">{action.label}</h3>
-              <p className="mt-1 text-sm text-muted">{action.desc}</p>
-              <span className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-accent opacity-0 transition-opacity group-hover:opacity-100">
-                Go &rarr;
+              <div className="text-2xl leading-none">{a.icon}</div>
+              <h3 className="mt-3 font-semibold text-foreground">{a.title}</h3>
+              <p className="mt-1 text-sm text-muted">{a.desc}</p>
+              <span className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-accent opacity-0 transition-opacity group-hover:opacity-100">
+                Continue →
               </span>
             </Link>
           ))}
         </div>
-      </div>
+      </section>
 
-      {/* Recent bookings */}
-      <div>
-        <h2 className="mb-4 text-lg font-semibold">Recent activity</h2>
+      {/* Recent activity (kept) */}
+      <section>
+        <h2 className="mb-3 text-sm font-bold uppercase tracking-wider text-muted">Recent activity</h2>
         {recentBookings.length > 0 ? (
           <div className="rounded-2xl border border-border/60 bg-white divide-y divide-border/40 shadow-sm">
             {recentBookings.map((booking) => (
-              <div key={booking.id} className="flex items-center justify-between px-6 py-4 transition-colors hover:bg-gray-50/50">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10 text-accent">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" /></svg>
+              <Link
+                key={booking.id}
+                href="/dashboard/bookings"
+                className="flex items-center justify-between px-5 py-4 transition-colors hover:bg-gray-50/50"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent">
+                    🎫
                   </div>
-                  <div>
-                    <p className="font-medium">{booking.venue_name}</p>
-                    <p className="text-xs text-muted">
-                      {booking.groups?.name || "—"} &middot; {booking.venue_city} &middot; {formatDate(booking.created_at)}
+                  <div className="min-w-0">
+                    <p className="font-medium truncate">{booking.venue_name}</p>
+                    <p className="text-xs text-muted truncate">
+                      {booking.groups?.name || "—"} · {booking.venue_city || "—"} · {formatDate(booking.created_at)}
                     </p>
                   </div>
                 </div>
-                <div className="text-right">
+                <div className="text-right shrink-0">
                   <p className="font-semibold text-accent">{format(Number(booking.total_price))}</p>
-                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                    booking.status === "confirmed" ? "bg-green-100 text-green-700" :
-                    booking.status === "cancelled" ? "bg-red-100 text-red-700" :
-                    "bg-amber-100 text-amber-700"
+                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                    booking.status === "confirmed" ? "bg-green-100 text-green-700"
+                    : booking.status === "cancelled" ? "bg-red-100 text-red-700"
+                    : "bg-amber-100 text-amber-700"
                   }`}>{booking.status}</span>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         ) : (
@@ -267,7 +351,7 @@ export default function DashboardOverview() {
             <p className="mt-1 text-xs text-muted/60">Your bookings and group updates will appear here.</p>
           </div>
         )}
-      </div>
-    </>
+      </section>
+    </div>
   );
 }
