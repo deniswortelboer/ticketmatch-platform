@@ -700,17 +700,17 @@ export default function ExperiencesPage() {
       .sort((a, b) => b.rating - a.rating || b.reviewCount - a.reviewCount)
       .slice(0, 8);
   })();
-  const exclusiveRail = musementOnly.filter((p) => p.exclusive).slice(0, 8);
-  // Premium Selected by TicketMatch — our own curation. Rule of thumb:
-  // top-rated AND well-reviewed, OR a TUI-Musement own-offer with ≥4.3.
-  const premiumRail = musementOnly
-    .filter(
-      (p) =>
-        (p.rating >= 4.6 && p.reviewCount >= 50) ||
-        (p.isOwnOffer && p.rating >= 4.3)
-    )
-    .sort((a, b) => b.rating - a.rating)
-    .slice(0, 8);
+  const exclusiveRail = (() => {
+    const tagged = musementOnly.filter((p) => p.exclusive);
+    if (tagged.length >= 3) return tagged.slice(0, 8);
+    // Sandbox fallback: title signals premium/private/skip-the-line experience.
+    return musementOnly
+      .filter((p) =>
+        /\bprivate\b|\bvip\b|skip[\s-]?the[\s-]?line|\bexclusive\b|fast[\s-]?track|\bpriority\b/i.test(p.title)
+      )
+      .sort((a, b) => b.rating - a.rating || b.reviewCount - a.reviewCount)
+      .slice(0, 8);
+  })();
 
   const activeCityLabel = customCity
     ? customCity.name
@@ -936,7 +936,6 @@ export default function ExperiencesPage() {
             { key: "top", label: "🔥 Top Sellers in this city", items: topSellersRail, ringClass: "from-orange-50 to-white" },
             { key: "must", label: "⭐ Must See", items: mustSeeRail, ringClass: "from-amber-50 to-white" },
             { key: "excl", label: "💎 Exclusive", items: exclusiveRail, ringClass: "from-purple-50 to-white" },
-            { key: "prem", label: "✨ Premium Selected by TicketMatch", items: premiumRail, ringClass: "from-blue-50 to-white" },
           ].map((rail) => rail.items.length === 0 ? null : (
             <div key={rail.key} className={`rounded-2xl border border-border/40 bg-gradient-to-br ${rail.ringClass} p-4`}>
               <div className="mb-3 flex items-center justify-between">
