@@ -461,11 +461,7 @@ export default function ExperiencesPage() {
     });
     if (!res.ok) return { products: [], totalCount: 0 };
     const data = await res.json();
-    const rawProducts = (data.products || []) as Array<{
-      title?: string;
-      description?: string;
-      [k: string]: unknown;
-    }>;
+    const rawProducts = (data.products || []) as MusementProduct[];
     const filteredRaw = wantsCategoryFilter
       ? filterMusementByCategory(rawProducts, selectedCategory)
       : rawProducts;
