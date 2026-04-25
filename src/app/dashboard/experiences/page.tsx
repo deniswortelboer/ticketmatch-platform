@@ -43,6 +43,14 @@ type MusementProduct = {
   isOwnOffer: boolean;
   cancellationPolicy?: string;
   musementUrl: string;
+  verticals?: { id: number; name: string }[];
+  flavours?: { id: number; name: string }[];
+  topSeller?: boolean;
+  mustSee?: boolean;
+  exclusive?: boolean;
+  bestPrice?: boolean;
+  specialOffer?: boolean;
+  isCombo?: boolean;
 };
 
 // Unified product type for display
@@ -66,6 +74,12 @@ type UnifiedProduct = {
   isOwnOffer?: boolean;    // Musement TUI in-house
   cancellationPolicy?: string;
   margin?: number;         // Musement margin %
+  // Curated-rail signals (Musement-only)
+  topSeller?: boolean;
+  mustSee?: boolean;
+  exclusive?: boolean;
+  bestPrice?: boolean;
+  isCombo?: boolean;
 };
 
 function viatorToUnified(p: ViatorProduct): UnifiedProduct {
@@ -109,6 +123,11 @@ function musementToUnified(p: MusementProduct): UnifiedProduct {
     isOwnOffer: p.isOwnOffer,
     cancellationPolicy: p.cancellationPolicy,
     margin: p.pricing.margin,
+    topSeller: p.topSeller,
+    mustSee: p.mustSee,
+    exclusive: p.exclusive,
+    bestPrice: p.bestPrice,
+    isCombo: p.isCombo,
   };
 }
 
@@ -545,9 +564,15 @@ export default function ExperiencesPage() {
     const filteredRaw = wantsCategoryFilter
       ? filterMusementByCategory(rawProducts, selectedCategory)
       : rawProducts;
+    const finalProducts = filteredRaw.map(musementToUnified);
     return {
-      products: filteredRaw.map(musementToUnified),
-      totalCount: (wantsCategoryFilter || useCombo) ? filteredRaw.length : (data.totalCount || 0),
+      products: finalProducts,
+      // For any active filter (keyword / vertical / combo) the totalCount
+      // reflects what we actually display — Musement's meta.count counts the
+      // pre-filter superset which would mislead the "Showing X of Y" header.
+      totalCount: (wantsCategoryFilter || useCombo || useVertical)
+        ? finalProducts.length
+        : (data.totalCount || 0),
     };
   }, [verticalSel]);
 
@@ -653,6 +678,39 @@ export default function ExperiencesPage() {
   const musementCount = products.filter((p) => p.source === "musement").length;
 
   const hasMore = products.length < totalCount;
+
+  // ─── Curated rails (Musement signals + TicketMatch heuristics) ──────────
+  // Rails surface only on the discovery view: no active filter, no search,
+  // first page. Each rail prefers Musement's structured flag; if sandbox /
+  // dataset hasn't tagged any, falls back to a quality-signal heuristic so
+  // the rail still has something useful to show.
+  const showRails =
+    !search && !customCity && verticalSel === 0 && page === 1 && filtered.length > 0;
+  const musementOnly = filtered.filter((p) => p.source === "musement");
+  const topSellersRail = (() => {
+    const tagged = musementOnly.filter((p) => p.topSeller);
+    if (tagged.length >= 3) return tagged.slice(0, 8);
+    return [...musementOnly].sort((a, b) => b.reviewCount - a.reviewCount).slice(0, 8);
+  })();
+  const mustSeeRail = (() => {
+    const tagged = musementOnly.filter((p) => p.mustSee);
+    if (tagged.length >= 3) return tagged.slice(0, 8);
+    return [...musementOnly]
+      .filter((p) => p.rating >= 4.5)
+      .sort((a, b) => b.rating - a.rating || b.reviewCount - a.reviewCount)
+      .slice(0, 8);
+  })();
+  const exclusiveRail = musementOnly.filter((p) => p.exclusive).slice(0, 8);
+  // Premium Selected by TicketMatch — our own curation. Rule of thumb:
+  // top-rated AND well-reviewed, OR a TUI-Musement own-offer with ≥4.3.
+  const premiumRail = musementOnly
+    .filter(
+      (p) =>
+        (p.rating >= 4.6 && p.reviewCount >= 50) ||
+        (p.isOwnOffer && p.rating >= 4.3)
+    )
+    .sort((a, b) => b.rating - a.rating)
+    .slice(0, 8);
 
   const activeCityLabel = customCity
     ? customCity.name
@@ -868,6 +926,61 @@ export default function ExperiencesPage() {
           >
             Try Again
           </button>
+        </div>
+      )}
+
+      {/* Curated rails (Top Sellers / Must See / Exclusive / Premium Selected) */}
+      {!loading && !error && showRails && (
+        <div className="mb-8 space-y-6">
+          {[
+            { key: "top", label: "🔥 Top Sellers in this city", items: topSellersRail, ringClass: "from-orange-50 to-white" },
+            { key: "must", label: "⭐ Must See", items: mustSeeRail, ringClass: "from-amber-50 to-white" },
+            { key: "excl", label: "💎 Exclusive", items: exclusiveRail, ringClass: "from-purple-50 to-white" },
+            { key: "prem", label: "✨ Premium Selected by TicketMatch", items: premiumRail, ringClass: "from-blue-50 to-white" },
+          ].map((rail) => rail.items.length === 0 ? null : (
+            <div key={rail.key} className={`rounded-2xl border border-border/40 bg-gradient-to-br ${rail.ringClass} p-4`}>
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-foreground">{rail.label}</h3>
+                <span className="text-xs text-muted/70">{rail.items.length}</span>
+              </div>
+              <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-2 [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border">
+                {rail.items.map((p) => (
+                  <button
+                    key={`rail-${rail.key}-${p.id}`}
+                    onClick={() => router.push(`/dashboard/bookings/new?activity=${p.id}&city=${encodeURIComponent(p.location.city)}&title=${encodeURIComponent(p.title)}`)}
+                    className="group flex w-[220px] shrink-0 flex-col overflow-hidden rounded-xl border border-border/60 bg-white text-left transition-all hover:-translate-y-0.5 hover:shadow-md"
+                  >
+                    <div className="relative h-28 w-full overflow-hidden bg-gray-100">
+                      {p.images[0]?.url && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={p.images[0].url}
+                          alt={p.title}
+                          loading="lazy"
+                          className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                        />
+                      )}
+                      {p.exclusive && (
+                        <span className="absolute left-2 top-2 rounded-full bg-purple-600 px-2 py-0.5 text-[10px] font-semibold text-white">Exclusive</span>
+                      )}
+                      {p.isCombo && (
+                        <span className="absolute right-2 top-2 rounded-full bg-foreground/90 px-2 py-0.5 text-[10px] font-semibold text-white">Combo</span>
+                      )}
+                    </div>
+                    <div className="flex flex-1 flex-col gap-1.5 p-3">
+                      <p className="line-clamp-2 text-xs font-medium leading-tight text-foreground">{p.title}</p>
+                      <div className="mt-auto flex items-center justify-between text-[11px]">
+                        <span className="flex items-center gap-1 text-muted">
+                          {p.rating > 0 && <><span className="text-amber-500">★</span>{p.rating.toFixed(1)}</>}
+                        </span>
+                        <span className="font-semibold text-foreground">{p.priceFormatted}</span>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       )}
 

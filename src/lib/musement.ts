@@ -578,10 +578,15 @@ export async function searchActivities(params: MusementSearchParams): Promise<Mu
       mapActivityToProduct(a, params.cityName || "", currency)
     );
 
-    // Sandbox often ignores vertical_in — enforce client-side as belt-and-braces.
+    // Sandbox ignores vertical_in AND under-tags activities (e.g. "Van Gogh
+    // Museum ticket" carries only Tours & attractions, no Museums & art).
+    // We post-filter using BOTH signals — the structured verticals array
+    // (production-correct) OR a vertical-specific title heuristic (sandbox
+    // fallback). Either signal matching keeps the activity.
     if (params.verticalId) {
       products = products.filter((p) =>
-        p.verticals.some((v) => v.id === params.verticalId)
+        p.verticals.some((v) => v.id === params.verticalId) ||
+        matchesVerticalByTitle(p.title, params.verticalId!)
       );
     }
 
@@ -1358,6 +1363,41 @@ export async function getCategories(language = "en"): Promise<{ id: number; name
  * "Heineken Experience and canal cruise". Curated test on 50 Amsterdam
  * activities matched 17 combos correctly with no false positives.
  */
+/**
+ * Sandbox under-tags activity verticals (and ignores the vertical_in filter).
+ * This title-keyword heuristic gives a usable fallback so the verticals chip
+ * row produces visibly different result sets even on sandbox data. In
+ * production, well-tagged activities will already match via the structured
+ * `verticals` field — this fallback is purely additive.
+ *
+ * Vertical IDs follow Musement's /verticals taxonomy:
+ *   1 Museums & art · 2 Tours & attractions · 3 Food & wine
+ *   4 Performances  · 5 Sports               · 6 Active & adventure
+ *   7 Nightlife
+ */
+function matchesVerticalByTitle(title: string, verticalId: number): boolean {
+  if (!title) return false;
+  const t = title.toLowerCase();
+  switch (verticalId) {
+    case 1: // Museums & art
+      return /\bmuseum|gallery|exhibition|art|rijks|van gogh|stedelijk|hermitage|louvre|prado|uffizi|moma\b/.test(t);
+    case 2: // Tours & attractions
+      return /\btour|attraction|sightseeing|stadium|hop[\s-]?on|landmark|cruise|excursion|day[\s-]?trip\b/.test(t);
+    case 3: // Food & wine
+      return /\bfood|wine|tasting|dinner|lunch|cocktail|brewery|brewing|cooking|cuisine|chef|tapas|coffee|chocolate|cheese\b/.test(t);
+    case 4: // Performances
+      return /\bshow|concert|theater|theatre|performance|musical|ballet|opera|circus|comedy\b/.test(t);
+    case 5: // Sports
+      return /\bsport|football|soccer|formula|f1|motogp|race|stadium tour|match|game day\b/.test(t);
+    case 6: // Active & adventure
+      return /\bhik|bik|cycl|kayak|surf|ski|snorkel|adventure|outdoor|climb|paragliding|diving|safari|trail\b/.test(t);
+    case 7: // Nightlife
+      return /\bnightlife|club|bar crawl|pub crawl|cocktail|nightclub|disco|after[\s-]?dark\b/.test(t);
+    default:
+      return false;
+  }
+}
+
 function detectCombo(title: string): boolean {
   if (!title) return false;
   const t = title.toLowerCase();
