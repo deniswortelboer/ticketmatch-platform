@@ -531,17 +531,16 @@ export default function ExperiencesPage() {
   // for normal pagination behaviour.
   const fetchMusement = useCallback(async (
     selectedCity: string,
-    selectedCategory: string,
+    _selectedCategory: string,
     startPage = 1,
   ): Promise<{ products: UnifiedProduct[]; totalCount: number }> => {
-    // Vertical filter (real Musement taxonomy) takes precedence over the
-    // legacy keyword-based category filter. -1 = synthetic "Combos" bucket.
+    // Verticals row is now the only category filter. The legacy keyword-based
+    // categoryFilter state still exists for backwards compat (URL/query params
+    // elsewhere) but is intentionally NOT applied here — it caused a "stuck on
+    // Museums" bug after the new verticals UI shipped.
     const useVertical = verticalSel > 0;
     const useCombo = verticalSel === -1;
-    const wantsCategoryFilter =
-      !useVertical && !useCombo &&
-      !!selectedCategory && !!MUSEMENT_CATEGORY_KEYWORDS[selectedCategory];
-    const upstreamLimit = (wantsCategoryFilter || useCombo) ? 100 : PAGE_SIZE;
+    const upstreamLimit = useCombo ? 100 : PAGE_SIZE;
     const payload: Record<string, unknown> = {
       cityName: selectedCity,
       limit: upstreamLimit,
@@ -561,16 +560,12 @@ export default function ExperiencesPage() {
     if (!res.ok) return { products: [], totalCount: 0 };
     const data = await res.json();
     const rawProducts = (data.products || []) as MusementProduct[];
-    const filteredRaw = wantsCategoryFilter
-      ? filterMusementByCategory(rawProducts, selectedCategory)
-      : rawProducts;
-    const finalProducts = filteredRaw.map(musementToUnified);
+    const finalProducts = rawProducts.map(musementToUnified);
     return {
       products: finalProducts,
-      // For any active filter (keyword / vertical / combo) the totalCount
-      // reflects what we actually display — Musement's meta.count counts the
-      // pre-filter superset which would mislead the "Showing X of Y" header.
-      totalCount: (wantsCategoryFilter || useCombo || useVertical)
+      // When a filter is active, "Showing X of Y" reflects the post-filter
+      // count. Otherwise we show Musement's meta.count for the full city.
+      totalCount: (useCombo || useVertical)
         ? finalProducts.length
         : (data.totalCount || 0),
     };
