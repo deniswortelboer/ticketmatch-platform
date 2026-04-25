@@ -77,7 +77,11 @@ function NewBookingForm() {
     languages?: string[];
   };
   const [details, setDetails] = useState<ActivityDetails | null>(null);
-  const [detailsOpen, setDetailsOpen] = useState(false);
+  // Open by default — Viator-style rich product page. Reseller engagement
+  // depends on highlights/inclusions/meeting-point being immediately visible.
+  const [detailsOpen, setDetailsOpen] = useState(true);
+  // Active hero image — switches when reseller clicks a thumbnail.
+  const [activeImageIdx, setActiveImageIdx] = useState(0);
 
   // Musement timeslot state
   type Slot = {
@@ -301,8 +305,11 @@ function NewBookingForm() {
     }
   }
 
+  const heroImages = (details?.images || []).filter((i) => i?.url);
+  const heroSrc = heroImages[activeImageIdx]?.url || heroImages[0]?.url;
+
   return (
-    <div className="max-w-2xl mx-auto p-6">
+    <div className="max-w-3xl mx-auto p-6">
       <button
         onClick={() => router.back()}
         className="mb-4 text-sm text-muted hover:text-foreground"
@@ -310,40 +317,73 @@ function NewBookingForm() {
         ← Back to Experiences
       </button>
 
-      {/* Activity header */}
-      <div className="rounded-2xl border border-border/60 bg-white p-6 mb-6 shadow-sm">
-        <div className="flex items-start gap-4">
-          <div className="h-14 w-14 rounded-xl bg-orange-100 text-orange-600 grid place-items-center text-2xl">
-            🎫
-          </div>
-          <div className="flex-1 min-w-0">
-            <span className="text-[10px] font-semibold tracking-wider uppercase text-orange-600">
-              {source === "musement" ? "Musement" : source}
-            </span>
-            <h1 className="text-xl font-bold mt-1">{title}</h1>
-            {price > 0 && (
-              <p className="text-sm text-muted mt-1">
-                From <strong className="text-foreground">{currency === "EUR" ? "€" : currency} {price.toFixed(2)}</strong> per person
-              </p>
+      {/* Title + meta — Viator-style header above the hero */}
+      <div className="mb-4">
+        <span className="text-[10px] font-semibold tracking-wider uppercase text-orange-600">
+          {source === "musement" ? "Musement" : source}
+        </span>
+        <h1 className="mt-1 text-2xl font-bold leading-tight">{title}</h1>
+        {details && (details.rating || details.languages || details.duration) && (
+          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted">
+            {details.rating && details.rating > 0 && (
+              <span className="flex items-center gap-1 font-semibold text-foreground">
+                <span className="text-amber-500">★</span>
+                {details.rating.toFixed(1)}
+                <span className="font-normal text-muted">({details.reviewCount ?? 0} reviews)</span>
+              </span>
             )}
-            {details && (
-              <div className="mt-2 flex flex-wrap gap-3 text-[11px] text-muted">
-                {details.duration && <span>⏱️ {details.duration}</span>}
-                {details.rating && details.rating > 0 && (
-                  <span>⭐ {details.rating.toFixed(1)} ({details.reviewCount ?? 0})</span>
-                )}
-                {details.languages && details.languages.length > 0 && (
-                  <span>🗣️ {details.languages.slice(0, 4).join(", ").toUpperCase()}</span>
-                )}
-                {details.cancellationPolicy && (
-                  <span className={details.cancellationPolicy === "Free cancellation" ? "text-emerald-700 font-semibold" : ""}>
-                    {details.cancellationPolicy === "Free cancellation" ? "✅" : "⚠️"} {details.cancellationPolicy}
-                  </span>
-                )}
-              </div>
+            {details.duration && <span>⏱ {details.duration}</span>}
+            {details.languages && details.languages.length > 0 && (
+              <span>🗣 {details.languages.slice(0, 4).join(", ").toUpperCase()}</span>
             )}
           </div>
+        )}
+      </div>
+
+      {/* Hero image gallery — replaces the small ticket-emoji block. Falls
+          back to a gradient placeholder when Musement returned no images. */}
+      <div className="mb-6 overflow-hidden rounded-2xl border border-border/60 bg-white shadow-sm">
+        <div className="relative aspect-[16/9] w-full bg-gradient-to-br from-orange-100 via-amber-50 to-white">
+          {heroSrc ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={heroSrc}
+              alt={title}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <div className="grid h-full place-items-center text-6xl">🎫</div>
+          )}
+          {price > 0 && (
+            <div className="absolute right-4 top-4 rounded-full bg-black/70 px-3 py-1 text-xs font-semibold text-white backdrop-blur">
+              From {currency === "EUR" ? "€" : currency} {price.toFixed(2)} pp
+            </div>
+          )}
+          {details?.cancellationPolicy === "Free cancellation" && (
+            <div className="absolute left-4 top-4 rounded-full bg-emerald-600 px-3 py-1 text-xs font-semibold text-white">
+              ✓ Free cancellation
+            </div>
+          )}
         </div>
+
+        {/* Thumbnail strip when multiple images are returned (production mostly) */}
+        {heroImages.length > 1 && (
+          <div className="flex gap-2 overflow-x-auto p-3">
+            {heroImages.slice(0, 8).map((img, i) => (
+              <button
+                key={img.url}
+                type="button"
+                onClick={() => setActiveImageIdx(i)}
+                className={`h-16 w-24 shrink-0 overflow-hidden rounded-lg border-2 transition-all ${
+                  activeImageIdx === i ? "border-orange-500" : "border-transparent opacity-70 hover:opacity-100"
+                }`}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={img.url} alt="" className="h-full w-full object-cover" />
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Activity details panel (Musement Quality Check #3 required fields) */}
