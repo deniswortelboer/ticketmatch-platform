@@ -740,7 +740,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         )}
 
         {/* Main content */}
-        <main className="flex-1 overflow-y-auto overflow-x-hidden pb-16 md:pt-0 md:pb-0 bg-[#f5f6fa]" style={{ paddingTop: "calc(3.5rem + env(safe-area-inset-top, 0px))" }}>
+        <main className="flex-1 overflow-y-auto overflow-x-hidden pb-16 md:pt-0 md:pb-0 bg-[var(--background)]" style={{ paddingTop: "calc(3.5rem + env(safe-area-inset-top, 0px))" }}>
           {pathname === "/dashboard/command" ? (
             <div className="px-3 py-2 md:px-4 md:py-3">
               {children}

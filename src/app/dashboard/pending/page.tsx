@@ -44,7 +44,7 @@ export default function PendingApprovalPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#f5f6fa] px-4">
+    <div className="flex min-h-screen items-center justify-center bg-[var(--background)] px-4">
       <div className="w-full max-w-lg">
         {/* Card */}
         <div className="rounded-2xl bg-white shadow-xl shadow-blue-900/5 border border-border/60 overflow-hidden">
