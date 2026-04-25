@@ -540,7 +540,12 @@ export default function ExperiencesPage() {
     // Museums" bug after the new verticals UI shipped.
     const useVertical = verticalSel > 0;
     const useCombo = verticalSel === -1;
-    const upstreamLimit = useCombo ? 100 : PAGE_SIZE;
+    // Vertical/combo filtering happens partly client-side (sandbox under-tags
+    // and the synthetic combo bucket has no API support), so we widen the
+    // upstream batch to Musement's per-page maximum (100) — without this,
+    // PAGE_SIZE=30 would have us filter just a small random slice and miss
+    // most matches (e.g. Museums showed 7 of an actual ~38 in Amsterdam).
+    const upstreamLimit = (useCombo || useVertical) ? 100 : PAGE_SIZE;
     const payload: Record<string, unknown> = {
       cityName: selectedCity,
       limit: upstreamLimit,
