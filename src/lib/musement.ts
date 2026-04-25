@@ -1478,13 +1478,28 @@ function mapActivityToProduct(a: Record<string, unknown>, cityName: string, curr
       margin: Math.round(margin * 100) / 100,
       serviceFee,
     },
-    images: ((a.cover_image_url as string)
-      ? [{ url: a.cover_image_url as string }]
-      : ((a.images || []) as Record<string, unknown>[]).slice(0, 5).map((img) => ({
-          url: (img.url as string) || "",
-          caption: (img.caption as string) || "",
-        }))
-    ),
+    images: (() => {
+      // Combine the activity cover, any extra activity images, and the
+      // cover_image_url of each venue. Combos (e.g. Van Gogh + Rijksmuseum)
+      // each carry venue covers and visibly populate the gallery this way.
+      const out: Array<{ url: string; caption?: string }> = [];
+      const cover = a.cover_image_url as string | undefined;
+      if (cover) out.push({ url: cover });
+      for (const img of ((a.images || []) as Record<string, unknown>[]).slice(0, 6)) {
+        const url = img.url as string;
+        if (url) out.push({ url, caption: (img.caption as string) || "" });
+      }
+      for (const v of ((a.venues || []) as Record<string, unknown>[]).slice(0, 4)) {
+        const url = v.cover_image_url as string;
+        if (url) out.push({ url, caption: (v.name as string) || "" });
+      }
+      const seen = new Set<string>();
+      return out.filter((i) => {
+        if (!i.url || seen.has(i.url)) return false;
+        seen.add(i.url);
+        return true;
+      }).slice(0, 8);
+    })(),
     categories: taxonomies
       .map((t) => (t.name as string) || "")
       .filter(Boolean)

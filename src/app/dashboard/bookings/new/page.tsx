@@ -306,7 +306,12 @@ function NewBookingForm() {
   }
 
   const heroImages = (details?.images || []).filter((i) => i?.url);
-  const heroSrc = heroImages[activeImageIdx]?.url || heroImages[0]?.url;
+  const rawHero = heroImages[activeImageIdx]?.url || heroImages[0]?.url;
+  // Musement images-CDN supports ?w=NNN; bump hero to 1080px for sharpness,
+  // keep thumbnails at the default (already 540px from the API response).
+  const heroSrc = rawHero
+    ? rawHero.replace(/([?&])w=\d+/, "$1w=1080") + (rawHero.includes("w=") ? "" : (rawHero.includes("?") ? "&w=1080" : "?w=1080"))
+    : null;
 
   return (
     <div className="max-w-3xl mx-auto p-6">
@@ -343,7 +348,7 @@ function NewBookingForm() {
       {/* Hero image gallery — replaces the small ticket-emoji block. Falls
           back to a gradient placeholder when Musement returned no images. */}
       <div className="mb-6 overflow-hidden rounded-2xl border border-border/60 bg-white shadow-sm">
-        <div className="relative aspect-[16/9] w-full bg-gradient-to-br from-orange-100 via-amber-50 to-white">
+        <div className="relative aspect-[5/2] max-h-72 w-full bg-gradient-to-br from-orange-100 via-amber-50 to-white">
           {heroSrc ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
