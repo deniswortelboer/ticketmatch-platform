@@ -140,3 +140,47 @@ body {
     display: none !important;
   }
 }
+
+/* ─── Dashboard dark-mode overrides ───────────────────────────────────────
+ * The dashboard pages were authored with hardcoded utility classes like
+ * `bg-white`, `bg-gray-50`, `border-gray-200`, `text-gray-900` etc. Rather
+ * than touching every component, we coerce those utilities to the theme
+ * CSS variables when `.dark` is active on <html>. Brand colours (orange,
+ * emerald, amber) are intentionally left alone — they read fine on both
+ * backgrounds. This is a pragmatic re-skin, not a per-component pass.
+ */
+.dark .bg-white { background-color: var(--surface) !important; }
+.dark .bg-gray-50 { background-color: var(--surface-alt) !important; }
+.dark .bg-gray-100 { background-color: var(--surface-alt) !important; }
+.dark .bg-gray-200 { background-color: #334155 !important; }
+.dark .bg-slate-50 { background-color: var(--surface-alt) !important; }
+.dark .bg-slate-100 { background-color: var(--surface-alt) !important; }
+
+.dark .text-black { color: var(--foreground) !important; }
+.dark .text-gray-900 { color: var(--foreground) !important; }
+.dark .text-gray-800 { color: #e5e7eb !important; }
+.dark .text-gray-700 { color: #d1d5db !important; }
+.dark .text-gray-600 { color: #9ca3af !important; }
+.dark .text-gray-500 { color: var(--muted) !important; }
+
+.dark .border-gray-100 { border-color: var(--border) !important; }
+.dark .border-gray-200 { border-color: var(--border) !important; }
+.dark .border-gray-300 { border-color: #374151 !important; }
+.dark .divide-gray-100 > * + * { border-color: var(--border) !important; }
+.dark .divide-gray-200 > * + * { border-color: var(--border) !important; }
+
+/* Form controls — ensure inputs/selects/textareas get a dark surface so
+ * their text is readable. */
+.dark input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+.dark select,
+.dark textarea {
+  background-color: var(--surface) !important;
+  color: var(--foreground) !important;
+  border-color: var(--border) !important;
+}
+.dark input::placeholder,
+.dark textarea::placeholder { color: #6b7280 !important; }
+
+/* Hovers that had an explicit gray background — subtly tinted in dark */
+.dark .hover\:bg-gray-50:hover { background-color: rgb(255 255 255 / 0.04) !important; }
+.dark .hover\:bg-gray-100:hover { background-color: rgb(255 255 255 / 0.06) !important; }
