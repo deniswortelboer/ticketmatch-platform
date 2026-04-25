@@ -320,7 +320,7 @@ function NewBookingForm() {
     : null;
 
   return (
-    <div className="max-w-3xl mx-auto p-6">
+    <div className="max-w-6xl mx-auto p-6">
       <button
         onClick={() => router.back()}
         className="mb-4 text-sm text-muted hover:text-foreground"
@@ -351,6 +351,10 @@ function NewBookingForm() {
         )}
       </div>
 
+      {/* Two-column layout: rich content left, sticky booking + margin right.
+          Stacks on mobile (lg breakpoint flips into the grid). */}
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
+        <div className="min-w-0">
       {/* Hero image gallery — replaces the small ticket-emoji block. Falls
           back to a gradient placeholder when Musement returned no images. */}
       <div className="mb-6 overflow-hidden rounded-2xl border border-border/60 bg-white shadow-sm">
@@ -527,6 +531,10 @@ function NewBookingForm() {
         </div>
       )}
 
+        </div>{/* /left column */}
+
+        {/* Right column: sticky booking + margin (stacks on mobile) */}
+        <div className="lg:sticky lg:top-6 space-y-6">
       {/* Reseller margin preview — what the booker actually keeps. Shown
           even when Musement hasn't returned a real net_price (sandbox /
           affiliate tier) — we synthesise an 18% industry-standard margin
@@ -747,6 +755,8 @@ function NewBookingForm() {
           </button>
         </div>
       </div>
+        </div>{/* /right column */}
+      </div>{/* /grid */}
     </div>
   );
 }
