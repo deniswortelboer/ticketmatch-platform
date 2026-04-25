@@ -169,6 +169,74 @@ const CATEGORIES = [
   { label: "Transport", value: "21914" },
 ];
 
+// Musement doesn't expose category info per activity, and its API doesn't
+// reliably honour the city + category combination via /activities. To still
+// give users a useful category filter on Musement results we filter
+// client-side: fetch the full city catalog, then keep only products whose
+// title or description matches the category's keyword regex. Coverage is
+// best-effort — a few activities will be miscategorised because the title
+// doesn't contain the obvious keyword. Keys mirror CATEGORIES + SUB_CATEGORIES
+// values so we can apply both main and sub filters.
+const MUSEMENT_CATEGORY_KEYWORDS: Record<string, RegExp> = {
+  // Main categories
+  "21514": /museum|gallery|exhibition|painting|sculpture|monument/i,
+  "12716": /attraction|theme.?park|zoo|aquarium|tower|observation|stadium/i,
+  "21709": /\bcruise|\bcanal|\bboat|sailing|\bferry/i,
+  "21913": /\btour\b|sightseeing|hop.?on|hop.?off|excursion|guide/i,
+  "21910": /\bart\b|gallery|museum|theatre|theater|cultural|concert|exhibition/i,
+  "21911": /food|wine|beer|tasting|culinary|drink|chef|cooking|dinner|brewery|cheese|chocolate|coffee/i,
+  "21909": /outdoor|hiking|bike|bicycle|cycling|nature|garden|adventure|forest|countryside/i,
+  "21912": /\bpass\b|\bticket\b|skip.?the.?line|access|combo|entry/i,
+  "12520": /./i, // Activities = catch-all by design
+  "21635": /\bshow\b|theatre|theater|musical|\bopera\b|comedy|performance|concert/i,
+  "21915": /\bclass\b|workshop|lesson|cooking|painting|making|craft/i,
+  "21914": /transport|airport|transfer|\bbus\b|\btrain\b|metro|tram|\bferry\b|car.rental/i,
+
+  // Sub-categories (Museums)
+  "11901": /museum|exhibition/i,
+  "21598": /gallery|\bart\b/i,
+  "12031": /art tour|gallery tour/i,
+  "12029": /historical|history|heritage/i,
+  "12013": /architecture|building/i,
+
+  // Sub-categories (Attractions)
+  "11909": /theme.?park|amusement.?park/i,
+  "12074": /skip.?the.?line|fast.?track/i,
+  "11931": /city.?pass|combo|package/i,
+  "11927": /\bzoo\b/i,
+  "13110": /observation|deck|tower|skywalk/i,
+
+  // Sub-categories (Canal Cruises)
+  "11965": /dinner.cruise|romantic.cruise/i,
+  "21729": /sightseeing.?cruise|canal.?cruise/i,
+  "11887": /night.?cruise|evening.?cruise/i,
+  "11963": /sunset.?cruise/i,
+  "11885": /day.?cruise/i,
+
+  // Sub-categories (Tours & Sightseeing)
+  "12046": /walking/i,
+  "12075": /city.?tour/i,
+  "21702": /bike|bicycle/i,
+  "11889": /day.?trip|excursion/i,
+  "11930": /bus.?tour/i,
+  "12058": /hop.?on|hop.?off/i,
+  "20255": /boat.?tour|boat.?trip/i,
+  "12057": /night.?tour|evening.?tour/i,
+  "11941": /private.?tour/i,
+};
+
+function filterMusementByCategory<T extends { title?: string; description?: string }>(
+  products: T[],
+  categoryValue: string
+): T[] {
+  const re = MUSEMENT_CATEGORY_KEYWORDS[categoryValue];
+  if (!re) return products;
+  return products.filter((p) => {
+    const haystack = `${p.title || ""} ${p.description || ""}`;
+    return re.test(haystack);
+  });
+}
+
 // Sub-categories per main category
 const SUB_CATEGORIES: Record<string, { label: string; value: string }[]> = {
   "21514": [
@@ -365,12 +433,23 @@ export default function ExperiencesPage() {
     };
   }, []);
 
-  // Fetch from Musement
-  const fetchMusement = useCallback(async (selectedCity: string, startPage = 1): Promise<{ products: UnifiedProduct[]; totalCount: number }> => {
+  // Fetch from Musement.
+  //
+  // When a category is active we widen the upstream batch (Musement's hard
+  // ceiling is 100/page) so the client-side keyword filter has enough raw
+  // material to surface a useful subset. Without a category we keep PAGE_SIZE
+  // for normal pagination behaviour.
+  const fetchMusement = useCallback(async (
+    selectedCity: string,
+    selectedCategory: string,
+    startPage = 1,
+  ): Promise<{ products: UnifiedProduct[]; totalCount: number }> => {
+    const wantsCategoryFilter = !!selectedCategory && !!MUSEMENT_CATEGORY_KEYWORDS[selectedCategory];
+    const upstreamLimit = wantsCategoryFilter ? 100 : PAGE_SIZE;
     const payload: Record<string, unknown> = {
       cityName: selectedCity,
-      limit: PAGE_SIZE,
-      offset: (startPage - 1) * PAGE_SIZE,
+      limit: upstreamLimit,
+      offset: (startPage - 1) * upstreamLimit,
       currency: "EUR",
       language: "en",
       sortBy: "relevance",
@@ -382,9 +461,17 @@ export default function ExperiencesPage() {
     });
     if (!res.ok) return { products: [], totalCount: 0 };
     const data = await res.json();
+    const rawProducts = (data.products || []) as Array<{
+      title?: string;
+      description?: string;
+      [k: string]: unknown;
+    }>;
+    const filteredRaw = wantsCategoryFilter
+      ? filterMusementByCategory(rawProducts, selectedCategory)
+      : rawProducts;
     return {
-      products: (data.products || []).map(musementToUnified),
-      totalCount: data.totalCount || 0,
+      products: filteredRaw.map(musementToUnified),
+      totalCount: wantsCategoryFilter ? filteredRaw.length : (data.totalCount || 0),
     };
   }, []);
 
@@ -406,7 +493,7 @@ export default function ExperiencesPage() {
       }
 
       if (source === "musement" || source === "all") {
-        const musementData = await fetchMusement(selectedCity, startPage);
+        const musementData = await fetchMusement(selectedCity, selectedCategory, startPage);
         allProducts = [...allProducts, ...musementData.products];
         allCount += musementData.totalCount;
       }
