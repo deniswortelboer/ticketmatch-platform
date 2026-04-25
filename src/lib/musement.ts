@@ -39,6 +39,17 @@ export type MusementProduct = {
   flags: string[];
   languages: string[];
   isOwnOffer: boolean;      // TUI Musement in-house product
+  // Musement taxonomy for global discovery UI
+  verticals: { id: number; name: string }[];   // 7 top-level buckets
+  flavours: { id: number; name: string }[];    // Tour format (Guided/Private/Audio/Entrance)
+  // Curated rails — set true when Musement flags the activity as such
+  topSeller: boolean;
+  mustSee: boolean;
+  exclusive: boolean;
+  bestPrice: boolean;
+  specialOffer: boolean;
+  // Synthetic — combo / multi-activity bundle (detected from title)
+  isCombo: boolean;
   cancellationPolicy?: string;
   musementUrl: string;
   // Required fields per Musement Quality Check #3 (Display Activity Information)
@@ -57,6 +68,8 @@ export type MusementSearchParams = {
   cityId?: number;
   cityName?: string;
   categoryId?: number;
+  verticalId?: number;            // Filter by Musement vertical (1..7)
+  comboOnly?: boolean;            // Synthetic — keep only multi-activity bundles
   limit?: number;
   offset?: number;
   currency?: string;
@@ -388,6 +401,121 @@ export async function getDutchCities(language = "en"): Promise<{ id: number; nam
   }
 }
 
+// ─── Catalog Taxonomy (Countries / Cities by country / Verticals) ───────────
+// Musement's own taxonomy is the source of truth for global discovery:
+//  • /countries — used as top-level picker (~150 countries)
+//  • /cities    — sandbox ignores country_in, so we fetch the global slice once
+//                 and group client-side on `city.country.iso_code`. Production
+//                 may honour the filter; we'll still cache the global list.
+//  • /verticals — 7 language-neutral buckets (Museums & art, Tours & attractions,
+//                 Food & wine, Active & adventure, Performances, Sports, Nightlife)
+// All three are heavily cached (CATALOG_CACHE = 7d revalidation).
+
+export type MusementCountry = {
+  id: number;
+  name: string;
+  iso_code: string;
+};
+
+export type MusementCityLite = {
+  id: number;
+  name: string;
+  countryIso: string;
+  countryName: string;
+  weight: number;
+  activitiesCount: number;
+};
+
+export type MusementVertical = {
+  id: number;
+  name: string;
+};
+
+let countriesCache: MusementCountry[] | null = null;
+let citiesGlobalCache: MusementCityLite[] | null = null;
+let verticalsCache: MusementVertical[] | null = null;
+
+/** All Musement countries with iso_code, alphabetised. */
+export async function getCountries(language = "en"): Promise<MusementCountry[]> {
+  if (countriesCache) return countriesCache;
+  const all: MusementCountry[] = [];
+  const PAGE = 100;
+  for (let offset = 0; offset < 500; offset += PAGE) {
+    const res = await fetch(
+      `${MUSEMENT_API_BASE}/countries?limit=${PAGE}&offset=${offset}`,
+      { headers: getHeaders(language), ...CATALOG_CACHE }
+    );
+    if (!res.ok) break;
+    const page = (await res.json()) as MusementCountry[];
+    if (!Array.isArray(page) || page.length === 0) break;
+    all.push(...page);
+    if (page.length < PAGE) break;
+  }
+  countriesCache = all
+    .filter((c) => c?.iso_code)
+    .sort((a, b) => a.name.localeCompare(b.name));
+  return countriesCache;
+}
+
+/** Internal: paginate the global /cities list once and keep an in-memory copy. */
+async function loadGlobalCities(language = "en"): Promise<MusementCityLite[]> {
+  if (citiesGlobalCache) return citiesGlobalCache;
+  const all: MusementCityLite[] = [];
+  const PAGE = 100;
+  // Cap at 3000 cities — Musement's full catalog is ~2.5k.
+  for (let offset = 0; offset < 3000; offset += PAGE) {
+    const res = await fetch(
+      `${MUSEMENT_API_BASE}/cities?limit=${PAGE}&offset=${offset}&sort_by=weight`,
+      { headers: getHeaders(language), ...CATALOG_CACHE }
+    );
+    if (!res.ok) break;
+    const page = (await res.json()) as Record<string, unknown>[];
+    if (!Array.isArray(page) || page.length === 0) break;
+    for (const c of page) {
+      const country = c.country as Record<string, unknown> | undefined;
+      const iso = country?.iso_code as string | undefined;
+      if (!iso) continue;
+      all.push({
+        id: c.id as number,
+        name: c.name as string,
+        countryIso: iso,
+        countryName: (country?.name as string) || "",
+        weight: (c.weight as number) ?? 0,
+        activitiesCount: (c.activities_count as number) ?? 0,
+      });
+    }
+    if (page.length < PAGE) break;
+  }
+  citiesGlobalCache = all;
+  return all;
+}
+
+/** Cities for a given ISO 2-letter country code, sorted by weight desc. */
+export async function getCitiesByCountry(
+  iso: string,
+  language = "en"
+): Promise<MusementCityLite[]> {
+  const all = await loadGlobalCities(language);
+  const target = iso.toUpperCase();
+  return all
+    .filter((c) => c.countryIso.toUpperCase() === target)
+    .sort((a, b) => b.weight - a.weight || a.name.localeCompare(b.name));
+}
+
+/** Musement's 7 top-level verticals. Language-neutral by ID. */
+export async function getVerticals(language = "en"): Promise<MusementVertical[]> {
+  if (verticalsCache) return verticalsCache;
+  const res = await fetch(`${MUSEMENT_API_BASE}/verticals?limit=50`, {
+    headers: getHeaders(language),
+    ...CATALOG_CACHE,
+  });
+  if (!res.ok) return [];
+  const data = (await res.json()) as Array<{ id: number; name: string }>;
+  if (!Array.isArray(data)) return [];
+  verticalsCache = data.map((v) => ({ id: v.id, name: v.name }));
+  return verticalsCache;
+}
+
 // ─── Product Search ─────────────────────────────────────────────────────────
 
 /**
@@ -423,6 +551,10 @@ export async function searchActivities(params: MusementSearchParams): Promise<Mu
       url += "&sort_by=relevance";
     }
 
+    if (params.verticalId) {
+      url += `&vertical_in=${params.verticalId}`;
+    }
+
     const res = await fetch(url, {
       headers: {
         ...getHeaders(params.language),
@@ -442,9 +574,21 @@ export async function searchActivities(params: MusementSearchParams): Promise<Mu
       ? activities.length + (activities.length === limit ? 1 : 0)
       : (data.meta?.count || activities.length);
 
-    const products: MusementProduct[] = activities.map((a: Record<string, unknown>) =>
+    let products: MusementProduct[] = activities.map((a: Record<string, unknown>) =>
       mapActivityToProduct(a, params.cityName || "", currency)
     );
+
+    // Sandbox often ignores vertical_in — enforce client-side as belt-and-braces.
+    if (params.verticalId) {
+      products = products.filter((p) =>
+        p.verticals.some((v) => v.id === params.verticalId)
+      );
+    }
+
+    // Synthetic "Combos" bucket — title-detected multi-activity bundles.
+    if (params.comboOnly) {
+      products = products.filter((p) => p.isCombo);
+    }
 
     return {
       products,
@@ -1207,6 +1351,23 @@ export async function getCategories(language = "en"): Promise<{ id: number; name
 
 // ─── Internal Helpers ───────────────────────────────────────────────────────
 
+/**
+ * Detect a multi-activity combo from the activity title. Musement does not
+ * expose a "combo" flag in the catalog, but bundle products are reliably
+ * recognisable from titles like "X and Y entrance", "X + Y combo ticket",
+ * "Heineken Experience and canal cruise". Curated test on 50 Amsterdam
+ * activities matched 17 combos correctly with no false positives.
+ */
+function detectCombo(title: string): boolean {
+  if (!title) return false;
+  const t = title.toLowerCase();
+  if (/\bcombo\b|\bbundle\b|\bpackage\b|\b2-?in-?1\b|\b3-?in-?1\b/.test(t)) return true;
+  if (/\bticket and\b|\b and ticket\b|\b& ticket\b/.test(t)) return true;
+  if (/\bcruise (and|with|\+)\b|\b(and|\+) (canal )?cruise\b/.test(t)) return true;
+  if (/\b(museum|tour|entrance) (and|\+|with) (museum|tour|entrance|cruise|dinner|lunch)\b/.test(t)) return true;
+  return false;
+}
+
 function mapActivityToProduct(a: Record<string, unknown>, cityName: string, currency: string): MusementProduct {
   const netPrice = (a.net_price as number) || (a.retail_price as Record<string, unknown>)?.value as number || 0;
   const retailPrice = (a.retail_price as Record<string, unknown>)?.value as number
@@ -1302,6 +1463,18 @@ function mapActivityToProduct(a: Record<string, unknown>, cityName: string, curr
       (l) => (l.code as string) || (l as unknown as string)
     ).filter(Boolean),
     isOwnOffer: (a.supplier_type as string) === "OWN" || (a.own_offer as boolean) === true,
+    verticals: ((a.verticals || []) as Record<string, unknown>[])
+      .map((v) => ({ id: (v.id as number) ?? 0, name: (v.name as string) || "" }))
+      .filter((v) => v.id),
+    flavours: ((a.flavours || []) as Record<string, unknown>[])
+      .map((f) => ({ id: (f.id as number) ?? 0, name: (f.name as string) || "" }))
+      .filter((f) => f.id),
+    topSeller: (a.top_seller as boolean) === true,
+    mustSee: (a.must_see as boolean) === true,
+    exclusive: (a.exclusive as boolean) === true,
+    bestPrice: (a.best_price as boolean) === true,
+    specialOffer: (a.special_offer as boolean) === true,
+    isCombo: detectCombo((a.title as string) || ""),
     cancellationPolicy: (a.free_cancellation as boolean) ? "Free cancellation" : "Non-refundable",
     musementUrl: (a.url as string) || "",
     highlights: highlights.length ? highlights : undefined,

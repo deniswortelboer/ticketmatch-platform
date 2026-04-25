@@ -342,6 +342,24 @@ const SUB_CATEGORIES: Record<string, { label: string; value: string }[]> = {
 
 const PAGE_SIZE = 30;
 
+// ISO 3166-1 alpha-2 → flag emoji (regional indicator pair).
+function isoToFlag(iso: string): string {
+  if (!iso || iso.length !== 2) return "🏳";
+  const A = 0x1f1e6 - "A".charCodeAt(0);
+  return String.fromCodePoint(iso.toUpperCase().charCodeAt(0) + A, iso.toUpperCase().charCodeAt(1) + A);
+}
+
+// Iconography for Musement's 7 verticals (taal-neutraal — keyed by English name).
+const VERTICAL_ICONS: Record<string, string> = {
+  "Museums & art": "📚",
+  "Tours & attractions": "🎯",
+  "Food & wine": "🍷",
+  "Active & adventure": "🚴",
+  "Performances": "🎭",
+  "Sports": "⚽",
+  "Nightlife": "🌃",
+};
+
 function StarRating({ rating, count }: { rating: number; count: number }) {
   const full = Math.floor(rating);
   const half = rating - full >= 0.3;
@@ -390,6 +408,20 @@ export default function ExperiencesPage() {
   // kept as fallback for cities Musement doesn't cover yet.
   const [source, setSource] = useState<ProductSource>("musement");
 
+  // ─── Country → City → Vertical hierarchy (Musement taxonomy) ──────────────
+  type CountryOpt = { id: number; name: string; iso: string };
+  type CityOpt = { id: number; name: string; count: number; weight: number };
+  type VerticalOpt = { id: number; name: string };
+  const [country, setCountry] = useState<string>("NL"); // ISO 2-letter
+  const [countries, setCountries] = useState<CountryOpt[]>([]);
+  const [countryCities, setCountryCities] = useState<CityOpt[]>([]);
+  const [verticals, setVerticals] = useState<VerticalOpt[]>([]);
+  // 0 = "All", -1 = synthetic "Combos" bucket, else a real Musement vertical id.
+  const [verticalSel, setVerticalSel] = useState<number>(0);
+  const [showCountryDD, setShowCountryDD] = useState(false);
+  const [countrySearch, setCountrySearch] = useState("");
+  const [showCityDD2, setShowCityDD2] = useState(false);
+
   // City search with debounce
   useEffect(() => {
     if (citySearch.length < 2) { setCityResults([]); return; }
@@ -403,6 +435,45 @@ export default function ExperiencesPage() {
     }, 300);
     return () => clearTimeout(timer);
   }, [citySearch]);
+
+  // Load Musement countries + verticals once on mount.
+  useEffect(() => {
+    (async () => {
+      try {
+        const [cRes, vRes] = await Promise.all([
+          fetch("/api/musement/countries"),
+          fetch("/api/musement/verticals"),
+        ]);
+        const cData = await cRes.json();
+        const vData = await vRes.json();
+        setCountries(cData.countries || []);
+        setVerticals(vData.verticals || []);
+      } catch {
+        // non-fatal — UI gracefully renders the legacy chip rows
+      }
+    })();
+  }, []);
+
+  // Load cities whenever country changes.
+  useEffect(() => {
+    if (!country) return;
+    (async () => {
+      try {
+        const res = await fetch(`/api/musement/cities?country=${country}`);
+        const data = await res.json();
+        const list: CityOpt[] = data.cities || [];
+        setCountryCities(list);
+        // Auto-select first city of new country if current city isn't in list.
+        if (list.length && !list.some((c) => c.name.toLowerCase() === city)) {
+          setCity(list[0].name.toLowerCase());
+          setCustomCity(null);
+        }
+      } catch {
+        setCountryCities([]);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [country]);
 
   // Fetch from Viator
   const fetchViator = useCallback(async (selectedCity: string, selectedCategory: string, destId?: number, startPage = 1): Promise<{ products: UnifiedProduct[]; totalCount: number }> => {
@@ -444,8 +515,14 @@ export default function ExperiencesPage() {
     selectedCategory: string,
     startPage = 1,
   ): Promise<{ products: UnifiedProduct[]; totalCount: number }> => {
-    const wantsCategoryFilter = !!selectedCategory && !!MUSEMENT_CATEGORY_KEYWORDS[selectedCategory];
-    const upstreamLimit = wantsCategoryFilter ? 100 : PAGE_SIZE;
+    // Vertical filter (real Musement taxonomy) takes precedence over the
+    // legacy keyword-based category filter. -1 = synthetic "Combos" bucket.
+    const useVertical = verticalSel > 0;
+    const useCombo = verticalSel === -1;
+    const wantsCategoryFilter =
+      !useVertical && !useCombo &&
+      !!selectedCategory && !!MUSEMENT_CATEGORY_KEYWORDS[selectedCategory];
+    const upstreamLimit = (wantsCategoryFilter || useCombo) ? 100 : PAGE_SIZE;
     const payload: Record<string, unknown> = {
       cityName: selectedCity,
       limit: upstreamLimit,
@@ -454,6 +531,9 @@ export default function ExperiencesPage() {
       language: "en",
       sortBy: "relevance",
     };
+    if (useVertical) payload.verticalId = verticalSel;
+    if (useCombo) payload.comboOnly = true;
+
     const res = await fetch("/api/musement/search", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -467,9 +547,9 @@ export default function ExperiencesPage() {
       : rawProducts;
     return {
       products: filteredRaw.map(musementToUnified),
-      totalCount: wantsCategoryFilter ? filteredRaw.length : (data.totalCount || 0),
+      totalCount: (wantsCategoryFilter || useCombo) ? filteredRaw.length : (data.totalCount || 0),
     };
-  }, []);
+  }, [verticalSel]);
 
   const fetchExperiences = useCallback(async (selectedCity: string, selectedCategory: string, destId?: number, startPage = 1, append = false) => {
     if (append) {
@@ -529,7 +609,7 @@ export default function ExperiencesPage() {
     } else {
       fetchExperiences(city, activeTag, undefined, 1, false);
     }
-  }, [city, customCity, categoryFilter, subCategoryFilter, source, fetchExperiences]);
+  }, [city, customCity, categoryFilter, subCategoryFilter, source, verticalSel, fetchExperiences]);
 
   const handleLoadMore = () => {
     const activeTag = subCategoryFilter || categoryFilter;
@@ -579,7 +659,7 @@ export default function ExperiencesPage() {
     : [...NL_CITIES, ...MORE_NL_CITIES, ...EU_CITIES].find((c) => c.value === city)?.label || city;
 
   return (
-    <div onClick={() => { setShowCityDropdown(false); setShowMoreNL(false); }}>
+    <div onClick={() => { setShowCityDropdown(false); setShowMoreNL(false); setShowCountryDD(false); setShowCityDD2(false); }}>
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
@@ -638,47 +718,86 @@ export default function ExperiencesPage() {
         )}
       </div>
 
-      {/* Banner 1: The Netherlands */}
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        <span className="mr-1 text-xs font-semibold uppercase tracking-wider text-muted/70">🇳🇱 Netherlands</span>
-        {NL_CITIES.map((c) => (
-          <button
-            key={c.value}
-            onClick={() => handleSelectCity(c.value)}
-            className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors ${
-              city === c.value && !customCity
-                ? c.value === "all" ? "bg-foreground text-white" : "bg-accent text-white"
-                : c.value === "all" ? "border border-foreground/30 bg-white text-foreground hover:bg-foreground hover:text-white" : "border border-border bg-white text-muted hover:text-foreground"
-            }`}
-          >
-            {c.label}
-          </button>
-        ))}
-        {/* More NL cities dropdown */}
+      {/* Country + City pickers (Musement taxonomy) */}
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        {/* Country */}
         <div className="relative" onClick={(e) => e.stopPropagation()}>
           <button
-            onClick={() => setShowMoreNL(!showMoreNL)}
-            className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors ${
-              MORE_NL_CITIES.some((c) => c.value === city) && !customCity
-                ? "bg-accent text-white"
-                : "border-2 border-dashed border-accent/40 bg-accent/5 text-accent hover:border-accent hover:bg-accent/10"
-            }`}
+            onClick={() => setShowCountryDD(!showCountryDD)}
+            className="flex items-center gap-2 rounded-full border border-border bg-white px-4 py-2 text-sm font-medium text-foreground hover:bg-gray-50"
           >
-            {MORE_NL_CITIES.find((c) => c.value === city && !customCity)?.label || "More NL"} ▾
+            <span className="text-[10px] uppercase tracking-wider text-muted/60">Country</span>
+            <span className="text-base leading-none">{isoToFlag(country)}</span>
+            <span>{countries.find(c => c.iso === country)?.name || country}</span>
+            <span className="text-muted">▾</span>
           </button>
-          {showMoreNL && (
-            <div className="absolute left-0 top-9 z-50 w-44 rounded-xl border border-border bg-white py-1 shadow-xl">
-              {MORE_NL_CITIES.map((c) => (
+          {showCountryDD && (
+            <div className="absolute left-0 top-12 z-50 max-h-96 w-72 overflow-auto rounded-xl border border-border bg-white py-1 shadow-xl">
+              <div className="sticky top-0 bg-white p-1">
+                <input
+                  autoFocus
+                  type="text"
+                  placeholder="Search country…"
+                  value={countrySearch}
+                  onChange={(e) => setCountrySearch(e.target.value)}
+                  onClick={(e) => e.stopPropagation()}
+                  className="w-full rounded-lg border border-border px-3 py-1.5 text-sm outline-none focus:border-accent"
+                />
+              </div>
+              {countries
+                .filter((c) => {
+                  const q = countrySearch.toLowerCase();
+                  return !q || c.name.toLowerCase().includes(q) || c.iso.toLowerCase().includes(q);
+                })
+                .map((c) => (
+                  <button
+                    key={c.iso}
+                    onClick={() => { setCountry(c.iso); setShowCountryDD(false); setCountrySearch(""); }}
+                    className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors ${
+                      country === c.iso ? "bg-accent/10 font-medium text-accent" : "hover:bg-accent/5"
+                    }`}
+                  >
+                    <span className="text-base leading-none">{isoToFlag(c.iso)}</span>
+                    <span className="flex-1">{c.name}</span>
+                    <span className="text-xs text-muted/60">{c.iso}</span>
+                  </button>
+                ))}
+              {!countries.length && (
+                <div className="px-3 py-2 text-sm text-muted">Loading countries…</div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* City */}
+        <div className="relative" onClick={(e) => e.stopPropagation()}>
+          <button
+            onClick={() => setShowCityDD2(!showCityDD2)}
+            disabled={!countryCities.length}
+            className="flex items-center gap-2 rounded-full border border-border bg-white px-4 py-2 text-sm font-medium text-foreground hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <span className="text-[10px] uppercase tracking-wider text-muted/60">City</span>
+            <span className="capitalize">
+              {customCity?.name
+                || countryCities.find((c) => c.name.toLowerCase() === city)?.name
+                || (countryCities.length ? "Select…" : "—")}
+            </span>
+            <span className="text-muted">▾</span>
+          </button>
+          {showCityDD2 && countryCities.length > 0 && (
+            <div className="absolute left-0 top-12 z-50 max-h-96 w-64 overflow-auto rounded-xl border border-border bg-white py-1 shadow-xl">
+              {countryCities.map((c) => (
                 <button
-                  key={c.value}
-                  onClick={() => { handleSelectCity(c.value); setShowMoreNL(false); }}
-                  className={`w-full px-4 py-2 text-left text-sm transition-colors ${
-                    city === c.value && !customCity
-                      ? "bg-accent/10 text-accent font-medium"
-                      : "hover:bg-accent/5 text-foreground"
+                  key={c.id}
+                  onClick={() => { handleSelectCity(c.name.toLowerCase()); setShowCityDD2(false); }}
+                  className={`flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm transition-colors ${
+                    city === c.name.toLowerCase() && !customCity
+                      ? "bg-accent/10 font-medium text-accent"
+                      : "hover:bg-accent/5"
                   }`}
                 >
-                  {c.label}
+                  <span>{c.name}</span>
+                  {c.count > 0 && <span className="text-xs text-muted/60">{c.count}</span>}
                 </button>
               ))}
             </div>
@@ -686,97 +805,42 @@ export default function ExperiencesPage() {
         </div>
       </div>
 
-      {/* Banner 2: More Cities (Europe) */}
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        <span className="mr-1 text-xs font-semibold uppercase tracking-wider text-muted/70">🌍 More Cities</span>
-        {EU_CITIES.map((c) => (
+      {/* Verticals taxonomy row (Musement's own 7 buckets + synthetic Combos) */}
+      <div className="mb-6 flex flex-wrap gap-1.5">
+        <button
+          onClick={() => setVerticalSel(0)}
+          className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors ${
+            verticalSel === 0
+              ? "bg-foreground text-white"
+              : "border border-border bg-white text-muted hover:text-foreground"
+          }`}
+        >
+          All
+        </button>
+        {verticals.map((v) => (
           <button
-            key={c.value}
-            onClick={() => handleSelectCity(c.value)}
+            key={v.id}
+            onClick={() => setVerticalSel(v.id)}
             className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors ${
-              city === c.value && !customCity
+              verticalSel === v.id
                 ? "bg-accent text-white"
                 : "border border-border bg-white text-muted hover:text-foreground"
             }`}
           >
-            {c.label}
+            {VERTICAL_ICONS[v.name] || "•"} {v.name}
           </button>
         ))}
-        {/* Custom city search */}
-        <div className="relative" onClick={(e) => e.stopPropagation()}>
-          <input
-            type="text"
-            placeholder="Search 3,000+ cities..."
-            value={customCity && !citySearch ? customCity.name : citySearch}
-            onChange={(e) => { setCitySearch(e.target.value); if (customCity) setCustomCity(null); }}
-            onFocus={() => { if (cityResults.length > 0) setShowCityDropdown(true); }}
-            className={`h-[30px] w-44 rounded-full border-2 border-dashed px-4 text-xs font-medium outline-none transition-all ${
-              customCity
-                ? "border-accent bg-accent text-white placeholder:text-white/70"
-                : "border-accent/40 bg-accent/5 text-accent placeholder:text-accent/50 hover:border-accent hover:bg-accent/10 focus:border-accent focus:bg-white focus:ring-2 focus:ring-accent/10"
-            }`}
-          />
-          {showCityDropdown && cityResults.length > 0 && (
-            <div className="absolute left-0 top-9 z-50 w-56 rounded-xl border border-border bg-white py-1 shadow-xl">
-              {cityResults.map((dest) => (
-                <button
-                  key={dest.id}
-                  onClick={() => handleSelectCustomCity(dest)}
-                  className="w-full px-4 py-2 text-left text-sm hover:bg-accent/5 transition-colors"
-                >
-                  {dest.name}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+        <button
+          onClick={() => setVerticalSel(-1)}
+          className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors ${
+            verticalSel === -1
+              ? "bg-accent text-white"
+              : "border-2 border-dashed border-accent/40 bg-accent/5 text-accent hover:border-accent hover:bg-accent/10"
+          }`}
+        >
+          🎁 Combos
+        </button>
       </div>
-
-      {/* Category filters */}
-      <div className="mb-3 flex flex-wrap gap-1.5">
-        {CATEGORIES.map((cat) => (
-          <button
-            key={cat.value}
-            onClick={() => { setCategoryFilter(cat.value); setSubCategoryFilter(""); }}
-            className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-              categoryFilter === cat.value
-                ? "bg-foreground text-white"
-                : "border border-border bg-white text-muted hover:text-foreground"
-            }`}
-          >
-            {cat.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Sub-category filters */}
-      {subCats.length > 0 && (
-        <div className="mb-6 flex flex-wrap gap-1.5">
-          <button
-            onClick={() => setSubCategoryFilter("")}
-            className={`rounded-full px-3 py-1.5 text-[11px] font-medium transition-colors ${
-              !subCategoryFilter
-                ? "bg-accent/20 text-accent ring-1 ring-accent/30"
-                : "border border-accent/20 bg-accent/5 text-accent/70 hover:bg-accent/10"
-            }`}
-          >
-            All {CATEGORIES.find(c => c.value === categoryFilter)?.label}
-          </button>
-          {subCats.map((sub) => (
-            <button
-              key={sub.value}
-              onClick={() => setSubCategoryFilter(sub.value)}
-              className={`rounded-full px-3 py-1.5 text-[11px] font-medium transition-colors ${
-                subCategoryFilter === sub.value
-                  ? "bg-accent/20 text-accent ring-1 ring-accent/30"
-                  : "border border-accent/20 bg-accent/5 text-accent/70 hover:bg-accent/10"
-              }`}
-            >
-              {sub.label}
-            </button>
-          ))}
-        </div>
-      )}
 
       {/* Loading state */}
       {loading && (

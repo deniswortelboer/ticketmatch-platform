@@ -8,6 +8,8 @@ export async function POST(request: NextRequest) {
       cityId,
       cityName,
       categoryId,
+      verticalId,
+      comboOnly,
       limit = 20,
       offset = 0,
       currency = "EUR",
@@ -36,6 +38,8 @@ export async function POST(request: NextRequest) {
       result = await searchActivities({
         cityId,
         cityName,
+        verticalId,
+        comboOnly,
         limit,
         offset,
         currency,

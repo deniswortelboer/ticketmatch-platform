@@ -1,13 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDutchCities } from "@/lib/musement";
+import { getCitiesByCountry, getDutchCities } from "@/lib/musement";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const language = searchParams.get("lang") || "en";
+  const country = searchParams.get("country");
 
   try {
-    const cities = await getDutchCities(language);
+    if (country) {
+      const cities = await getCitiesByCountry(country, language);
+      return NextResponse.json({
+        cities: cities.map((c) => ({
+          id: c.id,
+          name: c.name,
+          count: c.activitiesCount,
+          weight: c.weight,
+          countryIso: c.countryIso,
+          countryName: c.countryName,
+        })),
+        totalCount: cities.length,
+      });
+    }
 
+    // Backwards compat: no country param ⇒ Dutch cities
+    const cities = await getDutchCities(language);
     return NextResponse.json({
       cities,
       totalCount: cities.length,
