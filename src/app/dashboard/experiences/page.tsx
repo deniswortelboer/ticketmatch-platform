@@ -687,29 +687,50 @@ export default function ExperiencesPage() {
   const showRails =
     !search && !customCity && verticalSel === 0 && page === 1 && filtered.length > 0;
   const musementOnly = filtered.filter((p) => p.source === "musement");
-  const topSellersRail = (() => {
-    const tagged = musementOnly.filter((p) => p.topSeller);
-    if (tagged.length >= 3) return tagged.slice(0, 8);
-    return [...musementOnly].sort((a, b) => b.reviewCount - a.reviewCount).slice(0, 8);
-  })();
-  const mustSeeRail = (() => {
-    const tagged = musementOnly.filter((p) => p.mustSee);
-    if (tagged.length >= 3) return tagged.slice(0, 8);
-    return [...musementOnly]
-      .filter((p) => p.rating >= 4.5)
-      .sort((a, b) => b.rating - a.rating || b.reviewCount - a.reviewCount)
-      .slice(0, 8);
-  })();
-  const exclusiveRail = (() => {
-    const tagged = musementOnly.filter((p) => p.exclusive);
-    if (tagged.length >= 3) return tagged.slice(0, 8);
-    // Sandbox fallback: title signals premium/private/skip-the-line experience.
-    return musementOnly
-      .filter((p) =>
-        /\bprivate\b|\bvip\b|skip[\s-]?the[\s-]?line|\bexclusive\b|fast[\s-]?track|\bpriority\b/i.test(p.title)
-      )
-      .sort((a, b) => b.rating - a.rating || b.reviewCount - a.reviewCount)
-      .slice(0, 8);
+  const RAIL_TARGET = 8;
+  // Allocate each activity to at most one rail. Priority order: Top Sellers
+  // (by review count) → Must See (by rating) → Exclusive (premium signals).
+  // Each rail tops up to RAIL_TARGET from the remaining pool — so all three
+  // shelves are uniform when the catalog is big enough.
+  const exclusivePattern =
+    /\bprivate\b|\bvip\b|skip[\s-]?the[\s-]?line|\bexclusive\b|fast[\s-]?track|\bpriority\b/i;
+  const { topSellersRail, mustSeeRail, exclusiveRail } = (() => {
+    const used = new Set<string>();
+    const take = (pool: UnifiedProduct[]) => {
+      const out: UnifiedProduct[] = [];
+      for (const p of pool) {
+        if (used.has(p.id)) continue;
+        used.add(p.id);
+        out.push(p);
+        if (out.length >= RAIL_TARGET) break;
+      }
+      return out;
+    };
+    // Build prioritised pools per rail (primary signal first, fallback second).
+    const sortedByReviews = [...musementOnly].sort((a, b) => b.reviewCount - a.reviewCount);
+    const sortedByRating = [...musementOnly].sort((a, b) => b.rating - a.rating || b.reviewCount - a.reviewCount);
+
+    const topPool = [
+      ...musementOnly.filter((p) => p.topSeller),
+      ...sortedByReviews,
+    ];
+    const mustPool = [
+      ...musementOnly.filter((p) => p.mustSee),
+      ...sortedByRating.filter((p) => p.rating >= 4.0),
+      ...sortedByRating, // last-resort backfill
+    ];
+    const exclPool = [
+      ...musementOnly.filter((p) => p.exclusive),
+      ...musementOnly
+        .filter((p) => exclusivePattern.test(p.title))
+        .sort((a, b) => b.rating - a.rating || b.reviewCount - a.reviewCount),
+      ...sortedByRating, // last-resort backfill
+    ];
+
+    const top = take(topPool);
+    const must = take(mustPool);
+    const excl = take(exclPool);
+    return { topSellersRail: top, mustSeeRail: must, exclusiveRail: excl };
   })();
 
   const activeCityLabel = customCity
@@ -946,7 +967,9 @@ export default function ExperiencesPage() {
                 {rail.items.map((p) => (
                   <button
                     key={`rail-${rail.key}-${p.id}`}
-                    onClick={() => router.push(`/dashboard/bookings/new?activity=${p.id}&city=${encodeURIComponent(p.location.city)}&title=${encodeURIComponent(p.title)}`)}
+                    onClick={() => router.push(
+                      `/dashboard/bookings/new?source=musement&activityUuid=${p.id}&title=${encodeURIComponent(p.title)}&price=${p.price}&currency=${p.currency}`
+                    )}
                     className="group flex w-[220px] shrink-0 flex-col overflow-hidden rounded-xl border border-border/60 bg-white text-left transition-all hover:-translate-y-0.5 hover:shadow-md"
                   >
                     <div className="relative h-28 w-full overflow-hidden bg-gray-100">
