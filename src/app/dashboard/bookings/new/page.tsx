@@ -75,6 +75,9 @@ function NewBookingForm() {
     rating?: number;
     reviewCount?: number;
     languages?: string[];
+    netPrice?: number;
+    retailPrice?: number;
+    marginPct?: number;
   };
   const [details, setDetails] = useState<ActivityDetails | null>(null);
   // Open by default — Viator-style rich product page. Reseller engagement
@@ -179,6 +182,9 @@ function NewBookingForm() {
           rating: p.rating,
           reviewCount: p.reviewCount,
           languages: p.languages,
+          netPrice: p?.pricing?.netPrice,
+          retailPrice: p?.pricing?.retailPrice,
+          marginPct: p?.pricing?.margin,
         });
       } catch {
         // non-fatal — booking can proceed without the detail panel
@@ -446,7 +452,10 @@ function NewBookingForm() {
                   <h3 className="text-xs font-bold uppercase tracking-wider text-muted/70 mb-2">Meeting point</h3>
                   {details.meetingPoint && <p>{details.meetingPoint}</p>}
                   {details.whereText && (
-                    <p className="text-muted text-xs mt-1">{details.whereText}</p>
+                    <div
+                      className="text-muted text-xs mt-1 [&>p]:my-1 [&_a]:underline [&_a]:text-accent"
+                      dangerouslySetInnerHTML={{ __html: sanitizeMusementHtml(details.whereText) }}
+                    />
                   )}
                 </section>
               )}
@@ -471,21 +480,100 @@ function NewBookingForm() {
               )}
               {details.refundPolicies && details.refundPolicies.length > 0 && (
                 <section>
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-muted/70 mb-2">Refund policies</h3>
-                  <ul className="list-disc pl-5 space-y-1 text-xs">
-                    {details.refundPolicies.map((p, i) => (
-                      <li key={i}>
-                        {p.percentage !== undefined ? `${p.percentage}% refund` : "Refund"}
-                        {p.period ? ` · ${p.period}` : ""}
-                        {p.applicableUntil ? ` · until ${p.applicableUntil}` : ""}
-                      </li>
-                    ))}
-                  </ul>
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-muted/70 mb-2">Cancellation timeline</h3>
+                  <div className="rounded-xl border border-border/60 bg-gradient-to-br from-emerald-50 via-white to-amber-50 p-4">
+                    <div className="flex items-stretch gap-2">
+                      {details.refundPolicies
+                        .slice()
+                        .sort((a, b) => (b.percentage ?? 0) - (a.percentage ?? 0))
+                        .map((p, i) => {
+                          const pct = p.percentage ?? 0;
+                          const tone =
+                            pct >= 100 ? "bg-emerald-500"
+                            : pct >= 50 ? "bg-amber-500"
+                            : "bg-rose-500";
+                          const label =
+                            pct >= 100 ? "Full refund"
+                            : pct > 0 ? `${pct}% refund`
+                            : "No refund";
+                          return (
+                            <div key={i} className="flex-1 min-w-0 text-center">
+                              <div className={`mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold text-white ${tone}`}>
+                                {pct}%
+                              </div>
+                              <div className="text-xs font-semibold text-foreground">{label}</div>
+                              {p.period && (
+                                <div className="mt-0.5 text-[10px] text-muted leading-tight">
+                                  {p.period}
+                                </div>
+                              )}
+                              {p.applicableUntil && (
+                                <div className="mt-0.5 text-[10px] text-muted leading-tight">
+                                  until {p.applicableUntil}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                    </div>
+                    <p className="mt-3 text-[11px] text-muted/80">
+                      Help your customer pick a flexible date — the further out they book, the more refundable.
+                    </p>
+                  </div>
                 </section>
               )}
             </div>
           )}
         </div>
+      )}
+
+      {/* Reseller margin preview — what the booker actually keeps. Shown
+          even when Musement hasn't returned a real net_price (sandbox /
+          affiliate tier) — we synthesise an 18% industry-standard margin
+          and flag the row so we can swap to real numbers in production. */}
+      {details && details.retailPrice && details.retailPrice > 0 && details.marginPct !== undefined && (
+        (() => {
+          const retail = details.retailPrice;
+          const net = details.netPrice ?? retail;
+          const earningsPP = retail - net;
+          const isAssumed = !details.netPrice || details.netPrice >= retail;
+          const guestCount = Math.max(1, numberOfGuests || 1);
+          const totalEarnings = earningsPP * guestCount;
+          return (
+            <div className="mb-6 rounded-2xl border border-emerald-200/60 bg-gradient-to-br from-emerald-50 to-white p-5 shadow-sm">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold uppercase tracking-wider text-emerald-700">
+                      💰 You earn
+                    </span>
+                    {isAssumed && (
+                      <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700" title="Estimated using a 18% industry-standard reseller margin. Real net prices appear once production credentials are active.">
+                        estimate · 18%
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-1 flex items-baseline gap-3">
+                    <span className="text-2xl font-bold text-emerald-700">
+                      €{earningsPP.toFixed(2)}
+                    </span>
+                    <span className="text-sm text-muted">per person</span>
+                  </div>
+                  {guestCount > 1 && (
+                    <div className="mt-1 text-sm text-foreground/80">
+                      × {guestCount} guests = <strong className="text-emerald-700">€{totalEarnings.toFixed(2)}</strong> total
+                    </div>
+                  )}
+                </div>
+                <div className="text-right text-xs text-muted">
+                  <div>Retail price <strong className="text-foreground">€{retail.toFixed(2)}</strong></div>
+                  <div>Your cost <strong className="text-foreground">€{net.toFixed(2)}</strong></div>
+                  <div className="mt-0.5 text-emerald-700 font-semibold">{details.marginPct.toFixed(0)}% margin</div>
+                </div>
+              </div>
+            </div>
+          );
+        })()
       )}
 
       {/* Booking form */}

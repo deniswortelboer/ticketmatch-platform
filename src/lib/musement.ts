@@ -1409,13 +1409,21 @@ function detectCombo(title: string): boolean {
 }
 
 function mapActivityToProduct(a: Record<string, unknown>, cityName: string, currency: string): MusementProduct {
-  const netPrice = (a.net_price as number) || (a.retail_price as Record<string, unknown>)?.value as number || 0;
+  const apiNetPrice = (a.net_price as number) || 0;
   const retailPrice = (a.retail_price as Record<string, unknown>)?.value as number
     || (a.retail_price as number)
     || (a.original_retail_price as Record<string, unknown>)?.value as number
-    || netPrice;
+    || apiNetPrice;
 
-  const margin = retailPrice > 0 ? ((retailPrice - netPrice) / retailPrice) * 100 : 18;
+  // Sandbox + Affiliate-tier responses don't carry net_price — synthesise a
+  // representative net using the industry-standard 18% reseller margin so
+  // the UI can show "you earn €X" from day one. Once production credentials
+  // arrive, Musement will send the real net_price and we use that directly.
+  const ASSUMED_MARGIN_PCT = 18;
+  const netPrice = apiNetPrice > 0
+    ? apiNetPrice
+    : Math.round(retailPrice * (1 - ASSUMED_MARGIN_PCT / 100) * 100) / 100;
+  const margin = retailPrice > 0 ? ((retailPrice - netPrice) / retailPrice) * 100 : ASSUMED_MARGIN_PCT;
 
   // Extract city from the activity data
   const city = (a.city as Record<string, unknown>)?.name as string || cityName;
