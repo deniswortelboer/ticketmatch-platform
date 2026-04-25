@@ -738,9 +738,13 @@ export default function ExperiencesPage() {
         .sort((a, b) => b.price - a.price),
     ];
 
-    const top = take(topPool);
-    const must = take(mustPool);
+    // Allocate in NARROWEST-FIRST priority so the strictest rail (Exclusive,
+    // €50+ premium) gets first pick — otherwise Top Sellers / Must See claim
+    // the high-end items by virtue of high reviews/rating, leaving Exclusive
+    // empty. Order: Exclusive → Must See → Top Sellers.
     const excl = take(exclPool);
+    const must = take(mustPool);
+    const top = take(topPool);
     return { topSellersRail: top, mustSeeRail: must, exclusiveRail: excl };
   })();
 
