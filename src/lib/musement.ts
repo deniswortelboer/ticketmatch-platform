@@ -314,31 +314,43 @@ export async function resolveCityId(cityName: string, language = "en"): Promise<
       { iso: "GB", id: 183 },
     ];
 
-    // Fetch & cache all cities for our priority markets in parallel.
-    await Promise.all(
-      PRIORITY_COUNTRIES.map(async ({ id }) => {
+    // Musement enforces a hard ceiling of 100 results per /cities call.
+    // For each priority country we paginate up to MAX_PAGES so larger
+    // catalogs (FR, IT, ES) are fully indexed.
+    const PAGE_SIZE = 100;
+    const MAX_PAGES = 5; // up to 500 cities per country, more than enough
+
+    async function loadCountry(countryId: number) {
+      for (let page = 0; page < MAX_PAGES; page++) {
         const res = await fetch(
-          `${MUSEMENT_API_BASE}/cities?limit=200&offset=0&sort_by=weight&country_in=${id}`,
+          `${MUSEMENT_API_BASE}/cities?limit=${PAGE_SIZE}&offset=${page * PAGE_SIZE}&sort_by=weight&country_in=${countryId}`,
           { headers: getHeaders(language), ...CATALOG_CACHE }
         );
         if (!res.ok) return;
         const cities = (await res.json()) as Record<string, unknown>[];
+        if (!Array.isArray(cities) || cities.length === 0) return;
         for (const city of cities) {
           const name = (city.name as string)?.toLowerCase();
           if (name && city.id) cityIdCache.set(name, city.id as number);
         }
-      })
-    );
+        if (cities.length < PAGE_SIZE) return; // last page
+      }
+    }
+
+    await Promise.all(PRIORITY_COUNTRIES.map((c) => loadCountry(c.id)));
 
     if (cityIdCache.has(key)) return cityIdCache.get(key)!;
 
-    // Last-ditch global fallback for cities outside our priority markets.
+    // Last-ditch global fallback (top 100 cities by weight worldwide) for
+    // anything outside our priority markets. This stays at 100 (Musement's
+    // hard cap) — for deeper coverage we'd rely on cityId from the UI.
     const fallbackRes = await fetch(
-      `${MUSEMENT_API_BASE}/cities?limit=500&offset=0&sort_by=weight`,
+      `${MUSEMENT_API_BASE}/cities?limit=100&offset=0&sort_by=weight`,
       { headers: getHeaders(language), ...CATALOG_CACHE }
     );
     if (!fallbackRes.ok) return null;
     const cities = (await fallbackRes.json()) as Record<string, unknown>[];
+    if (!Array.isArray(cities)) return null;
     for (const city of cities) {
       const name = (city.name as string)?.toLowerCase();
       if (name && city.id) cityIdCache.set(name, city.id as number);
