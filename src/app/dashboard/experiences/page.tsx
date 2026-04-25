@@ -719,12 +719,23 @@ export default function ExperiencesPage() {
       ...sortedByRating.filter((p) => p.rating >= 4.0),
       ...sortedByRating, // last-resort backfill
     ];
+    // Exclusive should always feel premium — VIP tours, private guides,
+    // skip-the-line packages — never a cheap entrance ticket. We enforce a
+    // €50 floor on every fallback so the rail can't surface a €18.50 museum
+    // skip-the-line. P75 in Amsterdam sits at €48; €50 is a clean threshold
+    // that cleanly separates premium tiers from standard tickets.
+    const PREMIUM_FLOOR = 50;
     const exclPool = [
-      ...musementOnly.filter((p) => p.exclusive),
+      // 1. API-tagged exclusive AND meets price floor (production-correct).
+      ...musementOnly.filter((p) => p.exclusive && p.price >= PREMIUM_FLOOR),
+      // 2. Premium-signal title (private/VIP/skip-the-line/...) at €50+.
       ...musementOnly
-        .filter((p) => exclusivePattern.test(p.title))
-        .sort((a, b) => b.rating - a.rating || b.reviewCount - a.reviewCount),
-      ...sortedByRating, // last-resort backfill
+        .filter((p) => exclusivePattern.test(p.title) && p.price >= PREMIUM_FLOOR)
+        .sort((a, b) => b.price - a.price),
+      // 3. Pure-price fallback: most expensive activities with ≥4.0 rating.
+      ...musementOnly
+        .filter((p) => p.price >= PREMIUM_FLOOR && p.rating >= 4.0)
+        .sort((a, b) => b.price - a.price),
     ];
 
     const top = take(topPool);
