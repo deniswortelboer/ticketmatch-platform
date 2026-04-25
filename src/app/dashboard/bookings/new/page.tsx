@@ -24,6 +24,19 @@ type Group = {
   number_of_guests: number | null;
 };
 
+// Musement returns rich-text fields (info / "what to remember", description on
+// some activities) as HTML. We render that HTML so bullet lists, paragraphs and
+// emphasis show as the partner intends — but only after stripping anything that
+// could execute (script/style/iframe blocks, on* event handlers, javascript:
+// URIs). Musement is a trusted source, this is defense-in-depth.
+function sanitizeMusementHtml(html: string): string {
+  return html
+    .replace(/<(script|style|iframe|object|embed)\b[\s\S]*?<\/\1>/gi, "")
+    .replace(/<(script|style|iframe|object|embed)\b[^>]*\/?>/gi, "")
+    .replace(/\son\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]*)/gi, "")
+    .replace(/(href|src)\s*=\s*(['"])\s*javascript:[^'"]*\2/gi, "$1=$2#$2");
+}
+
 function NewBookingForm() {
   const router = useRouter();
   const params = useSearchParams();
@@ -395,7 +408,10 @@ function NewBookingForm() {
               {details.info && (
                 <section>
                   <h3 className="text-xs font-bold uppercase tracking-wider text-muted/70 mb-2">What to remember</h3>
-                  <p className="whitespace-pre-line">{details.info}</p>
+                  <div
+                    className="text-sm whitespace-pre-line [&>ul]:list-disc [&>ul]:ml-5 [&>ol]:list-decimal [&>ol]:ml-5 [&>ul]:my-1 [&>ol]:my-1 [&>ul>li]:my-0.5 [&>ol>li]:my-0.5 [&>p]:my-1 [&_a]:underline [&_a]:text-accent"
+                    dangerouslySetInnerHTML={{ __html: sanitizeMusementHtml(details.info) }}
+                  />
                 </section>
               )}
               {details.voucherType && (
@@ -436,7 +452,7 @@ function NewBookingForm() {
           <span className="text-xs font-semibold uppercase tracking-wider text-muted/70">Group</span>
           {groups.length === 0 ? (
             <p className="mt-2 text-sm text-muted">
-              Je hebt nog geen groepen — maak er eerst eentje aan op{" "}
+              You don&apos;t have any groups yet — create one first at{" "}
               <a href="/dashboard/groups" className="text-accent underline">Groups</a>.
             </p>
           ) : (
@@ -559,7 +575,7 @@ function NewBookingForm() {
             )}
             {!slotsLoading && slotsMessage && (
               <p className="mt-2 rounded-xl bg-yellow-50 text-yellow-800 p-3 text-xs">
-                {slotsMessage} Systeem kiest automatisch eerste beschikbare slot bij invoice-creatie.
+                {slotsMessage} System will auto-pick the first available slot at invoice creation.
               </p>
             )}
           </div>

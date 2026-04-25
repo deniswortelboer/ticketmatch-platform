@@ -711,8 +711,8 @@ export default function BookingsPage() {
             <p className="mb-5 text-sm text-muted">
               <strong>{sendBooking.venue_name}</strong>
               {sendBooking.scheduled_date &&
-                ` — ${new Date(sendBooking.scheduled_date).toLocaleDateString("nl-NL")}`}
-              {sendBooking.number_of_guests ? ` · ${sendBooking.number_of_guests} gasten` : ""}
+                ` — ${new Date(sendBooking.scheduled_date).toLocaleDateString("en-GB")}`}
+              {sendBooking.number_of_guests ? ` · ${sendBooking.number_of_guests} guests` : ""}
             </p>
 
             {sendResult ? (
@@ -784,12 +784,12 @@ export default function BookingsPage() {
                     className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm focus:border-accent outline-none"
                   />
                   <p className="mt-1 text-xs text-muted/70">
-                    De boeker/groepsleider krijgt hier de ticket-link op.
+                    The booker/group leader will receive the ticket link here.
                   </p>
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-muted uppercase tracking-wider mb-1">
-                    WhatsApp phone <span className="text-muted/70">(optioneel)</span>
+                    WhatsApp phone <span className="text-muted/70">(optional)</span>
                   </label>
                   <input
                     type="tel"
@@ -799,8 +799,8 @@ export default function BookingsPage() {
                     className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm focus:border-accent outline-none"
                   />
                   <p className="mt-1 text-xs text-muted/70">
-                    International format zonder + (bv. <code>31612345678</code>). Alleen
-                    binnen 24u na klant-initiatief.
+                    International format without + (e.g. <code>31612345678</code>). Only
+                    within 24h of a customer-initiated message.
                   </p>
                 </div>
                 <div className="flex gap-2 pt-2">
@@ -808,7 +808,7 @@ export default function BookingsPage() {
                     onClick={closeSendModal}
                     className="flex-1 rounded-xl border border-border bg-white px-5 py-2.5 text-sm font-semibold hover:bg-gray-50"
                   >
-                    Annuleer
+                    Cancel
                   </button>
                   <button
                     onClick={handleSendTickets}
@@ -818,7 +818,7 @@ export default function BookingsPage() {
                     {sendLoading && (
                       <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
                     )}
-                    Verstuur tickets
+                    Send tickets
                   </button>
                 </div>
               </div>
