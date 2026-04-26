@@ -256,7 +256,11 @@ export default function CommandCenterPage() {
        NL city we already have lat/lng for; else uses the Musement-picked
        city (lat/lng from /cities API). ── */
   const [cityIdx, setCityIdx] = useState(0);
-  const city = (() => {
+  // Derived `city` — memoised on its inputs so the reference is stable
+  // across renders. Without useMemo, `[city]` deps in the useEffects below
+  // would see a new object every render and fire infinite loops (which
+  // crashed the page when picking a non-NL country).
+  const city = useMemo(() => {
     if (musementCity?.lat && musementCity?.lng) {
       return {
         id: `m-${musementCity.id}`,
@@ -264,11 +268,11 @@ export default function CommandCenterPage() {
         lat: musementCity.lat,
         lng: musementCity.lng,
         timezone: musementCity.timezone || "Europe/Amsterdam",
-        zoom: 12, // sane default for unfamiliar cities; Map's defaultZoom needs a number
+        zoom: 12,
       };
     }
     return NL_CITIES[cityIdx];
-  })();
+  }, [musementCity, cityIdx]);
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY || "";
 
   /* ── Map / venue state ── */
