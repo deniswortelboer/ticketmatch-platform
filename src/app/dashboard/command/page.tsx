@@ -768,7 +768,13 @@ export default function CommandCenterPage() {
                       >
                         <div className="relative">
                           <div
-                            className={`flex h-8 w-8 items-center justify-center rounded-full ${CATEGORY_COLORS[venue.category] || "bg-gray-500"} text-white text-sm shadow-lg ring-2 ${inRoute ? "ring-amber-400 scale-110" : "ring-white"} cursor-pointer hover:scale-110 transition-transform`}
+                            className={`flex h-8 w-8 items-center justify-center rounded-full ${CATEGORY_COLORS[venue.category] || "bg-gray-500"} text-white text-sm shadow-lg ring-2 ${
+                              inRoute
+                                ? "ring-amber-400 scale-110"
+                                : quietOnly
+                                  ? "ring-green-400"
+                                  : "ring-white"
+                            } cursor-pointer hover:scale-110 transition-transform`}
                           >
                             {CATEGORY_ICONS[venue.category] || "📍"}
                           </div>
@@ -777,9 +783,12 @@ export default function CommandCenterPage() {
                               {routeIdx + 1}
                             </div>
                           )}
-                          <div className="absolute -bottom-1 -left-1 text-[8px]">
-                            {busy?.icon}
-                          </div>
+                          {/* Busyness indicator: bigger badge in the corner */}
+                          {busy?.icon && (
+                            <div className="absolute -bottom-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-white text-[11px] leading-none shadow ring-1 ring-black/5">
+                              {busy.icon}
+                            </div>
+                          )}
                         </div>
                       </AdvancedMarker>
                     );
