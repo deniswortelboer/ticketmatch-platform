@@ -268,6 +268,9 @@ export default function CommandCenterPage() {
   const [viatorPage, setViatorPage] = useState(1);
   const [viatorLoadingMore, setViatorLoadingMore] = useState(false);
 
+  /* ── Musement route (Phase 3.3) — bookable activities the reseller has
+       picked. Parallel to the Google Places `route` so existing flow is
+       untouched; rendered together in the Route tab. ── */
   /* ── Musement state — primary supplier in Explore tab (Phase 3.1) ── */
   type MusementCard = {
     uuid: string;
@@ -305,6 +308,13 @@ export default function CommandCenterPage() {
   // Map-pin selection — separate from selectedVenue (Google Places) so both
   // info-windows can co-exist; clicking a Musement pin clears any Google one.
   const [selectedMusement, setSelectedMusement] = useState<MusementCard | null>(null);
+  // Musement-route + save-to-group state
+  const [routeMusement, setRouteMusement] = useState<MusementCard[]>([]);
+  const [saveOpen, setSaveOpen] = useState(false);
+  const [saveGroupId, setSaveGroupId] = useState("");
+  const [saveGroups, setSaveGroups] = useState<Array<{ id: string; name: string; notes: string | null; number_of_guests: number; travel_date: string | null; contact_person: string | null }>>([]);
+  const [saving, setSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState("");
 
   /* ── Fetch Google Places venues ── */
   useEffect(() => {
@@ -312,6 +322,7 @@ export default function CommandCenterPage() {
     setVenues([]);
     setSelectedVenue(null);
     setRoute([]);
+    setRouteMusement([]);
     fetch(`/api/places?lat=${city.lat}&lng=${city.lng}&city=${city.name}`)
       .then((r) => r.json())
       .then((d) => {
@@ -529,6 +540,24 @@ export default function CommandCenterPage() {
     setRoute(n);
   };
 
+  /* ── Musement-route helpers ── */
+  const addMusementToRoute = (p: MusementCard) => {
+    if (typeof p.location?.lat !== "number" || typeof p.location?.lng !== "number") return;
+    if (!routeMusement.find((m) => m.uuid === p.uuid)) {
+      setRouteMusement((prev) => [...prev, p]);
+    }
+  };
+  const removeMusementFromRoute = (uuid: string) => {
+    setRouteMusement((prev) => prev.filter((m) => m.uuid !== uuid));
+  };
+  const moveMusementInRoute = (i: number, d: -1 | 1) => {
+    const n = [...routeMusement];
+    const j = i + d;
+    if (j < 0 || j >= n.length) return;
+    [n[i], n[j]] = [n[j], n[i]];
+    setRouteMusement(n);
+  };
+
   const routeDistance = route.reduce(
     (t, v, i) =>
       i === 0
@@ -538,6 +567,62 @@ export default function CommandCenterPage() {
   );
   const routeWalkMins = walkingTime(routeDistance);
 
+  /* ── Save-to-group: lazy load groups when opening the panel ── */
+  const openSavePanel = async () => {
+    setSaveOpen(true);
+    setSaveStatus("");
+    if (saveGroups.length === 0) {
+      try {
+        const res = await fetch("/api/groups");
+        const data = await res.json();
+        const list = data.groups || [];
+        setSaveGroups(list);
+        if (list[0]) setSaveGroupId(list[0].id);
+      } catch {
+        setSaveStatus("Could not load groups");
+      }
+    }
+  };
+
+  const handleSaveItinerary = async () => {
+    const grp = saveGroups.find((g) => g.id === saveGroupId);
+    if (!grp) { setSaveStatus("Pick a group first"); return; }
+    setSaving(true);
+    setSaveStatus("");
+    try {
+      const dateStr = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+      const stops: string[] = [];
+      route.forEach((v, i) => stops.push(`${i + 1}. ${v.name}${v.address ? ` — ${v.address}` : ""}`));
+      const offset = route.length;
+      routeMusement.forEach((m, i) => stops.push(`${offset + i + 1}. 🎫 ${m.title} (${m.pricing.formatted || "—"})`));
+      const block = `\n\n--- Itinerary saved ${dateStr} (${city.name}) ---\n${stops.join("\n")}`;
+      const nextNotes = (grp.notes || "") + block;
+      const res = await fetch("/api/groups", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: grp.id,
+          name: grp.name,
+          travelDate: grp.travel_date,
+          numberOfGuests: grp.number_of_guests,
+          contactPerson: grp.contact_person,
+          notes: nextNotes,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        setSaveStatus(err.error || "Failed to save");
+      } else {
+        setSaveStatus(`Saved to ${grp.name} ✓`);
+        setSaveGroups((prev) => prev.map((g) => g.id === grp.id ? { ...g, notes: nextNotes } : g));
+      }
+    } catch {
+      setSaveStatus("Network error — try again");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   /* ── City change ── */
   const handleCityChange = (idx: number) => {
     setCityIdx(idx);
@@ -545,6 +630,7 @@ export default function CommandCenterPage() {
     setSearch("");
     setSelectedVenue(null);
     setRoute([]);
+    setRouteMusement([]);
   };
 
   const handleMarkerClick = useCallback((venue: GoogleVenue) => {
@@ -860,6 +946,23 @@ export default function CommandCenterPage() {
                             Book Direct →
                           </button>
                         </div>
+                        {(() => {
+                          const inRoute = !!routeMusement.find((m) => m.uuid === selectedMusement.uuid);
+                          return (
+                            <button
+                              onClick={() =>
+                                inRoute ? removeMusementFromRoute(selectedMusement.uuid) : addMusementToRoute(selectedMusement)
+                              }
+                              className={`mt-2 w-full rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+                                inRoute
+                                  ? "bg-amber-500 text-white hover:bg-amber-600"
+                                  : "border border-amber-400 text-amber-700 hover:bg-amber-50"
+                              }`}
+                            >
+                              {inRoute ? "✓ In day route" : "+ Add to day route"}
+                            </button>
+                          );
+                        })()}
                       </div>
                     </InfoWindow>
                   )}
@@ -1021,9 +1124,9 @@ export default function CommandCenterPage() {
                   }`}
                 >
                   <span className="mr-1">{tab.icon}</span> {tab.label}
-                  {tab.id === "route" && route.length > 0 && (
+                  {tab.id === "route" && (route.length + routeMusement.length) > 0 && (
                     <span className="ml-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-amber-500 text-[10px] font-bold text-white">
-                      {route.length}
+                      {route.length + routeMusement.length}
                     </span>
                   )}
                 </button>
@@ -1062,13 +1165,13 @@ export default function CommandCenterPage() {
                         <div className="px-3 py-2 text-[11px] text-muted">
                           {musementTotal.toLocaleString()} experiences in {city.name} · click any card to book
                         </div>
-                        {musementProducts.map((p) => (
-                          <button
+                        {musementProducts.map((p) => {
+                          const inRoute = !!routeMusement.find((m) => m.uuid === p.uuid);
+                          const hasCoords = typeof p.location?.lat === "number" && typeof p.location?.lng === "number";
+                          return (
+                          <div
                             key={p.uuid}
-                            onClick={() => router.push(
-                              `/dashboard/bookings/new?source=musement&activityUuid=${p.uuid}&title=${encodeURIComponent(p.title)}&price=${p.pricing.retailPrice}&currency=${p.pricing.currency}`
-                            )}
-                            className="flex w-full gap-3 border-b border-border/20 px-3 py-3 text-left hover:bg-blue-50/30 transition-colors"
+                            className="flex gap-3 border-b border-border/20 px-3 py-3 hover:bg-blue-50/30 transition-colors"
                           >
                             {/* Thumbnail */}
                             <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-gray-100">
@@ -1115,17 +1218,40 @@ export default function CommandCenterPage() {
                                   <span className="text-[9px] text-orange-600 font-medium">🔥 Top seller</span>
                                 )}
                               </div>
-                              <div className="mt-1.5 flex items-center justify-between">
+                              <div className="mt-1.5 flex items-center justify-between gap-2">
                                 <span className="text-sm font-bold text-accent">
                                   {p.pricing.retailPrice > 0 ? p.pricing.formatted : "Price TBD"}
                                 </span>
-                                <span className="rounded-xl bg-foreground px-3 py-1.5 text-[11px] font-semibold text-background">
-                                  Book Direct →
-                                </span>
+                                <div className="flex items-center gap-1.5">
+                                  {hasCoords && (
+                                    <button
+                                      onClick={() =>
+                                        inRoute ? removeMusementFromRoute(p.uuid) : addMusementToRoute(p)
+                                      }
+                                      className={`rounded-lg px-2 py-1.5 text-[10px] font-semibold transition-colors ${
+                                        inRoute
+                                          ? "bg-amber-500 text-white"
+                                          : "border border-amber-300 text-amber-600 hover:bg-amber-50"
+                                      }`}
+                                      title={inRoute ? "Remove from day route" : "Add to day route"}
+                                    >
+                                      {inRoute ? "✓ In route" : "+ Route"}
+                                    </button>
+                                  )}
+                                  <button
+                                    onClick={() => router.push(
+                                      `/dashboard/bookings/new?source=musement&activityUuid=${p.uuid}&title=${encodeURIComponent(p.title)}&price=${p.pricing.retailPrice}&currency=${p.pricing.currency}`
+                                    )}
+                                    className="rounded-xl bg-foreground px-3 py-1.5 text-[11px] font-semibold text-background hover:opacity-90"
+                                  >
+                                    Book Direct →
+                                  </button>
+                                </div>
                               </div>
                             </div>
-                          </button>
-                        ))}
+                          </div>
+                          );
+                        })}
                       </>
                     )}
                   </div>
@@ -1162,21 +1288,22 @@ export default function CommandCenterPage() {
                   </div>
                 </div>
 
-                {route.length === 0 ? (
+                {route.length === 0 && routeMusement.length === 0 ? (
                   <div className="px-4 py-12 text-center">
                     <p className="text-3xl mb-3">🗺️</p>
                     <p className="text-sm text-muted">
-                      No venues in your route yet
+                      No stops in your route yet
                     </p>
                     <p className="text-xs text-gray-400 mt-1">
-                      Click a venue on the map → &quot;Add to day route&quot;
+                      Map venues → &quot;+ Add to day route&quot; · Musement cards → &quot;+ Route&quot;
                     </p>
                   </div>
                 ) : (
                   <div
                     className="overflow-y-auto"
-                    style={{ maxHeight: "520px" }}
+                    style={{ maxHeight: "560px" }}
                   >
+                    {route.length > 0 && (
                     <div className="divide-y divide-border/20">
                       {route.map((v, i) => {
                         const dist =
@@ -1271,12 +1398,141 @@ export default function CommandCenterPage() {
                       <div className="px-4 py-3 bg-amber-50/50">
                         <div className="flex items-center justify-between text-xs">
                           <span className="font-medium text-gray-600">
-                            📍 {route.length} stops • 🚶{" "}
+                            📍 {route.length} venue{route.length !== 1 ? "s" : ""} • 🚶{" "}
                             {(routeDistance * 1.3).toFixed(1)}km • ⏱️ ~
                             {Math.round(routeWalkMins * 1.3)}min walking
                           </span>
                         </div>
                       </div>
+                    </div>
+                    )}
+
+                    {/* Musement bookable activities in the route */}
+                    {routeMusement.length > 0 && (
+                      <div className="divide-y divide-border/20 border-t-2 border-orange-100">
+                        <div className="px-4 py-2 bg-orange-50/60 text-[11px] font-semibold uppercase tracking-wider text-orange-700">
+                          🎫 Musement bookable stops · {routeMusement.length}
+                        </div>
+                        {routeMusement.map((m, i) => {
+                          const lat = m.location?.lat ?? 0;
+                          const lng = m.location?.lng ?? 0;
+                          const prev = i > 0 ? routeMusement[i - 1] : null;
+                          const dist = prev && prev.location?.lat && prev.location?.lng
+                            ? haversine(prev.location.lat, prev.location.lng, lat, lng)
+                            : 0;
+                          return (
+                            <div key={`mr-${m.uuid}`}>
+                              {i > 0 && (
+                                <div className="flex items-center gap-2 px-4 py-1.5 bg-gray-50/50">
+                                  <span className="text-[10px] text-gray-400">
+                                    🚶 {(dist * 1.3).toFixed(1)}km • ~{Math.round(walkingTime(dist) * 1.3)}min
+                                  </span>
+                                  <div className="flex-1 border-t border-dashed border-gray-200" />
+                                </div>
+                              )}
+                              <div className="flex items-center gap-3 px-4 py-2.5">
+                                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-orange-500 text-xs font-bold text-white">
+                                  {route.length + i + 1}
+                                </div>
+                                <div className="h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-gray-100">
+                                  {m.images?.[0]?.url ? (
+                                    // eslint-disable-next-line @next/next/no-img-element
+                                    <img src={m.images[0].url} alt={m.title} className="h-full w-full object-cover" />
+                                  ) : (
+                                    <div className="grid h-full place-items-center text-sm">🎫</div>
+                                  )}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium truncate">{m.title}</p>
+                                  <div className="flex items-center gap-2 text-[10px] text-gray-400">
+                                    {m.rating > 0 && <span>★ {m.rating.toFixed(1)}</span>}
+                                    <span className="font-semibold text-accent">
+                                      {m.pricing.retailPrice > 0 ? m.pricing.formatted : "—"}
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <button
+                                    onClick={() => moveMusementInRoute(i, -1)}
+                                    className="rounded p-1 text-gray-300 hover:text-gray-500 hover:bg-gray-100"
+                                  >
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                      <path d="M18 15l-6-6-6 6" />
+                                    </svg>
+                                  </button>
+                                  <button
+                                    onClick={() => moveMusementInRoute(i, 1)}
+                                    className="rounded p-1 text-gray-300 hover:text-gray-500 hover:bg-gray-100"
+                                  >
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                      <path d="M6 9l6 6 6-6" />
+                                    </svg>
+                                  </button>
+                                  <button
+                                    onClick={() => removeMusementFromRoute(m.uuid)}
+                                    className="rounded p-1 text-gray-300 hover:text-red-500 hover:bg-red-50"
+                                  >
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                      <path d="M18 6L6 18M6 6l12 12" />
+                                    </svg>
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Save-to-group panel — bottom of route tab */}
+                    <div className="border-t-2 border-amber-100 p-4 space-y-3 bg-amber-50/30">
+                      {!saveOpen ? (
+                        <button
+                          onClick={openSavePanel}
+                          className="w-full rounded-xl bg-foreground px-4 py-2.5 text-sm font-semibold text-background hover:opacity-90"
+                        >
+                          💾 Save as itinerary to a group
+                        </button>
+                      ) : (
+                        <div className="space-y-2">
+                          <p className="text-xs font-semibold uppercase tracking-wider text-amber-800">Save to group</p>
+                          {saveGroups.length === 0 ? (
+                            <p className="text-xs text-muted">No groups yet — create one in Groups first.</p>
+                          ) : (
+                            <select
+                              value={saveGroupId}
+                              onChange={(e) => setSaveGroupId(e.target.value)}
+                              className="h-9 w-full rounded-lg border border-border bg-white px-3 text-sm"
+                              disabled={saving}
+                            >
+                              {saveGroups.map((g) => (
+                                <option key={g.id} value={g.id}>{g.name}</option>
+                              ))}
+                            </select>
+                          )}
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => { setSaveOpen(false); setSaveStatus(""); }}
+                              disabled={saving}
+                              className="flex-1 rounded-lg border border-border bg-white px-3 py-2 text-xs font-semibold hover:bg-gray-50 disabled:opacity-50"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              onClick={handleSaveItinerary}
+                              disabled={saving || !saveGroupId}
+                              className="flex-1 rounded-lg bg-amber-500 px-3 py-2 text-xs font-semibold text-white hover:bg-amber-600 disabled:opacity-50"
+                            >
+                              {saving ? "Saving…" : "Save itinerary"}
+                            </button>
+                          </div>
+                          {saveStatus && (
+                            <p className={`text-xs ${saveStatus.includes("✓") ? "text-emerald-700" : "text-amber-700"}`}>
+                              {saveStatus}
+                            </p>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
