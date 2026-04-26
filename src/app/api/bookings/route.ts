@@ -166,7 +166,7 @@ export async function POST(request: Request) {
       notes: notes || undefined,
     }).catch((err) => console.error("Email send error:", err));
 
-    notifyAdmin(`🎫 Nieuwe booking!\n\n🏢 ${company?.name || "—"}\n📍 ${venueName}${venueCity ? ` (${venueCity})` : ""}\n👥 ${numberOfGuests} gasten\n📅 ${scheduledDate || "Geen datum"}\n💰 €${totalPrice.toFixed(2)}\n\n→ ticketmatch.ai/dashboard/admin`);
+    notifyAdmin(`🟡 Pending booking — awaiting payment\n\n🏢 ${company?.name || "—"}\n📍 ${venueName}${venueCity ? ` (${venueCity})` : ""}\n👥 ${numberOfGuests} gasten\n📅 ${scheduledDate || "Geen datum"}\n💰 €${totalPrice.toFixed(2)}\n\nStatus flips to "confirmed" once Stripe webhook fires.\n→ ticketmatch.ai/dashboard/admin`);
   }
 
   return NextResponse.json({ booking });

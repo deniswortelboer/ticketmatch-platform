@@ -1,7 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { APIProvider, Map, AdvancedMarker, InfoWindow } from "@vis.gl/react-google-maps";
 import {
   NL_CITIES,
@@ -239,12 +239,24 @@ function isoToFlag(iso: string): string {
   return String.fromCodePoint(iso.toUpperCase().charCodeAt(0) + A, iso.toUpperCase().charCodeAt(1) + A);
 }
 
+function cityToSlug(name: string): string {
+  return name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+}
+
 export default function CommandCenterPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   /* ── Country + City state — global picker ── */
   type CountryOpt = { id: number; name: string; iso: string };
   type CityOpt = { id: number; name: string; lat?: number; lng?: number; timezone?: string; count?: number };
-  const [country, setCountry] = useState<string>("NL"); // ISO-2
+  // Read initial country/city from URL once (browser back lands here with
+  // the params already populated, so picking "Back to Experiences" from a
+  // booking restores Buenos Aires instead of resetting to Amsterdam).
+  const initialUrl = useRef<{ country: string; city: string | null }>({
+    country: searchParams.get("country")?.toUpperCase() || "NL",
+    city: searchParams.get("city"),
+  });
+  const [country, setCountry] = useState<string>(initialUrl.current.country); // ISO-2
   const [countries, setCountries] = useState<CountryOpt[]>([]);
   const [countryCities, setCountryCities] = useState<CityOpt[]>([]);
   const [showCountryDD, setShowCountryDD] = useState(false);
@@ -453,26 +465,57 @@ export default function CommandCenterPage() {
     });
   }, []);
 
-  /* ── Load cities whenever country changes ── */
+  /* ── Load cities whenever country changes. Honours the initial URL city
+       on first run so back-navigation restores the right place. ── */
+  const [didInitFromUrl, setDidInitFromUrl] = useState(false);
   useEffect(() => {
     if (!country) return;
     fetch(`/api/musement/cities?country=${country}`)
       .then((r) => r.json())
       .then((d) => {
-        setCountryCities(d.cities || []);
-        // If the currently displayed city isn't in the new list, auto-pick:
-        // for NL keep the existing NL_CITIES picker untouched; for other
-        // countries, pick the first city (highest weight) as Musement city.
-        if (country !== "NL" && (d.cities || []).length > 0) {
-          const first = d.cities[0];
+        const list: CityOpt[] = d.cities || [];
+        setCountryCities(list);
+        const urlCity = !didInitFromUrl ? initialUrl.current.city : null;
+        if (urlCity) {
+          // Try Musement city by slug
+          const match = list.find((c) => cityToSlug(c.name) === urlCity.toLowerCase());
+          if (match && match.lat && match.lng) {
+            setMusementCity(match);
+          } else if (country === "NL") {
+            const nlIdx = NL_CITIES.findIndex((c) => c.id === urlCity.toLowerCase());
+            if (nlIdx >= 0) { setCityIdx(nlIdx); setMusementCity(null); }
+          }
+          setDidInitFromUrl(true);
+        } else if (country !== "NL" && list.length > 0) {
+          const first = list[0];
           if (first.lat && first.lng) setMusementCity(first);
         } else if (country === "NL") {
-          // back to NL → drop musementCity override
           setMusementCity(null);
         }
       })
       .catch(() => setCountryCities([]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [country]);
+
+  /* ── Sync state → URL (router.replace, no history bloat per filter
+       change so the back button leaves Discover after one press). ── */
+  useEffect(() => {
+    if (!didInitFromUrl && !initialUrl.current.city) {
+      // First mount with no URL — mark init done so we start syncing.
+      setDidInitFromUrl(true);
+      return;
+    }
+    if (!didInitFromUrl) return;
+    const cityKey = musementCity ? cityToSlug(musementCity.name) : NL_CITIES[cityIdx].id;
+    const params = new URLSearchParams();
+    params.set("country", country);
+    params.set("city", cityKey);
+    const next = `/dashboard/command?${params.toString()}`;
+    if (typeof window !== "undefined") {
+      const cur = window.location.pathname + window.location.search;
+      if (cur !== next) router.replace(next, { scroll: false });
+    }
+  }, [country, cityIdx, musementCity, didInitFromUrl, router]);
 
   /* ── Fetch Musement experiences ── */
   const fetchMusement = useCallback(

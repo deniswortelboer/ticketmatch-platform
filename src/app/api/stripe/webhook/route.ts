@@ -1,6 +1,7 @@
 import Stripe from "stripe";
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse } from "next/server";
+import { notifyAdmin } from "@/lib/notify";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
@@ -173,5 +174,18 @@ async function handleTicketInvoicePaid(
 
   console.log(
     `[${ts}] STRIPE PAID (ticket_invoice ${invoiceNumber}): ${ids.length} booking(s) confirmed for company ${companyId}`,
+  );
+
+  // Admin WhatsApp — separate from the "pending booking" notify on creation;
+  // this fires only after Stripe confirms payment, so the line "Booking
+  // confirmed" actually means the money has cleared.
+  const amountPaid = session.amount_total ? (session.amount_total / 100).toFixed(2) : "—";
+  const currency = (session.currency || "eur").toUpperCase();
+  notifyAdmin(
+    `✅ Booking confirmed — payment received\n\n` +
+    `📄 Invoice ${invoiceNumber}\n` +
+    `🎫 ${ids.length} booking${ids.length > 1 ? "s" : ""} flipped to confirmed\n` +
+    `💰 ${currency} ${amountPaid}\n\n` +
+    `→ ticketmatch.ai/dashboard/admin`
   );
 }
