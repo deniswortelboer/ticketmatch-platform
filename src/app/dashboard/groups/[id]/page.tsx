@@ -54,6 +54,42 @@ const TAB_DEFS: { key: TabKey; label: string }[] = [
   { key: "messages",   label: "Messages"   },
 ];
 
+/** Parse "--- Itinerary saved DD MMM YYYY (City) ---" blocks from notes,
+ *  written by Discover's "Save as itinerary to a group" action. Each block
+ *  is followed by numbered stops on subsequent lines until the next `---`
+ *  marker, blank line, or a non-numbered line.
+ */
+type ItineraryBlock = { header: string; date: string; city: string; stops: string[] };
+function parseItinerariesFromNotes(notes: string | null): ItineraryBlock[] {
+  if (!notes) return [];
+  const lines = notes.split(/\r?\n/);
+  const out: ItineraryBlock[] = [];
+  let current: ItineraryBlock | null = null;
+  for (const raw of lines) {
+    const headerMatch = raw.match(/^---\s*Itinerary saved\s+(.+?)(?:\s*\((.+?)\))?\s*---\s*$/i);
+    if (headerMatch) {
+      if (current) out.push(current);
+      current = { header: raw.trim(), date: headerMatch[1].trim(), city: (headerMatch[2] || "").trim(), stops: [] };
+      continue;
+    }
+    if (!current) continue;
+    if (/^---/.test(raw)) {
+      out.push(current);
+      current = null;
+      continue;
+    }
+    if (/^\s*\d+\.\s+/.test(raw)) {
+      current.stops.push(raw.replace(/^\s*\d+\.\s+/, "").trim());
+    } else if (raw.trim() === "" && current.stops.length > 0) {
+      // blank line ends the block only after we've collected stops
+      out.push(current);
+      current = null;
+    }
+  }
+  if (current) out.push(current);
+  return out;
+}
+
 /** Parse the freeform passenger list stored in `notes` by /upload-passengers.
  *  Format produced by handleCreateFromUpload:
  *    "Passenger list (from file.xlsx):
@@ -125,6 +161,7 @@ export default function GroupDetailPage() {
   }, [id]);
 
   const passengers = useMemo(() => parsePassengersFromNotes(group?.notes ?? null), [group?.notes]);
+  const itineraries = useMemo(() => parseItinerariesFromNotes(group?.notes ?? null), [group?.notes]);
 
   const totalSpent = useMemo(
     () => bookings.reduce((s, bk) => s + Number(bk.total_price || 0), 0),
@@ -279,6 +316,7 @@ export default function GroupDetailPage() {
         {TAB_DEFS.map((t) => {
           const count =
             t.key === "passengers" ? passengers.length || group.number_of_guests
+            : t.key === "itinerary" ? itineraries.length
             : t.key === "bookings" ? bookings.length
             : t.key === "invoices" ? bookings.filter((bk) => bk.status === "confirmed").length
             : null;
@@ -429,19 +467,53 @@ export default function GroupDetailPage() {
       )}
 
       {tab === "itinerary" && (
-        <section className="rounded-2xl border border-dashed border-border/60 bg-white p-12 text-center">
-          <div className="text-3xl mb-3">🗺</div>
-          <h2 className="text-lg font-semibold">Itinerary builder</h2>
-          <p className="mt-2 text-sm text-muted max-w-md mx-auto">
-            A day-by-day plan for {group.name}. Drag activities from Discover into the timeline,
-            see drive-time gaps, share the schedule with your client.
-          </p>
-          <Link
-            href="/dashboard/command"
-            className="mt-4 inline-flex rounded-xl bg-foreground px-5 py-2.5 text-sm font-semibold text-background hover:opacity-90"
-          >
-            Plan in Discover →
-          </Link>
+        <section className="space-y-4">
+          {itineraries.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-border/60 bg-white p-12 text-center">
+              <div className="text-3xl mb-3">🗺</div>
+              <h2 className="text-lg font-semibold">No itinerary saved yet</h2>
+              <p className="mt-2 text-sm text-muted max-w-md mx-auto">
+                Build a day-route in Discover (map venues + Musement activities), then click
+                <strong> 💾 Save as itinerary to a group </strong> at the bottom of the Route tab.
+              </p>
+              <Link
+                href="/dashboard/command"
+                className="mt-4 inline-flex rounded-xl bg-foreground px-5 py-2.5 text-sm font-semibold text-background hover:opacity-90"
+              >
+                Plan in Discover →
+              </Link>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm font-bold uppercase tracking-wider text-muted">Saved day-routes ({itineraries.length})</h2>
+                <Link href="/dashboard/command" className="text-xs font-semibold text-accent hover:underline">
+                  + Plan another →
+                </Link>
+              </div>
+              {itineraries.map((it, idx) => (
+                <div key={`it-${idx}`} className="rounded-2xl border border-border/60 bg-white p-5 shadow-sm">
+                  <div className="mb-3 flex items-center justify-between gap-3 flex-wrap">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-muted">Saved {it.date}</p>
+                      {it.city && <p className="text-base font-bold mt-0.5">📍 {it.city}</p>}
+                    </div>
+                    <span className="text-xs text-muted">{it.stops.length} stops</span>
+                  </div>
+                  <ol className="space-y-2 border-l-2 border-amber-200 pl-4">
+                    {it.stops.map((s, i) => (
+                      <li key={i} className="relative text-sm text-foreground/90">
+                        <span className="absolute -left-[22px] top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-amber-500 text-[10px] font-bold text-white">
+                          {i + 1}
+                        </span>
+                        {s}
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              ))}
+            </>
+          )}
         </section>
       )}
 
