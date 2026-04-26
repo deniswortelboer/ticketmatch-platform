@@ -477,15 +477,33 @@ export default function CommandCenterPage() {
 
   /* ── Filter venues ── */
   const [quietOnly, setQuietOnly] = useState(false);
+  const [indoorOnly, setIndoorOnly] = useState(false);
   const baseFiltered = venues.filter((v) => {
     if (category !== "all" && v.category !== category) return false;
     if (search && !v.name.toLowerCase().includes(search.toLowerCase()))
       return false;
+    if (indoorOnly && !v.indoor) return false;
     return true;
   });
   const filtered = quietOnly
     ? baseFiltered.filter((v) => getVenueBusy(v).level === "quiet")
     : baseFiltered;
+
+  // Indoor-friendly Musement filter — uses the structured vertical id when
+  // available (production-correct: 1 Museums & art, 3 Food & wine,
+  // 4 Performances, 7 Nightlife) and falls back to a title-keyword scan so
+  // sandbox data (which mostly tags everything "Tours & attractions") is
+  // still usable.
+  const INDOOR_VERTICAL_IDS = new Set([1, 3, 4, 7]);
+  const INDOOR_TITLE_RE = /\bmuseum|gallery|exhibition|theatre|theater|opera|concert|show|workshop|cooking|tasting|spa|wellness|indoor|cinema\b/i;
+  const visibleMusement = indoorOnly
+    ? musementProducts.filter((p) => {
+        // verticals isn't on MusementCard locally, fall back to title.
+        return INDOOR_TITLE_RE.test(p.title);
+      })
+    : musementProducts;
+  // weather-aware suggestion: rainy codes match the smart-tip detection.
+  const isRainy = !!weather && [51, 53, 55, 61, 63, 65, 80, 81, 82, 95].includes(weather.weather_code);
 
   const quietCount = baseFiltered.filter(
     (v) => getVenueBusy(v).level === "quiet",
@@ -787,6 +805,24 @@ export default function CommandCenterPage() {
         >
           🎁 Combos
         </button>
+        <button
+          onClick={() => setIndoorOnly((v) => !v)}
+          title={isRainy && !indoorOnly ? "Rain forecast — try Indoor only" : indoorOnly ? "Showing indoor only — click to clear" : "Filter to indoor venues only"}
+          className={`rounded-lg px-3 py-2 text-xs font-medium transition-all relative ${
+            indoorOnly
+              ? "bg-emerald-500 text-white shadow-sm"
+              : isRainy
+                ? "bg-blue-50 border-2 border-blue-300 text-blue-700 hover:bg-blue-100"
+                : "bg-white border border-border/60 text-muted hover:bg-gray-50"
+          }`}
+        >
+          🏠 Indoor only
+          {isRainy && !indoorOnly && (
+            <span className="absolute -top-1.5 -right-1.5 inline-flex h-4 w-4 items-center justify-center rounded-full bg-blue-500 text-[9px] text-white animate-pulse">
+              💧
+            </span>
+          )}
+        </button>
         <div className="relative flex-1 sm:max-w-[200px] ml-2">
           <svg
             width="14"
@@ -883,7 +919,7 @@ export default function CommandCenterPage() {
                   {/* Musement bookable pins — orange, distinct from Google
                       Places venue markers. Filtered by the active vertical
                       (right-column feed already does the filter, we mirror it). */}
-                  {musementProducts.map((p) => {
+                  {visibleMusement.map((p) => {
                     const lat = p.location?.lat;
                     const lng = p.location?.lng;
                     if (typeof lat !== "number" || typeof lng !== "number") return null;
@@ -1156,16 +1192,20 @@ export default function CommandCenterPage() {
 
                 {!musementLoading && (
                   <div className="overflow-y-auto" style={{ maxHeight: "540px" }}>
-                    {musementProducts.length === 0 ? (
+                    {visibleMusement.length === 0 ? (
                       <div className="p-8 text-center text-sm text-muted">
-                        No Musement experiences for this filter in {city.name}.
+                        {indoorOnly
+                          ? `No indoor experiences for this filter in ${city.name}.`
+                          : `No Musement experiences for this filter in ${city.name}.`}
                       </div>
                     ) : (
                       <>
                         <div className="px-3 py-2 text-[11px] text-muted">
-                          {musementTotal.toLocaleString()} experiences in {city.name} · click any card to book
+                          {indoorOnly
+                            ? `${visibleMusement.length} indoor of ${musementTotal.toLocaleString()} in ${city.name} · click any card to book`
+                            : `${musementTotal.toLocaleString()} experiences in ${city.name} · click any card to book`}
                         </div>
-                        {musementProducts.map((p) => {
+                        {visibleMusement.map((p) => {
                           const inRoute = !!routeMusement.find((m) => m.uuid === p.uuid);
                           const hasCoords = typeof p.location?.lat === "number" && typeof p.location?.lng === "number";
                           return (
