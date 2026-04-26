@@ -671,10 +671,21 @@ export default function CommandCenterPage() {
     try {
       const dateStr = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
       const stops: string[] = [];
-      route.forEach((v, i) => stops.push(`${i + 1}. ${v.name}${v.address ? ` — ${v.address}` : ""}`));
+      route.forEach((v, i) => {
+        const sch = schedule[`g-${v.id}`];
+        const time = sch?.arrival ?? "";
+        stops.push(`${i + 1}. ${time ? time + " · " : ""}${v.name}${v.address ? ` — ${v.address}` : ""}`);
+      });
       const offset = route.length;
-      routeMusement.forEach((m, i) => stops.push(`${offset + i + 1}. 🎫 ${m.title} (${m.pricing.formatted || "—"})`));
-      const block = `\n\n--- Itinerary saved ${dateStr} (${city.name}) ---\n${stops.join("\n")}`;
+      routeMusement.forEach((m, i) => {
+        const sch = schedule[`m-${m.uuid}`];
+        const time = sch?.arrival ?? "";
+        stops.push(`${offset + i + 1}. ${time ? time + " · " : ""}🎫 ${m.title} (${m.pricing.formatted || "—"})`);
+      });
+      const headerExtra = (route.length + routeMusement.length) > 0
+        ? ` — start ${routeStartTime}${dayEndsAt ? `, ends ${dayEndsAt}` : ""}`
+        : "";
+      const block = `\n\n--- Itinerary saved ${dateStr} (${city.name})${headerExtra} ---\n${stops.join("\n")}`;
       const nextNotes = (grp.notes || "") + block;
       const res = await fetch("/api/groups", {
         method: "PUT",

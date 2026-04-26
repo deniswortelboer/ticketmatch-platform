@@ -59,17 +59,36 @@ const TAB_DEFS: { key: TabKey; label: string }[] = [
  *  is followed by numbered stops on subsequent lines until the next `---`
  *  marker, blank line, or a non-numbered line.
  */
-type ItineraryBlock = { header: string; date: string; city: string; stops: string[] };
+type ItineraryStop = { time: string | null; text: string };
+type ItineraryBlock = {
+  header: string;
+  date: string;
+  city: string;
+  startTime: string | null;
+  endTime: string | null;
+  stops: ItineraryStop[];
+};
 function parseItinerariesFromNotes(notes: string | null): ItineraryBlock[] {
   if (!notes) return [];
   const lines = notes.split(/\r?\n/);
   const out: ItineraryBlock[] = [];
   let current: ItineraryBlock | null = null;
   for (const raw of lines) {
-    const headerMatch = raw.match(/^---\s*Itinerary saved\s+(.+?)(?:\s*\((.+?)\))?\s*---\s*$/i);
+    // "--- Itinerary saved 26 Apr 2026 (Amsterdam) — start 09:00, ends 14:30 ---"
+    // The "(City)" and "— start … ends …" tails are both optional.
+    const headerMatch = raw.match(
+      /^---\s*Itinerary saved\s+(.+?)(?:\s*\((.+?)\))?(?:\s*[—-]\s*start\s+(\d{2}:\d{2})(?:,\s*ends\s+(\d{2}:\d{2}))?)?\s*---\s*$/i
+    );
     if (headerMatch) {
       if (current) out.push(current);
-      current = { header: raw.trim(), date: headerMatch[1].trim(), city: (headerMatch[2] || "").trim(), stops: [] };
+      current = {
+        header: raw.trim(),
+        date: headerMatch[1].trim(),
+        city: (headerMatch[2] || "").trim(),
+        startTime: headerMatch[3] || null,
+        endTime: headerMatch[4] || null,
+        stops: [],
+      };
       continue;
     }
     if (!current) continue;
@@ -79,7 +98,10 @@ function parseItinerariesFromNotes(notes: string | null): ItineraryBlock[] {
       continue;
     }
     if (/^\s*\d+\.\s+/.test(raw)) {
-      current.stops.push(raw.replace(/^\s*\d+\.\s+/, "").trim());
+      const body = raw.replace(/^\s*\d+\.\s+/, "").trim();
+      // Optional "HH:MM · " or "HH:MM — " prefix
+      const tm = body.match(/^(\d{2}:\d{2})\s*[·—-]\s*(.*)$/);
+      current.stops.push(tm ? { time: tm[1], text: tm[2] } : { time: null, text: body });
     } else if (raw.trim() === "" && current.stops.length > 0) {
       // blank line ends the block only after we've collected stops
       out.push(current);
@@ -497,6 +519,12 @@ export default function GroupDetailPage() {
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-wider text-muted">Saved {it.date}</p>
                       {it.city && <p className="text-base font-bold mt-0.5">📍 {it.city}</p>}
+                      {(it.startTime || it.endTime) && (
+                        <p className="mt-1 text-xs text-muted tabular-nums">
+                          {it.startTime && <>🕘 Starts <strong className="text-foreground">{it.startTime}</strong></>}
+                          {it.endTime && <> · ends <strong className="text-foreground">{it.endTime}</strong></>}
+                        </p>
+                      )}
                     </div>
                     <span className="text-xs text-muted">{it.stops.length} stops</span>
                   </div>
@@ -506,7 +534,12 @@ export default function GroupDetailPage() {
                         <span className="absolute -left-[22px] top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-amber-500 text-[10px] font-bold text-white">
                           {i + 1}
                         </span>
-                        {s}
+                        {s.time && (
+                          <span className="mr-2 inline-block rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-amber-800">
+                            {s.time}
+                          </span>
+                        )}
+                        {s.text}
                       </li>
                     ))}
                   </ol>
