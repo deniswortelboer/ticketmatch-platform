@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState, useRef } from "react";
 
 interface Group {
@@ -567,12 +568,23 @@ export default function GroupsPage() {
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-3">
-                    <h3 className="text-base font-semibold">{group.name}</h3>
+                    <Link
+                      href={`/dashboard/groups/${group.id}`}
+                      className="text-base font-semibold hover:text-accent transition-colors"
+                    >
+                      {group.name}
+                    </Link>
                     <span
                       className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColors[group.status] || statusColors.draft}`}
                     >
                       {group.status}
                     </span>
+                    <Link
+                      href={`/dashboard/groups/${group.id}`}
+                      className="ml-auto text-xs font-semibold text-accent hover:underline"
+                    >
+                      Open →
+                    </Link>
                   </div>
                   <div className="mt-2 flex flex-wrap gap-4 text-sm text-muted">
                     <span className="flex items-center gap-1.5">

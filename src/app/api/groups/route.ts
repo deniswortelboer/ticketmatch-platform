@@ -99,6 +99,54 @@ export async function POST(request: Request) {
   return NextResponse.json({ group });
 }
 
+// PUT: update an existing group (used by /groups/[id] Passengers-tab drop-zone
+// to append parsed passengers to the existing notes field, plus normal edits).
+export async function PUT(request: Request) {
+  const user = await getAuthUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const body = await request.json();
+  const { id, name, travelDate, numberOfGuests, contactPerson, notes, status } = body;
+
+  if (!id) {
+    return NextResponse.json({ error: "Group id is required" }, { status: 400 });
+  }
+
+  const admin = getAdminClient();
+
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("company_id")
+    .eq("id", user.id)
+    .single();
+
+  if (!profile?.company_id) {
+    return NextResponse.json({ error: "No company found" }, { status: 400 });
+  }
+
+  const patch: Record<string, unknown> = {};
+  if (name !== undefined) patch.name = name;
+  if (travelDate !== undefined) patch.travel_date = travelDate || null;
+  if (numberOfGuests !== undefined) patch.number_of_guests = numberOfGuests || 0;
+  if (contactPerson !== undefined) patch.contact_person = contactPerson || null;
+  if (notes !== undefined) patch.notes = notes || null;
+  if (status !== undefined) patch.status = status;
+
+  const { data: group, error } = await admin
+    .from("groups")
+    .update(patch)
+    .eq("id", id)
+    .eq("company_id", profile.company_id)
+    .select()
+    .single();
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ group });
+}
+
 // DELETE: remove a group
 export async function DELETE(request: Request) {
   const user = await getAuthUser();
