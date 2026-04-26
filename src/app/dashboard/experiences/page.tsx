@@ -662,17 +662,30 @@ export default function ExperiencesPage() {
 
   const subCats = SUB_CATEGORIES[categoryFilter] || [];
 
-  // Client-side search filter
-  const filtered = search
-    ? products.filter((p) => {
-        const q = search.toLowerCase();
-        return (
-          p.title.toLowerCase().includes(q) ||
-          p.description.toLowerCase().includes(q) ||
-          p.categories.some((c) => c.toLowerCase().includes(q))
-        );
-      })
-    : products;
+  // Client-side search filter — title + city, ranked.
+  // Description + category tags were too noisy ("Ri" used to match
+  // "Wildlife" via a tag and pull up unrelated wildlife tours). Title
+  // is what the reseller actually reads and remembers; city helps when
+  // they type a venue area like "Volendam".
+  const filtered = (() => {
+    if (!search) return products;
+    const q = search.trim().toLowerCase();
+    if (!q) return products;
+    type Scored = { p: UnifiedProduct; score: number };
+    const scored: Scored[] = [];
+    for (const p of products) {
+      const t = p.title.toLowerCase();
+      const c = (p.location?.city || "").toLowerCase();
+      let score = 0;
+      if (t.startsWith(q)) score = 100;
+      else if (new RegExp(`\\b${q.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\$&")}`).test(t)) score = 80;
+      else if (t.includes(q)) score = 50;
+      else if (c.includes(q)) score = 20;
+      if (score > 0) scored.push({ p, score });
+    }
+    scored.sort((a, b) => b.score - a.score);
+    return scored.map((s) => s.p);
+  })();
 
   const viatorCount = products.filter((p) => p.source === "viator").length;
   const musementCount = products.filter((p) => p.source === "musement").length;
@@ -1024,11 +1037,15 @@ export default function ExperiencesPage() {
       {/* Product grid */}
       {!loading && !error && (
         <>
-          {/* Results count */}
+          {/* Results count — verticals are the actual filter; legacy
+              categoryFilter copy is dropped to avoid the stale "in Museums"
+              wording. */}
           <div className="mb-4 text-sm text-muted">
             Showing {filtered.length} of {totalCount.toLocaleString()} experiences
-            {subCategoryFilter && <span> in <strong>{subCats.find(c => c.value === subCategoryFilter)?.label}</strong></span>}
-            {categoryFilter && !subCategoryFilter && <span> in <strong>{CATEGORIES.find(c => c.value === categoryFilter)?.label}</strong></span>}
+            {verticalSel > 0 && (
+              <span> in <strong>{verticals.find((v) => v.id === verticalSel)?.name}</strong></span>
+            )}
+            {verticalSel === -1 && <span> in <strong>Combos</strong></span>}
             {search && <span> matching &ldquo;{search}&rdquo;</span>}
           </div>
 
