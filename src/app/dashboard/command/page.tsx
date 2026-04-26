@@ -465,14 +465,18 @@ export default function CommandCenterPage() {
   );
 
   /* ── Filter venues ── */
-  const filtered = venues.filter((v) => {
+  const [quietOnly, setQuietOnly] = useState(false);
+  const baseFiltered = venues.filter((v) => {
     if (category !== "all" && v.category !== category) return false;
     if (search && !v.name.toLowerCase().includes(search.toLowerCase()))
       return false;
     return true;
   });
+  const filtered = quietOnly
+    ? baseFiltered.filter((v) => getVenueBusy(v).level === "quiet")
+    : baseFiltered;
 
-  const quietCount = filtered.filter(
+  const quietCount = baseFiltered.filter(
     (v) => getVenueBusy(v).level === "quiet",
   ).length;
 
@@ -627,12 +631,22 @@ export default function CommandCenterPage() {
               <p className="text-xs text-blue-200">Venues</p>
             </div>
             <div className="h-8 w-px bg-white/20" />
-            <div className="text-center">
+            <button
+              type="button"
+              onClick={() => setQuietOnly((v) => !v)}
+              title={quietOnly ? "Showing only quiet venues — click to show all" : "Click to filter map to quiet venues only"}
+              disabled={quietCount === 0}
+              className={`text-center rounded-lg px-2 py-1 transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                quietOnly
+                  ? "bg-green-300/30 ring-1 ring-green-300/60"
+                  : "hover:bg-white/10"
+              }`}
+            >
               <p className="text-2xl font-bold text-green-300">
                 🟢 {quietCount}
               </p>
-              <p className="text-xs text-blue-200">Quiet now</p>
-            </div>
+              <p className="text-xs text-blue-200">{quietOnly ? "Quiet only ✓" : "Quiet now"}</p>
+            </button>
           </div>
         </div>
 
