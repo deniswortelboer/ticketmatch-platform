@@ -264,6 +264,7 @@ export default function CommandCenterPage() {
         lat: musementCity.lat,
         lng: musementCity.lng,
         timezone: musementCity.timezone || "Europe/Amsterdam",
+        zoom: 12, // sane default for unfamiliar cities; Map's defaultZoom needs a number
       };
     }
     return NL_CITIES[cityIdx];
