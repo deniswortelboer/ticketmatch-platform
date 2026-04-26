@@ -284,6 +284,7 @@ export default function CommandCenterPage() {
     exclusive?: boolean;
     topSeller?: boolean;
     mustSee?: boolean;
+    location?: { city?: string; country?: string; lat?: number; lng?: number };
   };
   type VerticalOpt = { id: number; name: string };
   const VERTICAL_ICONS: Record<string, string> = {
@@ -301,6 +302,9 @@ export default function CommandCenterPage() {
   const [musementProducts, setMusementProducts] = useState<MusementCard[]>([]);
   const [musementLoading, setMusementLoading] = useState(false);
   const [musementTotal, setMusementTotal] = useState(0);
+  // Map-pin selection — separate from selectedVenue (Google Places) so both
+  // info-windows can co-exist; clicking a Musement pin clears any Google one.
+  const [selectedMusement, setSelectedMusement] = useState<MusementCard | null>(null);
 
   /* ── Fetch Google Places venues ── */
   useEffect(() => {
@@ -767,6 +771,76 @@ export default function CommandCenterPage() {
                     );
                   })}
 
+                  {/* Musement bookable pins — orange, distinct from Google
+                      Places venue markers. Filtered by the active vertical
+                      (right-column feed already does the filter, we mirror it). */}
+                  {musementProducts.map((p) => {
+                    const lat = p.location?.lat;
+                    const lng = p.location?.lng;
+                    if (typeof lat !== "number" || typeof lng !== "number") return null;
+                    return (
+                      <AdvancedMarker
+                        key={`m-${p.uuid}`}
+                        position={{ lat, lng }}
+                        onClick={() => { setSelectedMusement(p); setSelectedVenue(null); }}
+                      >
+                        <div className="relative">
+                          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-orange-500 text-white text-[11px] shadow-lg ring-2 ring-white cursor-pointer hover:scale-110 transition-transform">
+                            🎫
+                          </div>
+                          {p.exclusive && (
+                            <div className="absolute -top-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-purple-500 text-[8px] text-white ring-1 ring-white">
+                              💎
+                            </div>
+                          )}
+                        </div>
+                      </AdvancedMarker>
+                    );
+                  })}
+
+                  {/* Musement pin InfoWindow — mini preview + Book Direct CTA */}
+                  {selectedMusement && typeof selectedMusement.location?.lat === "number" && typeof selectedMusement.location?.lng === "number" && (
+                    <InfoWindow
+                      position={{ lat: selectedMusement.location.lat, lng: selectedMusement.location.lng }}
+                      onCloseClick={() => setSelectedMusement(null)}
+                    >
+                      <div className="w-64 max-w-[260px]">
+                        {selectedMusement.images?.[0]?.url && (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={selectedMusement.images[0].url}
+                            alt={selectedMusement.title}
+                            className="mb-2 h-24 w-full rounded-lg object-cover"
+                          />
+                        )}
+                        <p className="text-xs font-bold uppercase tracking-wider text-orange-600">Musement</p>
+                        <h4 className="mt-0.5 text-sm font-semibold leading-tight line-clamp-2">{selectedMusement.title}</h4>
+                        <div className="mt-1.5 flex items-center gap-2 text-[11px]">
+                          {selectedMusement.rating > 0 && (
+                            <span className="text-amber-500">★ {selectedMusement.rating.toFixed(1)}</span>
+                          )}
+                          {selectedMusement.duration && <span className="text-gray-500">⏱ {selectedMusement.duration}</span>}
+                          {selectedMusement.cancellationPolicy === "Free cancellation" && (
+                            <span className="text-green-600 font-medium">✓ Free cancel</span>
+                          )}
+                        </div>
+                        <div className="mt-2 flex items-center justify-between gap-2">
+                          <span className="text-base font-bold text-accent">
+                            {selectedMusement.pricing.retailPrice > 0 ? selectedMusement.pricing.formatted : "—"}
+                          </span>
+                          <button
+                            onClick={() => router.push(
+                              `/dashboard/bookings/new?source=musement&activityUuid=${selectedMusement.uuid}&title=${encodeURIComponent(selectedMusement.title)}&price=${selectedMusement.pricing.retailPrice}&currency=${selectedMusement.pricing.currency}`
+                            )}
+                            className="rounded-lg bg-orange-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-orange-600 transition-colors"
+                          >
+                            Book Direct →
+                          </button>
+                        </div>
+                      </div>
+                    </InfoWindow>
+                  )}
+
                   {selectedVenue && (
                     <InfoWindow
                       position={{
@@ -885,6 +959,11 @@ export default function CommandCenterPage() {
                   <span className="text-xs text-muted capitalize">{cat}</span>
                 </div>
               ))}
+              <div className="h-4 w-px bg-gray-200" />
+              <div className="flex items-center gap-1.5">
+                <div className="flex h-4 w-4 items-center justify-center rounded-full bg-orange-500 text-[9px] text-white">🎫</div>
+                <span className="text-xs text-muted">Musement (bookable)</span>
+              </div>
               <div className="h-4 w-px bg-gray-200" />
               <span className="text-xs text-muted">🟢 Quiet</span>
               <span className="text-xs text-muted">🟡 Moderate</span>
