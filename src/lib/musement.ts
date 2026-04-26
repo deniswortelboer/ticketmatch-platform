@@ -424,6 +424,9 @@ export type MusementCityLite = {
   countryName: string;
   weight: number;
   activitiesCount: number;
+  lat?: number;
+  lng?: number;
+  timezone?: string;
 };
 
 export type MusementVertical = {
@@ -482,6 +485,9 @@ async function loadGlobalCities(language = "en"): Promise<MusementCityLite[]> {
         countryName: (country?.name as string) || "",
         weight: (c.weight as number) ?? 0,
         activitiesCount: (c.activities_count as number) ?? 0,
+        lat: typeof c.latitude === "number" ? (c.latitude as number) : undefined,
+        lng: typeof c.longitude === "number" ? (c.longitude as number) : undefined,
+        timezone: typeof c.time_zone === "string" ? (c.time_zone as string) : undefined,
       });
     }
     if (page.length < PAGE) break;

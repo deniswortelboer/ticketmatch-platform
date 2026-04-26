@@ -232,11 +232,42 @@ type TabId = "explore" | "route" | "booked";
 /* ══════════════════════════════════════════════════════════════════
    MAIN COMPONENT
    ══════════════════════════════════════════════════════════════════ */
+/** ISO 3166-1 alpha-2 → flag emoji. */
+function isoToFlag(iso: string): string {
+  if (!iso || iso.length !== 2) return "🏳";
+  const A = 0x1f1e6 - "A".charCodeAt(0);
+  return String.fromCodePoint(iso.toUpperCase().charCodeAt(0) + A, iso.toUpperCase().charCodeAt(1) + A);
+}
+
 export default function CommandCenterPage() {
   const router = useRouter();
-  /* ── City state ── */
+  /* ── Country + City state — global picker ── */
+  type CountryOpt = { id: number; name: string; iso: string };
+  type CityOpt = { id: number; name: string; lat?: number; lng?: number; timezone?: string; count?: number };
+  const [country, setCountry] = useState<string>("NL"); // ISO-2
+  const [countries, setCountries] = useState<CountryOpt[]>([]);
+  const [countryCities, setCountryCities] = useState<CityOpt[]>([]);
+  const [showCountryDD, setShowCountryDD] = useState(false);
+  const [countrySearch, setCountrySearch] = useState("");
+  const [showCityDD, setShowCityDD] = useState(false);
+  const [musementCity, setMusementCity] = useState<CityOpt | null>(null);
+
+  /* ── City state — derived. Falls back to NL_CITIES when picker is on a
+       NL city we already have lat/lng for; else uses the Musement-picked
+       city (lat/lng from /cities API). ── */
   const [cityIdx, setCityIdx] = useState(0);
-  const city = NL_CITIES[cityIdx];
+  const city = (() => {
+    if (musementCity?.lat && musementCity?.lng) {
+      return {
+        id: `m-${musementCity.id}`,
+        name: musementCity.name,
+        lat: musementCity.lat,
+        lng: musementCity.lng,
+        timezone: musementCity.timezone || "Europe/Amsterdam",
+      };
+    }
+    return NL_CITIES[cityIdx];
+  })();
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY || "";
 
   /* ── Map / venue state ── */
@@ -406,13 +437,37 @@ export default function CommandCenterPage() {
     fetchViator(city.id, viatorCategory, 1, false);
   }, [city.id, viatorCategory, fetchViator]);
 
-  /* ── Load Musement verticals once ── */
+  /* ── Load Musement verticals + countries once ── */
   useEffect(() => {
-    fetch("/api/musement/verticals")
-      .then((r) => r.json())
-      .then((d) => setVerticals(d.verticals || []))
-      .catch(() => {});
+    Promise.all([
+      fetch("/api/musement/verticals").then((r) => r.json()).catch(() => ({ verticals: [] })),
+      fetch("/api/musement/countries").then((r) => r.json()).catch(() => ({ countries: [] })),
+    ]).then(([v, c]) => {
+      setVerticals(v.verticals || []);
+      setCountries(c.countries || []);
+    });
   }, []);
+
+  /* ── Load cities whenever country changes ── */
+  useEffect(() => {
+    if (!country) return;
+    fetch(`/api/musement/cities?country=${country}`)
+      .then((r) => r.json())
+      .then((d) => {
+        setCountryCities(d.cities || []);
+        // If the currently displayed city isn't in the new list, auto-pick:
+        // for NL keep the existing NL_CITIES picker untouched; for other
+        // countries, pick the first city (highest weight) as Musement city.
+        if (country !== "NL" && (d.cities || []).length > 0) {
+          const first = d.cities[0];
+          if (first.lat && first.lng) setMusementCity(first);
+        } else if (country === "NL") {
+          // back to NL → drop musementCity override
+          setMusementCity(null);
+        }
+      })
+      .catch(() => setCountryCities([]));
+  }, [country]);
 
   /* ── Fetch Musement experiences ── */
   const fetchMusement = useCallback(
@@ -740,102 +795,164 @@ export default function CommandCenterPage() {
      ══════════════════════════════════════════════════════════════════ */
   return (
     <div className="space-y-4">
-      {/* ── HEADER BAR ── */}
-      <div className="rounded-2xl bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 p-5 text-white shadow-lg">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          {/* Left: title + city buttons */}
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/20">
-                <svg
-                  width="22"
-                  height="22"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <circle cx="12" cy="12" r="10" />
-                  <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" />
-                  <path d="M2 12h20" />
-                </svg>
-              </div>
-              <div>
-                <h1 className="text-xl font-bold">Discover</h1>
-                <p className="text-sm text-blue-200">
-                  Map + Experiences + Busyness for {city.name}
-                </p>
-              </div>
+      {/* ── COMPACT HEADER BAR ── single row: title · stats · pickers ── */}
+      <div
+        className="rounded-2xl bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 px-4 py-3 text-white shadow-lg"
+        onClick={() => { setShowCountryDD(false); setShowCityDD(false); }}
+      >
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          {/* Title (compact) */}
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/20 shrink-0">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" /><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" /><path d="M2 12h20" />
+              </svg>
             </div>
-            <div className="flex gap-1 overflow-x-auto pb-1">
-              {NL_CITIES.map((c, i) => (
-                <button
-                  key={c.id}
-                  onClick={() => handleCityChange(i)}
-                  className={`shrink-0 rounded-lg px-2.5 py-1 text-[11px] font-medium transition-all ${
-                    cityIdx === i
-                      ? "bg-white text-blue-700 shadow-md"
-                      : "bg-white/15 text-white/90 hover:bg-white/25"
-                  }`}
-                >
-                  {c.name}
-                </button>
-              ))}
+            <div className="min-w-0">
+              <h1 className="text-base font-bold leading-tight">Discover</h1>
+              <p className="text-[10px] text-blue-200 truncate">Orientation for {city.name}</p>
             </div>
           </div>
 
-          {/* Right: weather + stats */}
-          <div className="flex items-center gap-4">
+          {/* Stats — moved LEFT next to title for compactness */}
+          <div className="flex items-center gap-3">
             {weather && weatherInfo && (
-              <div className="flex items-center gap-2 rounded-xl bg-white/10 px-3 py-2">
-                <span className="text-2xl">{weatherInfo.icon}</span>
-                <div>
-                  <p className="text-lg font-bold leading-tight">
-                    {Math.round(weather.temperature_2m)}°C
-                  </p>
-                  <p className="text-[10px] text-blue-200">
-                    {weatherInfo.label}
-                  </p>
-                </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-lg leading-none">{weatherInfo.icon}</span>
+                <span className="text-sm font-bold tabular-nums">{Math.round(weather.temperature_2m)}°</span>
               </div>
             )}
-            <div className="h-8 w-px bg-white/20" />
-            <div className="text-center">
-              <p className="text-2xl font-bold">{filtered.length}</p>
-              <p className="text-xs text-blue-200">Venues</p>
+            <div className="h-6 w-px bg-white/20" />
+            <div className="flex items-center gap-1.5">
+              <span className="text-sm font-bold tabular-nums">{filtered.length}</span>
+              <span className="text-[10px] text-blue-200">venues</span>
             </div>
-            <div className="h-8 w-px bg-white/20" />
+            <div className="h-6 w-px bg-white/20" />
             <button
               type="button"
-              onClick={() => setQuietOnly((v) => !v)}
+              onClick={(e) => { e.stopPropagation(); setQuietOnly((v) => !v); }}
               title={quietOnly ? "Showing only quiet venues — click to show all" : "Click to filter map to quiet venues only"}
               disabled={quietCount === 0}
-              className={`text-center rounded-lg px-2 py-1 transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                quietOnly
-                  ? "bg-green-300/30 ring-1 ring-green-300/60"
-                  : "hover:bg-white/10"
+              className={`flex items-center gap-1.5 rounded-md px-1.5 py-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                quietOnly ? "bg-green-300/25 ring-1 ring-green-300/50" : "hover:bg-white/10"
               }`}
             >
-              <p className="text-2xl font-bold text-green-300">
-                🟢 {quietCount}
-              </p>
-              <p className="text-xs text-blue-200">{quietOnly ? "Quiet only ✓" : "Quiet now"}</p>
+              <span className="text-sm font-bold text-green-300 tabular-nums">🟢 {quietCount}</span>
+              <span className="text-[10px] text-blue-200">{quietOnly ? "quiet ✓" : "quiet"}</span>
             </button>
+          </div>
+
+          {/* Country + City pickers — sit right, balance the layout */}
+          <div className="ml-auto flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+            {/* Country */}
+            <div className="relative">
+              <button
+                onClick={() => { setShowCountryDD(!showCountryDD); setShowCityDD(false); }}
+                className="flex items-center gap-1.5 rounded-lg bg-white/15 px-2.5 py-1.5 text-xs font-medium hover:bg-white/25 transition-colors"
+              >
+                <span className="text-sm leading-none">{isoToFlag(country)}</span>
+                <span className="hidden sm:inline">{countries.find((c) => c.iso === country)?.name || country}</span>
+                <span className="text-blue-200">▾</span>
+              </button>
+              {showCountryDD && (
+                <div className="absolute right-0 top-9 z-50 w-72 max-h-96 overflow-auto rounded-xl border border-border bg-white text-foreground shadow-2xl">
+                  <div className="sticky top-0 bg-white p-1 border-b border-border/50">
+                    <input
+                      autoFocus
+                      type="text"
+                      placeholder="Search country…"
+                      value={countrySearch}
+                      onChange={(e) => setCountrySearch(e.target.value)}
+                      onClick={(e) => e.stopPropagation()}
+                      className="w-full rounded-lg border border-border px-3 py-1.5 text-sm outline-none focus:border-accent"
+                    />
+                  </div>
+                  {countries
+                    .filter((c) => {
+                      const q = countrySearch.toLowerCase();
+                      return !q || c.name.toLowerCase().includes(q) || c.iso.toLowerCase().includes(q);
+                    })
+                    .map((c) => (
+                      <button
+                        key={c.iso}
+                        onClick={() => { setCountry(c.iso); setShowCountryDD(false); setCountrySearch(""); }}
+                        className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm transition-colors ${
+                          country === c.iso ? "bg-accent/10 font-medium text-accent" : "hover:bg-accent/5"
+                        }`}
+                      >
+                        <span className="text-base leading-none">{isoToFlag(c.iso)}</span>
+                        <span className="flex-1">{c.name}</span>
+                        <span className="text-xs text-muted/60">{c.iso}</span>
+                      </button>
+                    ))}
+                  {!countries.length && <div className="px-3 py-2 text-sm text-muted">Loading…</div>}
+                </div>
+              )}
+            </div>
+
+            {/* City */}
+            <div className="relative">
+              <button
+                onClick={() => { setShowCityDD(!showCityDD); setShowCountryDD(false); }}
+                className="flex items-center gap-1.5 rounded-lg bg-white/15 px-2.5 py-1.5 text-xs font-medium hover:bg-white/25 transition-colors"
+              >
+                <span className="capitalize">{city.name}</span>
+                <span className="text-blue-200">▾</span>
+              </button>
+              {showCityDD && (
+                <div className="absolute right-0 top-9 z-50 w-64 max-h-96 overflow-auto rounded-xl border border-border bg-white text-foreground shadow-2xl">
+                  {country === "NL" && (
+                    <div className="border-b border-border/40">
+                      <p className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted bg-gray-50/70">
+                        With map data
+                      </p>
+                      {NL_CITIES.map((c, i) => (
+                        <button
+                          key={c.id}
+                          onClick={() => { setMusementCity(null); handleCityChange(i); setShowCityDD(false); }}
+                          className={`flex w-full items-center justify-between px-3 py-1.5 text-left text-sm hover:bg-accent/5 ${
+                            !musementCity && cityIdx === i ? "bg-accent/10 font-medium text-accent" : ""
+                          }`}
+                        >
+                          <span>{c.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {countryCities.length > 0 && (
+                    <div>
+                      <p className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted bg-gray-50/70">
+                        Musement cities ({countryCities.length})
+                      </p>
+                      {countryCities.map((c) => (
+                        <button
+                          key={c.id}
+                          onClick={() => { setMusementCity(c); setShowCityDD(false); }}
+                          disabled={!c.lat || !c.lng}
+                          title={!c.lat || !c.lng ? "No map coords for this city" : ""}
+                          className={`flex w-full items-center justify-between px-3 py-1.5 text-left text-sm hover:bg-accent/5 disabled:opacity-50 disabled:cursor-not-allowed ${
+                            musementCity?.id === c.id ? "bg-accent/10 font-medium text-accent" : ""
+                          }`}
+                        >
+                          <span>{c.name}</span>
+                          {c.count !== undefined && c.count > 0 && (
+                            <span className="text-xs text-muted/60">{c.count}</span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Smart tip strip */}
+        {/* Slim smart-tip strip + attribution — single line */}
         {weather && (
-          <div className="mt-3 flex items-center gap-3 rounded-lg bg-white/10 px-3 py-2 text-sm">
-            <span className="text-xs">💡</span>
-            <p className="text-xs text-blue-100">
-              {getSmartTip(weather.weather_code, weather.temperature_2m)}
-            </p>
-            <span className="ml-auto text-[10px] text-blue-300">
-              Google Places + Open-Meteo + Musement
-            </span>
+          <div className="mt-2 flex items-center gap-2 text-[10px] text-blue-200">
+            <span>💡 {getSmartTip(weather.weather_code, weather.temperature_2m)}</span>
+            <span className="ml-auto opacity-70">Google Places · Open-Meteo · Musement</span>
           </div>
         )}
       </div>
@@ -846,7 +963,7 @@ export default function CommandCenterPage() {
       <div className="flex gap-1.5 flex-wrap items-center">
         <button
           onClick={() => setVerticalSel(0)}
-          className={`rounded-lg px-3 py-2 text-xs font-medium transition-all ${
+          className={`rounded-md px-2.5 py-1.5 text-[11px] font-medium transition-all ${
             verticalSel === 0
               ? "bg-foreground text-background shadow-sm"
               : "bg-white border border-border/60 text-muted hover:bg-gray-50"
@@ -858,7 +975,7 @@ export default function CommandCenterPage() {
           <button
             key={v.id}
             onClick={() => setVerticalSel(v.id)}
-            className={`rounded-lg px-3 py-2 text-xs font-medium transition-all ${
+            className={`rounded-md px-2.5 py-1.5 text-[11px] font-medium transition-all ${
               verticalSel === v.id
                 ? "bg-accent text-white shadow-sm"
                 : "bg-white border border-border/60 text-muted hover:bg-gray-50"
@@ -869,7 +986,7 @@ export default function CommandCenterPage() {
         ))}
         <button
           onClick={() => setVerticalSel(-1)}
-          className={`rounded-lg px-3 py-2 text-xs font-medium transition-all ${
+          className={`rounded-md px-2.5 py-1.5 text-[11px] font-medium transition-all ${
             verticalSel === -1
               ? "bg-accent text-white shadow-sm"
               : "border-2 border-dashed border-accent/40 bg-accent/5 text-accent hover:border-accent hover:bg-accent/10"
@@ -880,7 +997,7 @@ export default function CommandCenterPage() {
         <button
           onClick={() => setIndoorOnly((v) => !v)}
           title={isRainy && !indoorOnly ? "Rain forecast — try Indoor only" : indoorOnly ? "Showing indoor only — click to clear" : "Filter to indoor venues only"}
-          className={`rounded-lg px-3 py-2 text-xs font-medium transition-all relative ${
+          className={`rounded-md px-2.5 py-1.5 text-[11px] font-medium transition-all relative ${
             indoorOnly
               ? "bg-emerald-500 text-white shadow-sm"
               : isRainy

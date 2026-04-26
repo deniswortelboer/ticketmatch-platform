@@ -17,6 +17,9 @@ export async function GET(request: NextRequest) {
           weight: c.weight,
           countryIso: c.countryIso,
           countryName: c.countryName,
+          lat: c.lat,
+          lng: c.lng,
+          timezone: c.timezone,
         })),
         totalCount: cities.length,
       });
