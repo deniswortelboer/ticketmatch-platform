@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { APIProvider, Map, AdvancedMarker, InfoWindow } from "@vis.gl/react-google-maps";
 import {
@@ -232,6 +233,7 @@ type TabId = "explore" | "route" | "booked";
    MAIN COMPONENT
    ══════════════════════════════════════════════════════════════════ */
 export default function CommandCenterPage() {
+  const router = useRouter();
   /* ── City state ── */
   const [cityIdx, setCityIdx] = useState(0);
   const city = NL_CITIES[cityIdx];
@@ -257,7 +259,7 @@ export default function CommandCenterPage() {
   const [liveLoaded, setLiveLoaded] = useState(false);
   const [loadingVenueId, setLoadingVenueId] = useState<string | null>(null);
 
-  /* ── Viator state ── */
+  /* ── Viator state (legacy, kept until Musement is fully validated) ── */
   const [activeTab, setActiveTab] = useState<TabId>("explore");
   const [viatorProducts, setViatorProducts] = useState<ViatorProduct[]>([]);
   const [viatorLoading, setViatorLoading] = useState(false);
@@ -265,6 +267,40 @@ export default function CommandCenterPage() {
   const [viatorTotal, setViatorTotal] = useState(0);
   const [viatorPage, setViatorPage] = useState(1);
   const [viatorLoadingMore, setViatorLoadingMore] = useState(false);
+
+  /* ── Musement state — primary supplier in Explore tab (Phase 3.1) ── */
+  type MusementCard = {
+    uuid: string;
+    title: string;
+    description: string;
+    duration: string;
+    rating: number;
+    reviewCount: number;
+    pricing: { currency: string; retailPrice: number; formatted: string };
+    images: { url: string; caption?: string }[];
+    cancellationPolicy?: string;
+    flags: string[];
+    isCombo?: boolean;
+    exclusive?: boolean;
+    topSeller?: boolean;
+    mustSee?: boolean;
+  };
+  type VerticalOpt = { id: number; name: string };
+  const VERTICAL_ICONS: Record<string, string> = {
+    "Museums & art": "📚",
+    "Tours & attractions": "🎯",
+    "Food & wine": "🍷",
+    "Active & adventure": "🚴",
+    "Performances": "🎭",
+    "Sports": "⚽",
+    "Nightlife": "🌃",
+  };
+  const [verticals, setVerticals] = useState<VerticalOpt[]>([]);
+  // 0 = All, -1 = synthetic Combos, else Musement vertical id
+  const [verticalSel, setVerticalSel] = useState<number>(0);
+  const [musementProducts, setMusementProducts] = useState<MusementCard[]>([]);
+  const [musementLoading, setMusementLoading] = useState(false);
+  const [musementTotal, setMusementTotal] = useState(0);
 
   /* ── Fetch Google Places venues ── */
   useEffect(() => {
@@ -351,6 +387,54 @@ export default function CommandCenterPage() {
     setViatorPage(1);
     fetchViator(city.id, viatorCategory, 1, false);
   }, [city.id, viatorCategory, fetchViator]);
+
+  /* ── Load Musement verticals once ── */
+  useEffect(() => {
+    fetch("/api/musement/verticals")
+      .then((r) => r.json())
+      .then((d) => setVerticals(d.verticals || []))
+      .catch(() => {});
+  }, []);
+
+  /* ── Fetch Musement experiences ── */
+  const fetchMusement = useCallback(
+    async (cityName: string, vSel: number) => {
+      setMusementLoading(true);
+      try {
+        const useVertical = vSel > 0;
+        const useCombo = vSel === -1;
+        const payload: Record<string, unknown> = {
+          cityName,
+          limit: 100,
+          offset: 0,
+          currency: "EUR",
+          language: "en",
+          sortBy: "relevance",
+        };
+        if (useVertical) payload.verticalId = vSel;
+        if (useCombo) payload.comboOnly = true;
+
+        const res = await fetch("/api/musement/search", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const data = res.ok ? await res.json() : { products: [], totalCount: 0 };
+        setMusementProducts(data.products || []);
+        setMusementTotal(data.totalCount || 0);
+      } catch {
+        setMusementProducts([]);
+        setMusementTotal(0);
+      } finally {
+        setMusementLoading(false);
+      }
+    },
+    [],
+  );
+
+  useEffect(() => {
+    fetchMusement(city.name, verticalSel);
+  }, [city.name, verticalSel, fetchMusement]);
 
   /* ── Busyness helpers ── */
   const busynessMap = useMemo(() => {
@@ -556,7 +640,7 @@ export default function CommandCenterPage() {
               {getSmartTip(weather.weather_code, weather.temperature_2m)}
             </p>
             <span className="ml-auto text-[10px] text-blue-300">
-              Google Places + Open-Meteo + Viator
+              Google Places + Open-Meteo + Musement
             </span>
           </div>
         )}
@@ -822,41 +906,50 @@ export default function CommandCenterPage() {
               ))}
             </div>
 
-            {/* ── Tab: Explore (Viator) ── */}
+            {/* ── Tab: Explore (Musement — Phase 3.1) ── */}
             {activeTab === "explore" && (
               <div>
-                {/* Viator category pills */}
+                {/* Musement vertical chips + synthetic Combos (matches Experiences page) */}
                 <div className="flex flex-wrap gap-1.5 p-3 border-b border-border/20">
-                  {VIATOR_CATEGORIES.map((c) => (
+                  <button
+                    onClick={() => setVerticalSel(0)}
+                    className={`rounded-full px-3 py-1.5 text-[11px] font-medium transition-colors ${
+                      verticalSel === 0
+                        ? "bg-foreground text-background"
+                        : "border border-border bg-white text-muted hover:text-foreground"
+                    }`}
+                  >
+                    All
+                  </button>
+                  {verticals.map((v) => (
                     <button
-                      key={c.value}
-                      onClick={() => setViatorCategory(c.value)}
+                      key={v.id}
+                      onClick={() => setVerticalSel(v.id)}
                       className={`rounded-full px-3 py-1.5 text-[11px] font-medium transition-colors ${
-                        viatorCategory === c.value
-                          ? "bg-foreground text-white"
+                        verticalSel === v.id
+                          ? "bg-accent text-white"
                           : "border border-border bg-white text-muted hover:text-foreground"
                       }`}
                     >
-                      {c.label}
+                      {VERTICAL_ICONS[v.name] || "•"} {v.name}
                     </button>
                   ))}
+                  <button
+                    onClick={() => setVerticalSel(-1)}
+                    className={`rounded-full px-3 py-1.5 text-[11px] font-medium transition-colors ${
+                      verticalSel === -1
+                        ? "bg-accent text-white"
+                        : "border-2 border-dashed border-accent/40 bg-accent/5 text-accent hover:border-accent hover:bg-accent/10"
+                    }`}
+                  >
+                    🎁 Combos
+                  </button>
                 </div>
 
-                {!viatorCityName && (
-                  <div className="p-8 text-center">
-                    <p className="text-sm text-muted">
-                      Viator experiences are not available for {city.name} yet.
-                    </p>
-                  </div>
-                )}
-
-                {viatorCityName && viatorLoading && (
+                {musementLoading && (
                   <div className="p-6 space-y-4">
                     {Array.from({ length: 4 }).map((_, i) => (
-                      <div
-                        key={i}
-                        className="flex gap-3 animate-pulse"
-                      >
+                      <div key={i} className="flex gap-3 animate-pulse">
                         <div className="h-20 w-20 shrink-0 rounded-xl bg-gray-100" />
                         <div className="flex-1 space-y-2 py-1">
                           <div className="h-3 w-3/4 rounded bg-gray-100" />
@@ -868,122 +961,81 @@ export default function CommandCenterPage() {
                   </div>
                 )}
 
-                {viatorCityName && !viatorLoading && (
-                  <div
-                    className="overflow-y-auto"
-                    style={{ maxHeight: "540px" }}
-                  >
-                    {viatorProducts.length === 0 ? (
+                {!musementLoading && (
+                  <div className="overflow-y-auto" style={{ maxHeight: "540px" }}>
+                    {musementProducts.length === 0 ? (
                       <div className="p-8 text-center text-sm text-muted">
-                        No experiences found for this category.
+                        No Musement experiences for this filter in {city.name}.
                       </div>
                     ) : (
                       <>
                         <div className="px-3 py-2 text-[11px] text-muted">
-                          {viatorTotal.toLocaleString()} experiences in{" "}
-                          {city.name}
+                          {musementTotal.toLocaleString()} experiences in {city.name} · click any card to book
                         </div>
-                        {viatorProducts.map((p) => {
-                          const busyness = getBusynessFromPercentage(
-                            Math.round(Math.random() * 80 + 10),
-                          );
-                          return (
-                            <div
-                              key={p.productCode}
-                              className="flex gap-3 border-b border-border/20 px-3 py-3 hover:bg-blue-50/30 transition-colors"
-                            >
-                              {/* Thumbnail */}
-                              <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-gray-100">
-                                {p.images[0]?.url ? (
-                                  <img
-                                    src={p.images[0].url}
-                                    alt={p.title}
-                                    className="h-full w-full object-cover"
-                                    loading="lazy"
-                                  />
-                                ) : (
-                                  <div className="flex h-full items-center justify-center text-gray-400 text-lg">
-                                    🎯
-                                  </div>
+                        {musementProducts.map((p) => (
+                          <button
+                            key={p.uuid}
+                            onClick={() => router.push(
+                              `/dashboard/bookings/new?source=musement&activityUuid=${p.uuid}&title=${encodeURIComponent(p.title)}&price=${p.pricing.retailPrice}&currency=${p.pricing.currency}`
+                            )}
+                            className="flex w-full gap-3 border-b border-border/20 px-3 py-3 text-left hover:bg-blue-50/30 transition-colors"
+                          >
+                            {/* Thumbnail */}
+                            <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-gray-100">
+                              {p.images[0]?.url ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img
+                                  src={p.images[0].url}
+                                  alt={p.title}
+                                  className="h-full w-full object-cover"
+                                  loading="lazy"
+                                />
+                              ) : (
+                                <div className="flex h-full items-center justify-center text-gray-400 text-lg">🎯</div>
+                              )}
+                              {p.duration && (
+                                <span className="absolute bottom-1 left-1 rounded bg-black/60 px-1.5 py-0.5 text-[9px] font-medium text-white">
+                                  {p.duration}
+                                </span>
+                              )}
+                              {p.isCombo && (
+                                <span className="absolute top-1 right-1 rounded bg-foreground/90 px-1.5 py-0.5 text-[9px] font-semibold text-background">Combo</span>
+                              )}
+                            </div>
+
+                            {/* Content */}
+                            <div className="flex-1 min-w-0">
+                              <h4 className="text-sm font-semibold leading-tight line-clamp-2">{p.title}</h4>
+                              <div className="mt-1 flex items-center gap-2">
+                                {p.rating > 0 && (
+                                  <span className="text-xs text-amber-500">★ {p.rating.toFixed(1)}</span>
                                 )}
-                                {p.duration && (
-                                  <span className="absolute bottom-1 left-1 rounded bg-black/60 px-1.5 py-0.5 text-[9px] font-medium text-white">
-                                    {p.duration}
-                                  </span>
+                                {p.reviewCount > 0 && (
+                                  <span className="text-[10px] text-gray-400">({p.reviewCount.toLocaleString()})</span>
                                 )}
                               </div>
-
-                              {/* Content */}
-                              <div className="flex-1 min-w-0">
-                                <h4 className="text-sm font-semibold leading-tight line-clamp-2">
-                                  {p.title}
-                                </h4>
-                                <div className="mt-1 flex items-center gap-2">
-                                  {p.rating > 0 && (
-                                    <span className="text-xs text-amber-500">
-                                      ★ {p.rating.toFixed(1)}
-                                    </span>
-                                  )}
-                                  {p.reviewCount > 0 && (
-                                    <span className="text-[10px] text-gray-400">
-                                      ({p.reviewCount.toLocaleString()})
-                                    </span>
-                                  )}
-                                  <BusynessDot info={busyness} size="sm" />
-                                </div>
-                                <div className="mt-1.5 flex items-center gap-2">
-                                  {p.flags.includes("FREE_CANCELLATION") && (
-                                    <span className="text-[9px] text-green-600 font-medium">
-                                      Free cancel
-                                    </span>
-                                  )}
-                                  {p.flags.includes("LIKELY_TO_SELL_OUT") && (
-                                    <span className="text-[9px] text-red-500 font-medium">
-                                      Selling fast
-                                    </span>
-                                  )}
-                                </div>
-                                <div className="mt-1.5 flex items-center justify-between">
-                                  <span className="text-sm font-bold text-accent">
-                                    {p.pricing.amount > 0
-                                      ? p.pricing.formatted
-                                      : "Price TBD"}
-                                  </span>
-                                  <a
-                                    href={p.bookingUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="rounded-xl bg-foreground px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-gray-800 transition-colors"
-                                  >
-                                    Book
-                                  </a>
-                                </div>
+                              <div className="mt-1.5 flex items-center gap-2">
+                                {p.cancellationPolicy === "Free cancellation" && (
+                                  <span className="text-[9px] text-green-600 font-medium">Free cancel</span>
+                                )}
+                                {p.exclusive && (
+                                  <span className="text-[9px] text-purple-600 font-medium">💎 Exclusive</span>
+                                )}
+                                {p.topSeller && (
+                                  <span className="text-[9px] text-orange-600 font-medium">🔥 Top seller</span>
+                                )}
+                              </div>
+                              <div className="mt-1.5 flex items-center justify-between">
+                                <span className="text-sm font-bold text-accent">
+                                  {p.pricing.retailPrice > 0 ? p.pricing.formatted : "Price TBD"}
+                                </span>
+                                <span className="rounded-xl bg-foreground px-3 py-1.5 text-[11px] font-semibold text-background">
+                                  Book Direct →
+                                </span>
                               </div>
                             </div>
-                          );
-                        })}
-
-                        {/* Load more */}
-                        {viatorHasMore && (
-                          <div className="p-4 text-center">
-                            <button
-                              onClick={() =>
-                                fetchViator(
-                                  city.id,
-                                  viatorCategory,
-                                  viatorPage + 1,
-                                  true,
-                                )
-                              }
-                              disabled={viatorLoadingMore}
-                              className="rounded-xl border border-border bg-white px-6 py-2 text-xs font-semibold text-foreground hover:bg-gray-50 disabled:opacity-50"
-                            >
-                              {viatorLoadingMore
-                                ? "Loading..."
-                                : `Load more (${viatorProducts.length} of ${viatorTotal})`}
-                            </button>
-                          </div>
-                        )}
+                          </button>
+                        ))}
                       </>
                     )}
                   </div>
