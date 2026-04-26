@@ -646,21 +646,43 @@ export default function CommandCenterPage() {
         )}
       </div>
 
-      {/* ── Category filter pills (for map venues) ── */}
-      <div className="flex gap-1.5 flex-wrap">
-        {CATEGORIES.map((c) => (
+      {/* ── Musement vertical filter (single source of truth, drives the
+          right-column Explore feed). Replaces the legacy Google-Places
+          category pills + the duplicate row that lived inside Explore. ── */}
+      <div className="flex gap-1.5 flex-wrap items-center">
+        <button
+          onClick={() => setVerticalSel(0)}
+          className={`rounded-lg px-3 py-2 text-xs font-medium transition-all ${
+            verticalSel === 0
+              ? "bg-foreground text-background shadow-sm"
+              : "bg-white border border-border/60 text-muted hover:bg-gray-50"
+          }`}
+        >
+          All
+        </button>
+        {verticals.map((v) => (
           <button
-            key={c.id}
-            onClick={() => setCategory(c.id)}
+            key={v.id}
+            onClick={() => setVerticalSel(v.id)}
             className={`rounded-lg px-3 py-2 text-xs font-medium transition-all ${
-              category === c.id
-                ? "bg-foreground text-white shadow-sm"
+              verticalSel === v.id
+                ? "bg-accent text-white shadow-sm"
                 : "bg-white border border-border/60 text-muted hover:bg-gray-50"
             }`}
           >
-            <span className="mr-1">{c.icon}</span> {c.label}
+            <span className="mr-1">{VERTICAL_ICONS[v.name] || "•"}</span>{v.name}
           </button>
         ))}
+        <button
+          onClick={() => setVerticalSel(-1)}
+          className={`rounded-lg px-3 py-2 text-xs font-medium transition-all ${
+            verticalSel === -1
+              ? "bg-accent text-white shadow-sm"
+              : "border-2 border-dashed border-accent/40 bg-accent/5 text-accent hover:border-accent hover:bg-accent/10"
+          }`}
+        >
+          🎁 Combos
+        </button>
         <div className="relative flex-1 sm:max-w-[200px] ml-2">
           <svg
             width="14"
@@ -909,42 +931,8 @@ export default function CommandCenterPage() {
             {/* ── Tab: Explore (Musement — Phase 3.1) ── */}
             {activeTab === "explore" && (
               <div>
-                {/* Musement vertical chips + synthetic Combos (matches Experiences page) */}
-                <div className="flex flex-wrap gap-1.5 p-3 border-b border-border/20">
-                  <button
-                    onClick={() => setVerticalSel(0)}
-                    className={`rounded-full px-3 py-1.5 text-[11px] font-medium transition-colors ${
-                      verticalSel === 0
-                        ? "bg-foreground text-background"
-                        : "border border-border bg-white text-muted hover:text-foreground"
-                    }`}
-                  >
-                    All
-                  </button>
-                  {verticals.map((v) => (
-                    <button
-                      key={v.id}
-                      onClick={() => setVerticalSel(v.id)}
-                      className={`rounded-full px-3 py-1.5 text-[11px] font-medium transition-colors ${
-                        verticalSel === v.id
-                          ? "bg-accent text-white"
-                          : "border border-border bg-white text-muted hover:text-foreground"
-                      }`}
-                    >
-                      {VERTICAL_ICONS[v.name] || "•"} {v.name}
-                    </button>
-                  ))}
-                  <button
-                    onClick={() => setVerticalSel(-1)}
-                    className={`rounded-full px-3 py-1.5 text-[11px] font-medium transition-colors ${
-                      verticalSel === -1
-                        ? "bg-accent text-white"
-                        : "border-2 border-dashed border-accent/40 bg-accent/5 text-accent hover:border-accent hover:bg-accent/10"
-                    }`}
-                  >
-                    🎁 Combos
-                  </button>
-                </div>
+                {/* Verticals chip row lives ABOVE the map now (single source of
+                    truth — no duplicate filter inside the right column). */}
 
                 {musementLoading && (
                   <div className="p-6 space-y-4">
