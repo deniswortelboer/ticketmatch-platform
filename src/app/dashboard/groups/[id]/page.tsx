@@ -628,19 +628,38 @@ export default function GroupDetailPage() {
                           )}
                           {s.text}
                         </div>
-                        {s.uuid && (
-                          <button
-                            onClick={() => router.push(
-                              `/dashboard/bookings/new?source=musement&activityUuid=${s.uuid}` +
-                              `&title=${encodeURIComponent(s.text.replace(/^🎫\s*/, "").replace(/\s*\([^)]*\)\s*$/, ""))}` +
-                              `&price=${s.price ?? 0}&currency=${s.currency ?? "EUR"}`
-                            )}
-                            className="shrink-0 rounded-md bg-orange-500 px-2 py-0.5 text-[10px] font-semibold text-white hover:bg-orange-600 transition-colors"
-                            title="Book this Musement activity"
-                          >
-                            Book →
-                          </button>
-                        )}
+                        {s.uuid && (() => {
+                          const cleanTitle = s.text.replace(/^🎫\s*/, "").replace(/\s*\([^)]*\)\s*$/, "").trim();
+                          const alreadyBooked = bookings.some(
+                            (bk) => bk.venue_name?.trim() === cleanTitle
+                          );
+                          if (alreadyBooked) {
+                            return (
+                              <span
+                                className="shrink-0 rounded-md bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700"
+                                title="Already booked for this group"
+                              >
+                                ✓ Booked
+                              </span>
+                            );
+                          }
+                          return (
+                            <button
+                              onClick={() => router.push(
+                                `/dashboard/bookings/new?source=musement` +
+                                `&activityUuid=${s.uuid}` +
+                                `&title=${encodeURIComponent(cleanTitle)}` +
+                                `&price=${s.price ?? 0}&currency=${s.currency ?? "EUR"}` +
+                                `&groupId=${id}` +
+                                `&returnTo=${encodeURIComponent(`/dashboard/groups/${id}?tab=itinerary`)}`
+                              )}
+                              className="shrink-0 rounded-md bg-orange-500 px-2 py-0.5 text-[10px] font-semibold text-white hover:bg-orange-600 transition-colors"
+                              title="Book this Musement activity for this group"
+                            >
+                              Book →
+                            </button>
+                          );
+                        })()}
                       </li>
                     ))}
                   </ol>

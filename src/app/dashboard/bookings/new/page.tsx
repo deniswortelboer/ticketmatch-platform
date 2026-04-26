@@ -46,6 +46,11 @@ function NewBookingForm() {
   const title = params.get("title") || "Musement activity";
   const priceRaw = params.get("price") || "0";
   const currency = params.get("currency") || "EUR";
+  // Optional pre-select + return URL — used by the Group's Itinerary "Book →"
+  // button so the reseller stays on the itinerary page after submit and the
+  // active group is already selected (no manual dropdown work).
+  const preGroupId = params.get("groupId") || "";
+  const returnTo = params.get("returnTo") || "";
 
   const price = Math.max(0, Number(priceRaw) || 0);
 
@@ -124,16 +129,21 @@ function NewBookingForm() {
         const list: Group[] = json.groups || json || [];
         setGroups(list);
         if (list.length > 0) {
-          setGroupId(list[0].id);
-          if (list[0].number_of_guests) setNumberOfGuests(list[0].number_of_guests);
-          if (list[0].travel_date) setScheduledDate(list[0].travel_date);
+          // Honor ?groupId=... if it points to a real group (used by the
+          // Group's Itinerary "Book →" so the right group is preselected
+          // without the reseller having to pick it again).
+          const preMatch = preGroupId ? list.find((g) => g.id === preGroupId) : null;
+          const chosen = preMatch || list[0];
+          setGroupId(chosen.id);
+          if (chosen.number_of_guests) setNumberOfGuests(chosen.number_of_guests);
+          if (chosen.travel_date) setScheduledDate(chosen.travel_date);
         }
       } catch {
         setError("Could not load groups — please try again.");
       }
     }
     void load();
-  }, []);
+  }, [preGroupId]);
 
   // Auto-sync quantity + date when reseller switches group
   useEffect(() => {
@@ -303,8 +313,10 @@ function NewBookingForm() {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Could not create booking");
-      // Navigate to Bookings list so reseller sees the new pending row
-      router.push("/dashboard/bookings");
+      // Honor returnTo so the Group's Itinerary "Book →" round-trip drops
+      // the reseller back on the itinerary card with the just-booked stop
+      // already showing the green "✓ Booked" pill.
+      router.push(returnTo || "/dashboard/bookings");
     } catch (e) {
       setError((e as Error).message);
       setSubmitting(false);
