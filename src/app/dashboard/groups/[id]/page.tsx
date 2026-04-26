@@ -122,7 +122,17 @@ function parsePassengersFromNotes(notes: string | null): Passenger[] {
   if (!notes) return [];
   const lines = notes.split(/\r?\n/);
   const out: Passenger[] = [];
+  // Track whether we're inside a "--- Itinerary saved … ---" block — those
+  // numbered stops would otherwise be misread as passengers (they share the
+  // same "N. text" prefix).
+  let inItinerary = false;
   for (const raw of lines) {
+    if (/^---\s*Itinerary saved/i.test(raw)) { inItinerary = true; continue; }
+    if (inItinerary) {
+      // Block ends on next "---" line or a blank line after stops were collected
+      if (/^---/.test(raw) || raw.trim() === "") inItinerary = false;
+      continue;
+    }
     const m = raw.match(/^\s*(\d+)\.\s+(.*)$/);
     if (!m) continue;
     const idx = parseInt(m[1], 10);
@@ -184,6 +194,44 @@ export default function GroupDetailPage() {
 
   const passengers = useMemo(() => parsePassengersFromNotes(group?.notes ?? null), [group?.notes]);
   const itineraries = useMemo(() => parseItinerariesFromNotes(group?.notes ?? null), [group?.notes]);
+
+  // Delete the idx-th saved itinerary block from notes (PUT /api/groups).
+  const deleteItinerary = async (idx: number) => {
+    if (!group || !group.notes) return;
+    if (typeof window !== "undefined" && !window.confirm("Delete this saved itinerary?")) return;
+    const lines = group.notes.split(/\r?\n/);
+    let foundIdx = -1;
+    let count = 0;
+    for (let i = 0; i < lines.length; i++) {
+      if (/^---\s*Itinerary saved/i.test(lines[i])) {
+        if (count === idx) { foundIdx = i; break; }
+        count++;
+      }
+    }
+    if (foundIdx < 0) return;
+    let endIdx = lines.length;
+    for (let i = foundIdx + 1; i < lines.length; i++) {
+      if (/^---/.test(lines[i]) || lines[i].trim() === "") { endIdx = i; break; }
+    }
+    let startIdx = foundIdx;
+    while (startIdx > 0 && lines[startIdx - 1].trim() === "") startIdx--;
+    const newLines = [...lines.slice(0, startIdx), ...lines.slice(endIdx)];
+    const nextNotes = newLines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+    try {
+      const res = await fetch("/api/groups", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, notes: nextNotes }),
+      });
+      if (res.ok) {
+        const fresh = await fetch("/api/groups").then((r) => r.json());
+        const found = (fresh.groups || []).find((gr: Group) => gr.id === id) || null;
+        setGroup(found);
+      }
+    } catch {
+      // silent — page still shows old data
+    }
+  };
 
   const totalSpent = useMemo(
     () => bookings.reduce((s, bk) => s + Number(bk.total_price || 0), 0),
@@ -526,7 +574,22 @@ export default function GroupDetailPage() {
                         </p>
                       )}
                     </div>
-                    <span className="text-xs text-muted">{it.stops.length} stops</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted">{it.stops.length} stops</span>
+                      <button
+                        onClick={() => deleteItinerary(idx)}
+                        title="Delete this saved itinerary"
+                        className="flex h-7 w-7 items-center justify-center rounded-md text-gray-400 hover:bg-red-50 hover:text-red-600 transition-colors"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="3 6 5 6 21 6" />
+                          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                          <path d="M10 11v6" />
+                          <path d="M14 11v6" />
+                          <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
                   <ol className="space-y-2 border-l-2 border-amber-200 pl-4">
                     {it.stops.map((s, i) => (
