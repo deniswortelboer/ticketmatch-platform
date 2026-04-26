@@ -310,6 +310,9 @@ export default function CommandCenterPage() {
   const [selectedMusement, setSelectedMusement] = useState<MusementCard | null>(null);
   // Musement-route + save-to-group state
   const [routeMusement, setRouteMusement] = useState<MusementCard[]>([]);
+  // Time planner: start-time (HH:MM) + per-stop duration (minutes, keyed by id).
+  const [routeStartTime, setRouteStartTime] = useState("09:00");
+  const [stopDurations, setStopDurations] = useState<Record<string, number>>({});
   const [saveOpen, setSaveOpen] = useState(false);
   const [saveGroupId, setSaveGroupId] = useState("");
   const [saveGroups, setSaveGroups] = useState<Array<{ id: string; name: string; notes: string | null; number_of_guests: number; travel_date: string | null; contact_person: string | null }>>([]);
@@ -584,6 +587,64 @@ export default function CommandCenterPage() {
     0,
   );
   const routeWalkMins = walkingTime(routeDistance);
+
+  /* ── Time planner — compute per-stop arrival across both route arrays ── */
+  const timeToMinutes = (t: string): number => {
+    const [h, m] = t.split(":").map(Number);
+    return (h || 0) * 60 + (m || 0);
+  };
+  const minutesToTime = (m: number): string => {
+    const total = ((m % (24 * 60)) + 24 * 60) % (24 * 60);
+    const h = Math.floor(total / 60);
+    const mm = Math.round(total % 60);
+    return `${String(h).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+  };
+  const DEFAULT_VENUE_MIN = 60;
+  const DEFAULT_MUSEMENT_MIN = 90;
+  const schedule = (() => {
+    // Combined sequence: route (Google) followed by routeMusement.
+    type Seq = { id: string; lat: number; lng: number; defaultMin: number };
+    const seq: Seq[] = [];
+    for (const v of route) seq.push({ id: `g-${v.id}`, lat: v.lat, lng: v.lng, defaultMin: DEFAULT_VENUE_MIN });
+    for (const m of routeMusement) {
+      if (typeof m.location?.lat === "number" && typeof m.location?.lng === "number") {
+        seq.push({ id: `m-${m.uuid}`, lat: m.location.lat, lng: m.location.lng, defaultMin: DEFAULT_MUSEMENT_MIN });
+      }
+    }
+    const map: Record<string, { arrival: string; departure: string; durationMin: number; walkMin: number }> = {};
+    let cursor = timeToMinutes(routeStartTime);
+    for (let i = 0; i < seq.length; i++) {
+      const item = seq[i];
+      const prev = i > 0 ? seq[i - 1] : null;
+      const walkMin = prev ? Math.round(walkingTime(haversine(prev.lat, prev.lng, item.lat, item.lng)) * 1.3) : 0;
+      cursor += walkMin;
+      const arrivalMin = cursor;
+      const durationMin = stopDurations[item.id] ?? item.defaultMin;
+      cursor += durationMin;
+      map[item.id] = {
+        arrival: minutesToTime(arrivalMin),
+        departure: minutesToTime(cursor),
+        durationMin,
+        walkMin,
+      };
+    }
+    return map;
+  })();
+  const dayEndsAt = (() => {
+    const ids = [...route.map((v) => `g-${v.id}`), ...routeMusement.filter((m) => typeof m.location?.lat === "number").map((m) => `m-${m.uuid}`)];
+    const last = ids[ids.length - 1];
+    return last ? schedule[last]?.departure : null;
+  })();
+  const setDurationFor = (id: string, mins: number) => {
+    setStopDurations((prev) => ({ ...prev, [id]: Math.max(5, Math.min(720, mins)) }));
+  };
+  const clearWholeRoute = () => {
+    if (route.length + routeMusement.length === 0) return;
+    if (typeof window !== "undefined" && !window.confirm("Clear all route stops?")) return;
+    setRoute([]);
+    setRouteMusement([]);
+    setStopDurations({});
+  };
 
   /* ── Save-to-group: lazy load groups when opening the panel ── */
   const openSavePanel = async () => {
@@ -1303,28 +1364,46 @@ export default function CommandCenterPage() {
             {activeTab === "route" && (
               <div>
                 <div className="border-b border-border/30 px-4 py-3 bg-gradient-to-r from-amber-50 to-orange-50">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 min-w-0">
                       <span className="text-base">🗺️</span>
-                      <div>
-                        <p className="text-sm font-semibold">
-                          Day Route Planner
-                        </p>
-                        <p className="text-[10px] text-muted">
-                          Click venues on map → add to your route
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold">Day Route Planner</p>
+                        <p className="text-[10px] text-muted truncate">
+                          {route.length + routeMusement.length === 0
+                            ? "Add venues + Musement activities to plan a day"
+                            : `${route.length + routeMusement.length} stops${dayEndsAt ? ` · ends ${dayEndsAt}` : ""}`}
                         </p>
                       </div>
                     </div>
-                    {route.length > 0 && (
-                      <div className="flex items-center gap-3 text-xs">
-                        <span className="font-medium text-gray-500">
-                          🚶 {(routeDistance * 1.3).toFixed(1)}km
-                        </span>
-                        <span className="font-medium text-gray-500">
-                          ⏱️ ~{Math.round(routeWalkMins * 1.3)}min
-                        </span>
-                      </div>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {(route.length + routeMusement.length) > 0 && (
+                        <>
+                          <label className="flex items-center gap-1 text-[11px] text-gray-700">
+                            <span className="text-gray-500">Start</span>
+                            <input
+                              type="time"
+                              value={routeStartTime}
+                              onChange={(e) => setRouteStartTime(e.target.value || "09:00")}
+                              className="h-7 rounded-md border border-border bg-white px-2 text-[11px] tabular-nums"
+                            />
+                          </label>
+                          <button
+                            onClick={clearWholeRoute}
+                            title="Clear all stops"
+                            className="flex h-7 w-7 items-center justify-center rounded-md text-gray-400 hover:bg-red-50 hover:text-red-600 transition-colors"
+                          >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="3 6 5 6 21 6" />
+                              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                              <path d="M10 11v6" />
+                              <path d="M14 11v6" />
+                              <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                            </svg>
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -1368,8 +1447,13 @@ export default function CommandCenterPage() {
                               </div>
                             )}
                             <div className="flex items-center gap-3 px-4 py-2.5">
-                              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-500 text-xs font-bold text-white">
-                                {i + 1}
+                              <div className="flex flex-col items-center shrink-0">
+                                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-amber-500 text-xs font-bold text-white">
+                                  {i + 1}
+                                </div>
+                                <span className="mt-1 text-[10px] font-semibold tabular-nums text-amber-700">
+                                  {schedule[`g-${v.id}`]?.arrival ?? "—"}
+                                </span>
                               </div>
                               <VenuePhoto photo={v.photo} name={v.name} />
                               <div className="flex-1 min-w-0">
@@ -1382,6 +1466,18 @@ export default function CommandCenterPage() {
                                 <div className="flex items-center gap-2 text-[10px] text-gray-400">
                                   <span>★ {v.rating}</span>
                                   <span>{v.indoor ? "🏠" : "☀️"}</span>
+                                  <label className="flex items-center gap-0.5 text-gray-500 ml-auto">
+                                    <input
+                                      type="number"
+                                      min={5}
+                                      max={720}
+                                      step={15}
+                                      value={schedule[`g-${v.id}`]?.durationMin ?? DEFAULT_VENUE_MIN}
+                                      onChange={(e) => setDurationFor(`g-${v.id}`, Number(e.target.value))}
+                                      className="h-5 w-12 rounded border border-border bg-white px-1 text-[10px] tabular-nums"
+                                    />
+                                    <span>min</span>
+                                  </label>
                                 </div>
                               </div>
                               <div className="flex items-center gap-1">
@@ -1471,8 +1567,13 @@ export default function CommandCenterPage() {
                                 </div>
                               )}
                               <div className="flex items-center gap-3 px-4 py-2.5">
-                                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-orange-500 text-xs font-bold text-white">
-                                  {route.length + i + 1}
+                                <div className="flex flex-col items-center shrink-0">
+                                  <div className="flex h-7 w-7 items-center justify-center rounded-full bg-orange-500 text-xs font-bold text-white">
+                                    {route.length + i + 1}
+                                  </div>
+                                  <span className="mt-1 text-[10px] font-semibold tabular-nums text-orange-700">
+                                    {schedule[`m-${m.uuid}`]?.arrival ?? "—"}
+                                  </span>
                                 </div>
                                 <div className="h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-gray-100">
                                   {m.images?.[0]?.url ? (
@@ -1489,6 +1590,18 @@ export default function CommandCenterPage() {
                                     <span className="font-semibold text-accent">
                                       {m.pricing.retailPrice > 0 ? m.pricing.formatted : "—"}
                                     </span>
+                                    <label className="flex items-center gap-0.5 text-gray-500 ml-auto">
+                                      <input
+                                        type="number"
+                                        min={5}
+                                        max={720}
+                                        step={15}
+                                        value={schedule[`m-${m.uuid}`]?.durationMin ?? DEFAULT_MUSEMENT_MIN}
+                                        onChange={(e) => setDurationFor(`m-${m.uuid}`, Number(e.target.value))}
+                                        className="h-5 w-12 rounded border border-border bg-white px-1 text-[10px] tabular-nums"
+                                      />
+                                      <span>min</span>
+                                    </label>
                                   </div>
                                 </div>
                                 <div className="flex items-center gap-1">
