@@ -783,7 +783,10 @@ export default function CommandCenterPage() {
       routeMusement.forEach((m, i) => {
         const sch = schedule[`m-${m.uuid}`];
         const time = sch?.arrival ?? "";
-        stops.push(`${offset + i + 1}. ${time ? time + " · " : ""}🎫 ${m.title} (${m.pricing.formatted || "—"})`);
+        // Trailing metadata `[b:uuid|p:price|c:CCY]` lets the Groups Itinerary
+        // tab render a Book button per Musement stop without re-searching.
+        const meta = `[b:${m.uuid}|p:${m.pricing.retailPrice}|c:${m.pricing.currency}]`;
+        stops.push(`${offset + i + 1}. ${time ? time + " · " : ""}🎫 ${m.title} (${m.pricing.formatted || "—"}) ${meta}`);
       });
       const headerExtra = (route.length + routeMusement.length) > 0
         ? ` — start ${routeStartTime}${dayEndsAt ? `, ends ${dayEndsAt}` : ""}`

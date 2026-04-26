@@ -59,7 +59,14 @@ const TAB_DEFS: { key: TabKey; label: string }[] = [
  *  is followed by numbered stops on subsequent lines until the next `---`
  *  marker, blank line, or a non-numbered line.
  */
-type ItineraryStop = { time: string | null; text: string };
+type ItineraryStop = {
+  time: string | null;
+  text: string;
+  // Optional booking metadata from "[b:uuid|p:price|c:CCY]" trailing tag
+  uuid?: string;
+  price?: number;
+  currency?: string;
+};
 type ItineraryBlock = {
   header: string;
   date: string;
@@ -98,10 +105,26 @@ function parseItinerariesFromNotes(notes: string | null): ItineraryBlock[] {
       continue;
     }
     if (/^\s*\d+\.\s+/.test(raw)) {
-      const body = raw.replace(/^\s*\d+\.\s+/, "").trim();
+      let body = raw.replace(/^\s*\d+\.\s+/, "").trim();
+      // Trailing "[b:uuid|p:price|c:CCY]" metadata — strip + capture
+      let uuid: string | undefined;
+      let price: number | undefined;
+      let currency: string | undefined;
+      const meta = body.match(/\s*\[b:([^|\]]+)\|p:([^|\]]+)\|c:([^\]]+)\]\s*$/);
+      if (meta) {
+        uuid = meta[1].trim();
+        const priceNum = Number(meta[2].trim());
+        price = Number.isFinite(priceNum) ? priceNum : undefined;
+        currency = meta[3].trim();
+        body = body.replace(meta[0], "").trim();
+      }
       // Optional "HH:MM · " or "HH:MM — " prefix
       const tm = body.match(/^(\d{2}:\d{2})\s*[·—-]\s*(.*)$/);
-      current.stops.push(tm ? { time: tm[1], text: tm[2] } : { time: null, text: body });
+      const stop: ItineraryStop = tm
+        ? { time: tm[1], text: tm[2] }
+        : { time: null, text: body };
+      if (uuid) { stop.uuid = uuid; stop.price = price; stop.currency = currency; }
+      current.stops.push(stop);
     } else if (raw.trim() === "" && current.stops.length > 0) {
       // blank line ends the block only after we've collected stops
       out.push(current);
@@ -593,16 +616,31 @@ export default function GroupDetailPage() {
                   </div>
                   <ol className="space-y-2 border-l-2 border-amber-200 pl-4">
                     {it.stops.map((s, i) => (
-                      <li key={i} className="relative text-sm text-foreground/90">
+                      <li key={i} className="relative flex items-start gap-2 text-sm text-foreground/90">
                         <span className="absolute -left-[22px] top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-amber-500 text-[10px] font-bold text-white">
                           {i + 1}
                         </span>
-                        {s.time && (
-                          <span className="mr-2 inline-block rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-amber-800">
-                            {s.time}
-                          </span>
+                        <div className="flex-1 min-w-0">
+                          {s.time && (
+                            <span className="mr-2 inline-block rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-amber-800">
+                              {s.time}
+                            </span>
+                          )}
+                          {s.text}
+                        </div>
+                        {s.uuid && (
+                          <button
+                            onClick={() => router.push(
+                              `/dashboard/bookings/new?source=musement&activityUuid=${s.uuid}` +
+                              `&title=${encodeURIComponent(s.text.replace(/^🎫\s*/, "").replace(/\s*\([^)]*\)\s*$/, ""))}` +
+                              `&price=${s.price ?? 0}&currency=${s.currency ?? "EUR"}`
+                            )}
+                            className="shrink-0 rounded-md bg-orange-500 px-2 py-0.5 text-[10px] font-semibold text-white hover:bg-orange-600 transition-colors"
+                            title="Book this Musement activity"
+                          >
+                            Book →
+                          </button>
                         )}
-                        {s.text}
                       </li>
                     ))}
                   </ol>
