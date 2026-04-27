@@ -1198,7 +1198,51 @@ export async function confirmOrder(
 }
 
 /**
- * Get order details (including E-tickets)
+ * Finalise the order via the Musement no-payment flow.
+ *
+ * Per Musement Partner API v3 docs ("Make a payment" → "No-payment flow"):
+ *   POST /payments/no/payment  with `{ uuid: orderUuid }`
+ * Required for Merchant-of-Record partners (we collect payment via Stripe,
+ * then tell Musement the order is paid). Without this call the order stays
+ * `is_paid: false` and vouchers are NEVER generated, even on instant-confirm
+ * activities. This is THE step that was missing previously.
+ *
+ * Note: Musement requires special authorization on the partner account to
+ * use the no-payment flow in production. Sandbox accepts it without prior
+ * authorization. Confirmed against sandbox order MUS1334525 (2026-04-27).
+ *
+ * Pass the order UUID (not the human identifier like "MUS1334525").
+ */
+export async function markOrderPaid(
+  orderUuid: string,
+  language = "en"
+): Promise<boolean> {
+  try {
+    const res = await fetch(`${MUSEMENT_API_BASE}/payments/no/payment`, {
+      method: "POST",
+      headers: await getAuthHeaders(language),
+      body: JSON.stringify({ uuid: orderUuid }),
+    });
+    if (!res.ok) {
+      const body = await res.text();
+      console.error(`Musement no-payment HTTP ${res.status}:`, body.slice(0, 400));
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error("Musement markOrderPaid error:", err);
+    return false;
+  }
+}
+
+/**
+ * Get order details (including vouchers/E-tickets).
+ *
+ * Vouchers live in `items[].vouchers[]` (array of { url, ... }) — they
+ * appear after `markOrderPaid` succeeds AND Musement has generated them.
+ * For instant-confirmation activities this is near-immediate; for "needs
+ * confirmation" types it may take minutes-to-hours, so callers should poll
+ * or rely on Musement webhooks.
  */
 export async function getOrder(orderId: string, language = "en"): Promise<MusementBooking | null> {
   try {
@@ -1212,12 +1256,23 @@ export async function getOrder(orderId: string, language = "en"): Promise<Museme
     return {
       orderId: (order.uuid as string) || (order.id as string),
       status: mapOrderStatus(order.status as string),
-      tickets: ((order.items || []) as Record<string, unknown>[]).map((item) => ({
-        ticketId: (item.uuid as string) || "",
-        barcode: item.barcode as string,
-        qrCode: item.qr_code as string,
-        pdfUrl: item.voucher_url as string,
-      })),
+      tickets: ((order.items || []) as Record<string, unknown>[]).map((item) => {
+        const vouchers = (item.vouchers as Array<Record<string, unknown>>) || [];
+        const firstVoucher = vouchers[0] || {};
+        return {
+          ticketId:
+            (item.code as string) ||
+            (item.uuid as string) ||
+            (item.transaction_code as string) ||
+            "",
+          barcode: (item.barcode as string) || (firstVoucher.barcode as string),
+          qrCode: (item.qr_code as string) || (firstVoucher.qr_code as string),
+          pdfUrl:
+            (firstVoucher.url as string) ||
+            (item.voucher_url as string) ||
+            (item.voucher_pdf_url as string),
+        };
+      }),
       totalNetPrice: order.total_net_price as number || 0,
       totalRetailPrice: order.total_retail_price as number || 0,
     };

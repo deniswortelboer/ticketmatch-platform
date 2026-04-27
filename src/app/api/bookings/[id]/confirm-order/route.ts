@@ -6,6 +6,7 @@ import {
   addToCart,
   setCartCustomer,
   confirmOrder,
+  markOrderPaid,
   resolveProductIdentifier,
   getCustomerSchema,
   getCartItems,
@@ -287,6 +288,17 @@ export async function POST(
 
       const order = await confirmOrder(cartUuid, "en");
       if (!order) throw new Error("confirmOrder returned null");
+
+      // Required step for Merchant-of-Record partners: tell Musement the
+      // order is paid (we collected payment via Stripe earlier). Without
+      // this, vouchers are never generated and the order stays PENDING
+      // indefinitely. Sandbox accepts the call without prior auth; prod
+      // requires Musement to flip the no-payment-flow flag on our partner
+      // account (request via business-support@musement.com).
+      if (order.orderId) {
+        const paid = await markOrderPaid(order.orderId, "en");
+        if (!paid) throw new Error("markOrderPaid failed");
+      }
 
       musementOrderId = order.orderId || null;
       tickets = (order.tickets || []).map((t, i) => ({
