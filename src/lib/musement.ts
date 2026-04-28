@@ -1689,7 +1689,14 @@ function detectCombo(title: string): boolean {
 
 function mapActivityToProduct(a: Record<string, unknown>, cityName: string, currency: string): MusementProduct {
   const apiNetPrice = (a.net_price as number) || 0;
-  const retailPrice = (a.retail_price as Record<string, unknown>)?.value as number
+  // Per Musement Quality Checklist (activity-info), "Starting price" must
+  // use retail_price_without_service_fee — that's the base price without
+  // the booking fee. retail_price (which includes the fee) is reserved
+  // for the final cart total. Prefer the without-service-fee field;
+  // fall back gracefully when the API doesn't return it.
+  const retailPrice = (a.retail_price_without_service_fee as Record<string, unknown>)?.value as number
+    || (a.retail_price_without_service_fee as number)
+    || (a.retail_price as Record<string, unknown>)?.value as number
     || (a.retail_price as number)
     || (a.original_retail_price as Record<string, unknown>)?.value as number
     || apiNetPrice;
