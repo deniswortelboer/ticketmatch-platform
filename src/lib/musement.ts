@@ -122,6 +122,10 @@ export type MusementBooking = {
     barcode?: string;
     qrCode?: string;
     pdfUrl?: string;
+    // Per-item lifecycle status from Musement: OK, PENDING, KO, REFUNDED,
+    // CANCELLATION_ERROR. KO items are non-billable + already cancelled
+    // by the supplier — never re-cancel them via DELETE.
+    itemStatus?: string;
   }[];
   totalNetPrice: number;
   totalRetailPrice: number;
@@ -1279,6 +1283,7 @@ export async function getOrder(orderId: string, language = "en"): Promise<Museme
             (firstVoucher.url as string) ||
             (item.voucher_url as string) ||
             (item.voucher_pdf_url as string),
+          itemStatus: (item.status as string) || undefined,
         };
       }),
       totalNetPrice: order.total_net_price as number || 0,

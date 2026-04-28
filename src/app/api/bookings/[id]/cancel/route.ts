@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
+import Stripe from "stripe";
 import { getOrder, cancelOrderItem, getRefundEligibility } from "@/lib/musement";
 import { notifyAdmin } from "@/lib/notify";
 
@@ -13,7 +14,30 @@ import { notifyAdmin } from "@/lib/notify";
 // item still stands as a charge). The GET form lets the UI render an
 // informed confirmation modal; POST commits the cancel and flips the
 // Supabase booking to "cancelled".
+//
+// Atomic refund flow (merchant-of-record requirement):
+//   1. Musement DELETE — supplier-side cancellation
+//   2. If ALL items refunded by Musement → trigger Stripe refund for the
+//      original payment intent so the customer gets their money back.
+//      The two legs are sequential, not transactional — if Musement
+//      succeeds and Stripe fails we mark the booking and alert admin
+//      rather than try to roll back the Musement cancel.
 // ═══════════════════════════════════════════════════════════════
+
+// Per Musement docs the cancellation_reason field is a fixed enum.
+const VALID_CANCEL_REASONS = new Set([
+  "CANCELLED-BY-CUSTOMER",
+  "API-ISSUE",
+  "TECHNICAL-ISSUE",
+  "GRACE-PERIOD",
+  "REJECTED-ORDER",
+  "REJECTED-SCHEDULE-CHANGE",
+  "MISSING-MEETING-POINT-DETAILS",
+  "MISSING-PASSENGER-INFO",
+  "VENUE-CLOSED",
+]);
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 async function getAuthUser() {
   const cookieStore = await cookies();
@@ -53,7 +77,10 @@ async function loadBooking(id: string) {
   const admin = getAdminClient();
   const { data: booking, error } = await admin
     .from("bookings")
-    .select("id, status, musement_order_id, musement_status, venue_name, number_of_guests")
+    .select(
+      "id, status, musement_order_id, musement_status, venue_name, number_of_guests, " +
+        "stripe_payment_intent_id, total_price, currency, refund_status"
+    )
     .eq("id", id)
     .single();
   if (error || !booking) return null;
@@ -64,6 +91,10 @@ async function loadBooking(id: string) {
     musement_status: string | null;
     venue_name: string;
     number_of_guests: number;
+    stripe_payment_intent_id: string | null;
+    total_price: number | null;
+    currency: string | null;
+    refund_status: string | null;
   };
 }
 
@@ -141,6 +172,15 @@ export async function POST(
   const body = await request.json().catch(() => ({}));
   const reason: string = body.reason || "CANCELLED-BY-CUSTOMER";
 
+  if (!VALID_CANCEL_REASONS.has(reason)) {
+    return NextResponse.json(
+      {
+        error: `Invalid cancellation reason. Must be one of: ${[...VALID_CANCEL_REASONS].join(", ")}`,
+      },
+      { status: 400 }
+    );
+  }
+
   const booking = await loadBooking(id);
   if (!booking) return NextResponse.json({ error: "Booking not found" }, { status: 404 });
 
@@ -171,8 +211,26 @@ export async function POST(
     reason?: string;
     detail?: string;
     refunded?: boolean;
+    skipped?: boolean;
+    itemStatus?: string;
   }> = [];
   for (const t of order.tickets) {
+    // KO items are already cancelled by the supplier — calling DELETE
+    // on them returns 4xx and the supplier-refund leg is meaningless.
+    // REFUNDED items are also done — no need to re-cancel.
+    if (t.itemStatus === "KO" || t.itemStatus === "REFUNDED") {
+      results.push({
+        itemId: t.ticketId,
+        ok: true,
+        skipped: true,
+        itemStatus: t.itemStatus,
+        // KO items are non-billable per docs ("not invoiced if refund
+        // policy specifies"); we still want a Stripe refund because the
+        // customer paid us. Treat as refunded for the Stripe leg below.
+        refunded: t.itemStatus === "REFUNDED" || t.itemStatus === "KO",
+      });
+      continue;
+    }
     const r = await cancelOrderItem(booking.musement_order_id!, t.ticketId, reason);
     if (r.ok) {
       results.push({ itemId: t.ticketId, ok: true, refunded: r.refunded });
@@ -189,20 +247,84 @@ export async function POST(
     );
   }
 
-  await admin.from("bookings").update({ status: "cancelled" }).eq("id", id);
+  // ─── Atomic Stripe refund leg ──────────────────────────────────
+  // Musement has refunded the supplier side. As merchant of record we
+  // must now return the customer's money via the same payment intent
+  // they paid through. If this leg fails, the booking is in a "Musement
+  // cancelled but customer not refunded" state — alert ops.
+  const allRefundedByMusement = results.every((r) => r.refunded);
+  let stripeRefundId: string | null = null;
+  let stripeRefundError: string | null = null;
 
-  notifyAdmin(
-    `❌ Booking cancelled\n\n` +
-      `📍 ${booking.venue_name}\n` +
-      `👥 ${booking.number_of_guests} guests\n` +
-      `🔖 Musement order: ${booking.musement_order_id}\n` +
-      `Reason: ${reason}`
-  );
+  if (
+    allRefundedByMusement &&
+    booking.stripe_payment_intent_id &&
+    booking.total_price &&
+    booking.currency
+  ) {
+    try {
+      const refund = await stripe.refunds.create({
+        payment_intent: booking.stripe_payment_intent_id,
+        // Stripe expects amount in the smallest currency unit (cents/eurocents).
+        amount: Math.round(booking.total_price * 100),
+        reason: "requested_by_customer",
+        metadata: {
+          booking_id: booking.id,
+          musement_order_id: booking.musement_order_id ?? "",
+          cancel_reason: reason,
+        },
+      });
+      stripeRefundId = refund.id;
+    } catch (err) {
+      stripeRefundError = err instanceof Error ? err.message : "unknown";
+      console.error(`[cancel:${id}] Stripe refund failed`, err);
+    }
+  }
+
+  // Persist final state. refund_status reflects the customer-money outcome:
+  //   - "refunded"        → Musement + Stripe both refunded the customer
+  //   - "supplier_only"   → Musement refunded, but Stripe leg failed/skipped
+  //   - "none"            → Musement cancelled without refund (policy expired)
+  const refundStatus = stripeRefundId
+    ? "refunded"
+    : allRefundedByMusement
+    ? "supplier_only"
+    : "none";
+
+  await admin
+    .from("bookings")
+    .update({ status: "cancelled", refund_status: refundStatus })
+    .eq("id", id);
+
+  if (stripeRefundError) {
+    notifyAdmin(
+      `⚠️ Stripe refund FAILED — manual action required\n\n` +
+        `📍 ${booking.venue_name}\n` +
+        `👥 ${booking.number_of_guests} guests\n` +
+        `🔖 Musement order: ${booking.musement_order_id} (cancelled successfully)\n` +
+        `💳 Payment intent: ${booking.stripe_payment_intent_id}\n` +
+        `💶 Amount: ${booking.currency} ${booking.total_price}\n` +
+        `Error: ${stripeRefundError}\n` +
+        `→ Refund manually via Stripe dashboard.`
+    );
+  } else {
+    notifyAdmin(
+      `❌ Booking cancelled\n\n` +
+        `📍 ${booking.venue_name}\n` +
+        `👥 ${booking.number_of_guests} guests\n` +
+        `🔖 Musement order: ${booking.musement_order_id}\n` +
+        `Reason: ${reason}\n` +
+        `Refund: ${refundStatus}${stripeRefundId ? ` (Stripe ${stripeRefundId})` : ""}`
+    );
+  }
 
   return NextResponse.json({
     ok: true,
     source: "musement",
-    refunded: results.some((r) => r.refunded),
+    refunded: refundStatus === "refunded",
+    refundStatus,
+    stripeRefundId,
+    stripeRefundError,
     items: results,
   });
 }

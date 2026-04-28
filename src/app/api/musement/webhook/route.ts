@@ -1,6 +1,9 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse } from "next/server";
+import Stripe from "stripe";
 import { notifyAdmin } from "@/lib/notify";
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 // ═══════════════════════════════════════════════════════════════
 // POST /api/musement/webhook
@@ -132,7 +135,10 @@ export async function POST(request: Request) {
   // Find the booking this order belongs to.
   const { data: booking } = await admin
     .from("bookings")
-    .select("id, status, musement_status, stripe_payment_intent_id, total_price, currency, customer_email, venue_name")
+    .select(
+      "id, status, musement_status, refund_status, stripe_payment_intent_id, " +
+        "total_price, currency, customer_email, venue_name"
+    )
     .eq("musement_order_id", orderUuid)
     .maybeSingle();
 
@@ -159,17 +165,69 @@ export async function POST(request: Request) {
         .update({ musement_status: newStatus })
         .eq("id", booking.id);
     } else if (TERMINAL_FAIL.has(status)) {
-      // KO = supplier rejected. Mark failed + alert admin. Stripe refund is
-      // handled by the cancel-route flow once an admin acts on the alert.
+      // KO = supplier rejected. Customer paid us via Stripe but Musement
+      // is not delivering — auto-refund. Use a stable idempotency key so
+      // a webhook retry never refunds twice.
+      let stripeRefundId: string | null = null;
+      let stripeRefundError: string | null = null;
+      const alreadyRefunded = booking.refund_status === "refunded";
+
+      if (
+        !alreadyRefunded &&
+        booking.stripe_payment_intent_id &&
+        booking.total_price &&
+        booking.currency
+      ) {
+        try {
+          const refund = await stripe.refunds.create(
+            {
+              payment_intent: booking.stripe_payment_intent_id,
+              amount: Math.round(booking.total_price * 100),
+              reason: "requested_by_customer",
+              metadata: {
+                booking_id: booking.id,
+                musement_order_id: orderUuid,
+                trigger: "webhook_ko",
+              },
+            },
+            // Idempotency_key dedupes Stripe-side: the same key always
+            // returns the same refund, even across retries.
+            { idempotencyKey: `booking_${booking.id}_refund` }
+          );
+          stripeRefundId = refund.id;
+        } catch (err) {
+          stripeRefundError = err instanceof Error ? err.message : "unknown";
+          console.error(`[${ts}] webhook KO Stripe refund failed`, err);
+        }
+      }
+
+      const refundStatus = stripeRefundId
+        ? "refunded"
+        : alreadyRefunded
+        ? "refunded"
+        : "supplier_only";
+
       await admin
         .from("bookings")
-        .update({ musement_status: "failed" })
+        .update({
+          musement_status: "failed",
+          status: "cancelled",
+          refund_status: refundStatus,
+        })
         .eq("id", booking.id);
+
+      const stripePart = stripeRefundError
+        ? `⚠️ Stripe refund FAILED: ${stripeRefundError} — refund manually.`
+        : stripeRefundId
+        ? `✅ Stripe refund ${stripeRefundId} created automatically.`
+        : alreadyRefunded
+        ? `(Stripe already refunded earlier.)`
+        : `No Stripe payment to refund.`;
+
       await notifyAdmin(
-        "Musement order rejected (KO)",
-        `Booking ${booking.id} (${booking.venue_name}) was rejected by Musement supplier. ` +
-          `Customer paid ${booking.currency} ${booking.total_price} via Stripe ` +
-          `(${booking.stripe_payment_intent_id ?? "no payment intent"}). Refund manually via /admin.`
+        `Musement KO — booking ${booking.id} (${booking.venue_name})\n` +
+          `Customer paid ${booking.currency} ${booking.total_price}.\n` +
+          stripePart
       );
     } else if (TRANSIENT.has(status)) {
       // PENDING = still processing, just store latest. CANCELLATION_ERROR =
