@@ -37,6 +37,18 @@ const nextConfig: NextConfig = {
   },
 
   // ════════════════════════════════════════════════════════
+  // PERMANENT REDIRECTS — /blog → /insights (308, edge-layer)
+  // Must run before React renders so Google sees a real HTTP
+  // 308 instead of a soft meta-refresh.
+  // ════════════════════════════════════════════════════════
+  async redirects() {
+    return [
+      { source: "/blog", destination: "/insights", permanent: true },
+      { source: "/blog/:slug", destination: "/insights/:slug", permanent: true },
+    ];
+  },
+
+  // ════════════════════════════════════════════════════════
   // SECURITY HEADERS — Protect against XSS, clickjacking,
   // MIME sniffing, and enforce HTTPS
   // ════════════════════════════════════════════════════════
