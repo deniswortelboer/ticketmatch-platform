@@ -124,6 +124,7 @@ export async function POST(
     .select(
       `id, venue_name, venue_city, scheduled_date, number_of_guests, status,
        musement_activity_uuid, musement_date_id, musement_order_id, musement_status,
+       holder_breakdown,
        company_id, group_id,
        groups(name, contact_person),
        companies(name)`
@@ -136,6 +137,14 @@ export async function POST(
     return NextResponse.json({ error: "Booking not found or access denied" }, { status: 404 });
   }
 
+  type HolderBreakdownRow = {
+    code: string;
+    name?: string;
+    qty: number;
+    product_id: string;
+    unit_price: number;
+    currency?: string;
+  };
   type BookingRow = {
     id: string;
     venue_name: string;
@@ -147,6 +156,7 @@ export async function POST(
     musement_date_id: string | null;
     musement_order_id: string | null;
     musement_status: string | null;
+    holder_breakdown: HolderBreakdownRow[] | null;
     groups?: { name: string | null; contact_person: string | null } | null;
     companies?: { name: string | null } | null;
   };
@@ -182,37 +192,51 @@ export async function POST(
     if (canPlaceReal) {
       mode = "real";
 
-      // Resolve product_identifier if missing. We use the booking's
-      // scheduled_date as anchor; the helper widens the window to +14 days
-      // to accommodate sparse sandbox availability and picks first open slot.
-      let productIdentifier = booking.musement_date_id;
-      if (!productIdentifier) {
-        const anchor =
-          booking.scheduled_date ||
-          new Date(Date.now() + 31 * 86400_000).toISOString().slice(0, 10); // 31 days out — default, sandbox requires ≥1 month
-        const resolved = await resolveProductIdentifier(
-          booking.musement_activity_uuid!,
-          anchor,
-          14
-        );
-        if (!resolved) {
-          throw new Error(
-            `No Musement availability for activity ${booking.musement_activity_uuid} around ${anchor}`
-          );
-        }
-        productIdentifier = resolved.productId;
-        // Persist what we resolved so retries are idempotent
-        await admin
-          .from("bookings")
-          .update({ musement_date_id: productIdentifier })
-          .eq("id", id);
-      }
-
+      // Two cart-construction paths:
+      //
+      //  (a) Multi-holder bookings: holder_breakdown is set → loop through
+      //      each holder type and call addToCart once per holder with that
+      //      product_id + qty. Sum of qtys matches booking.number_of_guests.
+      //
+      //  (b) Legacy single-holder bookings: musement_date_id holds the one
+      //      product_id; fall back to resolveProductIdentifier from the
+      //      travel date when missing (sparse sandbox availability).
       const cartUuid = await createCart("en");
       if (!cartUuid) throw new Error("createCart returned null");
 
-      const added = await addToCart(cartUuid, productIdentifier, quantity, "en");
-      if (!added) throw new Error("addToCart failed");
+      const breakdownItems: HolderBreakdownRow[] = booking.holder_breakdown || [];
+      if (breakdownItems.length > 0) {
+        for (const h of breakdownItems) {
+          const ok = await addToCart(cartUuid, h.product_id, h.qty, "en");
+          if (!ok) throw new Error(`addToCart failed for holder ${h.code} (${h.product_id})`);
+        }
+      } else {
+        let productIdentifier = booking.musement_date_id;
+        if (!productIdentifier) {
+          const anchor =
+            booking.scheduled_date ||
+            new Date(Date.now() + 31 * 86400_000).toISOString().slice(0, 10); // 31 days out — default, sandbox requires ≥1 month
+          const resolved = await resolveProductIdentifier(
+            booking.musement_activity_uuid!,
+            anchor,
+            14
+          );
+          if (!resolved) {
+            throw new Error(
+              `No Musement availability for activity ${booking.musement_activity_uuid} around ${anchor}`
+            );
+          }
+          productIdentifier = resolved.productId;
+          // Persist what we resolved so retries are idempotent
+          await admin
+            .from("bookings")
+            .update({ musement_date_id: productIdentifier })
+            .eq("id", id);
+        }
+
+        const added = await addToCart(cartUuid, productIdentifier, quantity, "en");
+        if (!added) throw new Error("addToCart failed");
+      }
 
       // Per Musement Quality Check #8, fetch the cart-scoped schema to see
       // which booking-question fields this activity requires. If the request
