@@ -170,11 +170,23 @@ export async function POST(
     });
   }
 
-  // Mark as "placing" so we don't double-fire
-  await admin
+  // Atomic claim: only proceed if no other request is mid-flight.
+  // Musement has no Idempotency-Key header on POST /orders, so a duplicate
+  // confirmOrder call would create two real orders. The DB serialises this
+  // update — losing requests get a 409 and bail out.
+  const { data: claimed, error: claimErr } = await admin
     .from("bookings")
     .update({ musement_status: "placing" })
-    .eq("id", id);
+    .eq("id", id)
+    .or("musement_status.is.null,musement_status.eq.failed")
+    .select("id");
+
+  if (claimErr || !claimed || claimed.length === 0) {
+    return NextResponse.json(
+      { error: "Order placement already in progress or completed", musement_status: booking.musement_status },
+      { status: 409 }
+    );
+  }
 
   const quantity = Math.max(1, booking.number_of_guests || 1);
   // Go live with Musement if we have credentials + an activity UUID. The

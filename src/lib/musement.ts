@@ -8,6 +8,13 @@ const MUSEMENT_API_BASE = process.env.MUSEMENT_API_BASE || "https://sandbox.muse
 const MUSEMENT_APP_HEADER = process.env.MUSEMENT_APP_HEADER || "";
 const MUSEMENT_CLIENT_ID = process.env.MUSEMENT_CLIENT_ID || "";
 const MUSEMENT_CLIENT_SECRET = process.env.MUSEMENT_CLIENT_SECRET || "";
+// Market code controls catalog/pricing scope. Final value pending from
+// Musement (Mario) — sandbox accepts "nl" but production code may differ.
+const MUSEMENT_MARKET = process.env.MUSEMENT_MARKET || "nl";
+
+// Hard cap on list-endpoint pagination. Musement docs warn that limit > 20
+// degrades exponentially; the API allows up to 100 but we never want it.
+const MAX_LIST_LIMIT = 20;
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -230,6 +237,7 @@ function getHeaders(language = "en") {
     "Accept-Language": language,
     "X-Musement-Version": "3.5.0",
     "X-Musement-Currency": "EUR",
+    "X-Musement-Market": MUSEMENT_MARKET,
     ...(MUSEMENT_APP_HEADER ? { "x-musement-application": MUSEMENT_APP_HEADER } : {}),
     "Content-Type": "application/json",
   };
@@ -542,7 +550,7 @@ export async function searchActivities(params: MusementSearchParams): Promise<Mu
     return { products: [], totalCount: 0, hasMore: false };
   }
 
-  const limit = params.limit || 20;
+  const limit = Math.min(params.limit || 20, MAX_LIST_LIMIT);
   const offset = params.offset || 0;
   const currency = params.currency || "EUR";
 
@@ -620,7 +628,7 @@ export async function searchActivitiesByCategory(
   categoryId: number,
   params: Omit<MusementSearchParams, "cityId" | "categoryId">
 ): Promise<MusementSearchResult> {
-  const limit = params.limit || 20;
+  const limit = Math.min(params.limit || 20, MAX_LIST_LIMIT);
   const offset = params.offset || 0;
 
   try {
