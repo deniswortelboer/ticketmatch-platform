@@ -132,8 +132,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Storage failed" }, { status: 500 });
   }
 
-  // Find the booking this order belongs to.
-  const { data: booking } = await admin
+  // Find the booking this order belongs to. Cast through unknown to
+  // bridge Supabase's GenericStringError union with our concrete row
+  // shape — same pattern as the sibling cancel + confirm-order routes.
+  type BookingRow = {
+    id: string;
+    status: string;
+    musement_status: string | null;
+    refund_status: string | null;
+    stripe_payment_intent_id: string | null;
+    total_price: number | null;
+    currency: string | null;
+    customer_email: string | null;
+    venue_name: string;
+  };
+  const { data: bookingRaw } = await admin
     .from("bookings")
     .select(
       "id, status, musement_status, refund_status, stripe_payment_intent_id, " +
@@ -141,6 +154,7 @@ export async function POST(request: Request) {
     )
     .eq("musement_order_id", orderUuid)
     .maybeSingle();
+  const booking = bookingRaw as unknown as BookingRow | null;
 
   if (!booking) {
     // Either we don't track this order yet, or it's for a different env
@@ -234,8 +248,7 @@ export async function POST(request: Request) {
       // temporary Musement-side hiccup; they will retry. Alert ops if stuck.
       if (status === "CANCELLATION_ERROR") {
         await notifyAdmin(
-          "Musement CANCELLATION_ERROR",
-          `Booking ${booking.id} item ${itemUuid} hit CANCELLATION_ERROR. Musement retries automatically; investigate if event repeats.`
+          `⚠️ Musement CANCELLATION_ERROR — booking ${booking.id} item ${itemUuid} hit CANCELLATION_ERROR. Musement retries automatically; investigate if event repeats.`
         );
       }
     } else {

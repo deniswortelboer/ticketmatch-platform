@@ -575,12 +575,14 @@ export async function searchActivities(params: MusementSearchParams): Promise<Mu
   try {
     let url = `${MUSEMENT_API_BASE}/cities/${cityId}/activities?limit=${limit}&offset=${offset}`;
 
+    // Default to descending relevance — Musement's docs warn that
+    // "relevance" alone returns lowest-relevance first.
     if (params.sortBy === "price") {
       url += "&sort_by=price";
     } else if (params.sortBy === "rating") {
-      url += "&sort_by=rating";
+      url += "&sort_by=-rating";
     } else {
-      url += "&sort_by=relevance";
+      url += "&sort_by=-relevance";
     }
 
     if (params.verticalId) {
@@ -1303,6 +1305,69 @@ export async function markOrderPaid(
   } catch (err) {
     console.error("Musement markOrderPaid error:", err);
     return false;
+  }
+}
+
+// ─── Reviews ────────────────────────────────────────────────────────────────
+
+export type MusementReview = {
+  id?: string;
+  rating: number;            // 1-5 normalized
+  title?: string;
+  body?: string;
+  author?: string;
+  language?: string;
+  date?: string;             // ISO 8601
+};
+
+/**
+ * Fetch customer reviews for an activity. Most Musement responses return
+ * an array of review objects; some endpoints wrap in `{ data: [...] }`.
+ * We normalize both shapes and map to a TicketMatch-internal type so the
+ * UI doesn't depend on Musement's wire format.
+ *
+ * Reviews are public — no Bearer token needed, just the standard headers.
+ */
+export async function getActivityReviews(
+  uuid: string,
+  options: { limit?: number; offset?: number; language?: string } = {}
+): Promise<MusementReview[]> {
+  const limit = Math.min(options.limit ?? 10, MAX_LIST_LIMIT);
+  const offset = options.offset ?? 0;
+  const language = options.language ?? "en";
+
+  try {
+    const res = await fetch(
+      `${MUSEMENT_API_BASE}/activities/${uuid}/reviews?limit=${limit}&offset=${offset}`,
+      { headers: getHeaders(language), ...CATALOG_CACHE }
+    );
+    if (!res.ok) {
+      // 404 = no reviews yet, that's normal — return empty.
+      if (res.status === 404) return [];
+      console.error(`Musement reviews HTTP ${res.status} for ${uuid}`);
+      return [];
+    }
+    const data = await res.json();
+    const items = Array.isArray(data) ? data : data.data || [];
+
+    return items.map((r: Record<string, unknown>): MusementReview => ({
+      id: (r.id as string) || (r.uuid as string),
+      rating:
+        (r.rating as number) ??
+        (r.score as number) ??
+        (r.stars as number) ??
+        0,
+      title: r.title as string | undefined,
+      body: (r.body as string) || (r.text as string) || (r.comment as string),
+      author:
+        (r.author as string) ||
+        ((r.user as Record<string, unknown> | undefined)?.name as string),
+      language: (r.language as string) || (r.locale as string),
+      date: (r.created_at as string) || (r.date as string) || (r.published_at as string),
+    }));
+  } catch (err) {
+    console.error("Musement reviews error:", err);
+    return [];
   }
 }
 
