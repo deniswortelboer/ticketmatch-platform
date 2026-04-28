@@ -4,15 +4,22 @@ import { NextRequest, NextResponse } from "next/server";
 // POST /api/musement/timeslots
 //
 // For a given Musement activity + specific date, returns a flattened list
-// of bookable slots with their product_identifiers (needed for cart items).
-//
-// Used by /dashboard/bookings/new so the reseller can pick a specific
-// time (when the activity is CALENDAR-TIMESLOTS) instead of the system
-// blindly defaulting to the first slot.
+// of bookable slots with the FULL set of holder products per slot
+// (ADULT/CHILD/INFANT/STUDENT/SENIOR/etc). The booking UI uses this to
+// render a multi-holder quantity picker.
 //
 // Body: { activityUuid: string, date: "YYYY-MM-DD" }
-// Response: { slots: [{ time, groupName, productId, priceEur, currency,
-//                       languages, maxBuy, minBuy }] }
+// Response: {
+//   slots: [{
+//     time, groupName, languages, currency,
+//     // legacy single-product mirrors (= primary holder, for back-compat):
+//     productId, priceEur, holderCode, minBuy, maxBuy,
+//     // NEW: full holder breakdown per slot
+//     holders: [
+//       { code, name, productId, priceEur, minBuy, maxBuy, isPrimary }
+//     ]
+//   }]
+// }
 // ═══════════════════════════════════════════════════════════════════════
 
 const MUSEMENT_API_BASE =
@@ -57,6 +64,7 @@ export async function POST(request: NextRequest) {
       retail_price?: { value?: number; currency?: string };
       max_buy?: number;
       min_buy?: number;
+      default?: boolean;
     };
     type MusementSlotEntry = {
       time?: string;
@@ -69,41 +77,74 @@ export async function POST(request: NextRequest) {
       slots?: MusementSlotEntry[];
     };
 
-    const data = (await res.json()) as Array<{ groups?: MusementGroupEntry[] }>;
-    const slots: Array<{
+    type Holder = {
+      code: string;          // e.g. "ADULT", "CHILD"
+      name: string;          // human-friendly: "Adult", "Child"
+      productId: string;
+      priceEur: number;
+      minBuy: number;
+      maxBuy: number;        // -1 = unlimited
+      isPrimary: boolean;    // true for the slot's default/ADULT row
+    };
+    type Slot = {
       time: string;
       groupName: string;
+      languages: string[];
+      currency: string;
+      // legacy mirrors (primary holder)
       holderCode: string;
       productId: string;
       priceEur: number;
-      currency: string;
-      languages: string[];
       maxBuy: number;
       minBuy: number;
-    }> = [];
+      // new: full holder list
+      holders: Holder[];
+    };
+
+    const data = (await res.json()) as Array<{ groups?: MusementGroupEntry[] }>;
+    const slots: Slot[] = [];
 
     for (const entry of data) {
       for (const group of entry.groups || []) {
         for (const slot of group.slots || []) {
-          // Prefer the adult/primary-holder product; fallback to the first
-          const adult =
-            (slot.products || []).find(
-              (p) => p.holder_code_normalized === "ADULT"
-            ) || (slot.products || [])[0];
-          if (!adult?.product_id) continue;
+          const products = (slot.products || []).filter((p) => p.product_id);
+          if (products.length === 0) continue;
+
+          const holders: Holder[] = products.map((p) => ({
+            code: p.holder_code_normalized || p.holder_code || "ADULT",
+            name: p.name || p.holder_code_normalized || p.holder_code || "Adult",
+            productId: String(p.product_id),
+            priceEur: Number(p.retail_price?.value) || 0,
+            minBuy: p.min_buy ?? 0,
+            maxBuy: p.max_buy ?? -1,
+            isPrimary: false, // set below
+          }));
+
+          // Pick the primary holder: explicit `default: true` wins, else
+          // ADULT-normalized, else the first row.
+          const explicit = products.findIndex((p) => p.default === true);
+          const adultIdx = products.findIndex(
+            (p) => p.holder_code_normalized === "ADULT"
+          );
+          const primaryIdx = explicit >= 0 ? explicit : adultIdx >= 0 ? adultIdx : 0;
+          holders[primaryIdx].isPrimary = true;
+          const primary = holders[primaryIdx];
 
           slots.push({
             time: slot.time || "",
             groupName: group.name || "Tour",
-            holderCode: adult.holder_code_normalized || adult.holder_code || "ADULT",
-            productId: String(adult.product_id),
-            priceEur: Number(adult.retail_price?.value) || 0,
-            currency: adult.retail_price?.currency || "EUR",
             languages: (slot.languages || [])
               .map((l) => l.code)
               .filter((x): x is string => typeof x === "string"),
-            maxBuy: adult.max_buy ?? -1,
-            minBuy: adult.min_buy ?? 1,
+            currency: products[0].retail_price?.currency || "EUR",
+            // legacy single-product mirrors
+            holderCode: primary.code,
+            productId: primary.productId,
+            priceEur: primary.priceEur,
+            maxBuy: primary.maxBuy,
+            minBuy: primary.minBuy,
+            // new
+            holders,
           });
         }
       }
