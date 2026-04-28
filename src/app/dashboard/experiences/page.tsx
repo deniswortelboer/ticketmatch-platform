@@ -1228,7 +1228,11 @@ export default function ExperiencesPage() {
       {/* Powered by */}
       <div className="mt-8 text-center">
         <p className="text-xs text-muted/60">
-          Experiences powered by Musement &amp; Viator &mdash; Prices shown are retail rates
+          Experiences powered by TUI Musement &amp; Viator &mdash; Prices shown are retail rates
+        </p>
+        <p className="mt-1 text-[10px] text-muted/50">
+          Activity content and inventory via TUI Musement Partner API.
+          Copyright &copy; TUI Musement. All rights reserved.
         </p>
       </div>
     </div>

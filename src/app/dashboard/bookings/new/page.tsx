@@ -2,6 +2,7 @@
 
 import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { formatIso8601Duration } from "@/lib/duration";
 
 // ═══════════════════════════════════════════════════════════════════
 // /dashboard/bookings/new
@@ -580,7 +581,8 @@ function NewBookingForm() {
               )}
               {details.maxConfirmationTime && (
                 <section className="text-xs text-muted">
-                  <strong>Max confirmation time:</strong> {details.maxConfirmationTime}
+                  <strong>Max confirmation time:</strong>{" "}
+                  {formatIso8601Duration(details.maxConfirmationTime) ?? details.maxConfirmationTime}
                 </section>
               )}
               {details.refundPolicies && details.refundPolicies.length > 0 && (
@@ -630,6 +632,13 @@ function NewBookingForm() {
             </div>
           )}
         </div>
+      )}
+
+      {details && (
+        <p className="mt-4 text-[10px] text-muted/60">
+          Activity content and inventory provided via TUI Musement Partner API.
+          Copyright &copy; TUI Musement. All rights reserved.
+        </p>
       )}
 
         </div>{/* /left column */}

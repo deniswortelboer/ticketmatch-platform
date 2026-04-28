@@ -12,6 +12,20 @@ const MUSEMENT_CLIENT_SECRET = process.env.MUSEMENT_CLIENT_SECRET || "";
 // Musement (Mario) — sandbox accepts "nl" but production code may differ.
 const MUSEMENT_MARKET = process.env.MUSEMENT_MARKET || "nl";
 
+// CID = commission-attribution channel id. Musement uses this on order
+// requests to credit the right partner-channel in their reporting.
+// Without it, sales may not show up in our channel breakdown.
+// Set via env (MUSEMENT_DEFAULT_CID); per-reseller override supported
+// via the optional `cid` parameter on createCart / confirmOrder.
+const MUSEMENT_DEFAULT_CID = process.env.MUSEMENT_DEFAULT_CID || "";
+
+function withCid(url: string, cid?: string): string {
+  const value = cid || MUSEMENT_DEFAULT_CID;
+  if (!value) return url;
+  const sep = url.includes("?") ? "&" : "?";
+  return `${url}${sep}cid=${encodeURIComponent(value)}`;
+}
+
 // Hard cap on list-endpoint pagination. Musement docs warn that limit > 20
 // degrades exponentially; the API allows up to 100 but we never want it.
 const MAX_LIST_LIMIT = 20;
@@ -671,7 +685,24 @@ export async function searchActivitiesByCategory(
 /**
  * Get detailed activity information
  */
-export async function getActivity(uuid: string, language = "en", currency = "EUR"): Promise<MusementProduct | null> {
+export type GetActivityResult =
+  | { ok: true; product: MusementProduct }
+  | { ok: false; code: "unavailable" | "not_found" | "api_error"; status: number; detail?: string };
+
+/**
+ * Detailed activity fetch — distinguishes "permanently gone" from
+ * "temporarily unavailable" so callers can render the right UX.
+ *
+ * Per Musement docs, activities can flap from ONLINE back to
+ * DRAFT/REVIEW/UNAVAILABLE/ARCHIVED. The API returns 403 for activities
+ * that exist but aren't currently bookable (DRAFT/REVIEW/UNAVAILABLE)
+ * and 404 for actually missing ones — we surface both cases distinctly.
+ */
+export async function getActivityResult(
+  uuid: string,
+  language = "en",
+  currency = "EUR"
+): Promise<GetActivityResult> {
   try {
     const res = await fetch(`${MUSEMENT_API_BASE}/activities/${uuid}`, {
       headers: {
@@ -681,14 +712,38 @@ export async function getActivity(uuid: string, language = "en", currency = "EUR
       ...CATALOG_CACHE,
     });
 
-    if (!res.ok) return null;
+    if (res.ok) {
+      const a = await res.json();
+      return { ok: true, product: mapActivityToProduct(a, "", currency) };
+    }
 
-    const a = await res.json();
-    return mapActivityToProduct(a, "", currency);
+    if (res.status === 403) {
+      console.warn(`[musement] activity ${uuid} returned 403 — likely flapped to DRAFT/REVIEW`);
+      return { ok: false, code: "unavailable", status: 403 };
+    }
+    if (res.status === 404) {
+      return { ok: false, code: "not_found", status: 404 };
+    }
+    const detail = (await res.text()).slice(0, 300);
+    return { ok: false, code: "api_error", status: res.status, detail };
   } catch (err) {
     console.error("Musement activity detail error:", err);
-    return null;
+    return {
+      ok: false,
+      code: "api_error",
+      status: 0,
+      detail: err instanceof Error ? err.message : "unknown",
+    };
   }
+}
+
+/**
+ * Backward-compatible wrapper — returns the product or null. New
+ * callers should use getActivityResult to differentiate 403/404/5xx.
+ */
+export async function getActivity(uuid: string, language = "en", currency = "EUR"): Promise<MusementProduct | null> {
+  const r = await getActivityResult(uuid, language, currency);
+  return r.ok ? r.product : null;
 }
 
 // ─── Availability ───────────────────────────────────────────────────────────
@@ -811,9 +866,12 @@ export async function resolveProductIdentifier(
 /**
  * Create a cart for booking
  */
-export async function createCart(language = "en"): Promise<string | null> {
+export async function createCart(
+  language = "en",
+  cid?: string
+): Promise<string | null> {
   try {
-    const res = await fetch(`${MUSEMENT_API_BASE}/carts`, {
+    const res = await fetch(withCid(`${MUSEMENT_API_BASE}/carts`, cid), {
       method: "POST",
       headers: await getAuthHeaders(language),
       body: JSON.stringify({}),
@@ -1163,10 +1221,11 @@ export async function setParticipants(
  */
 export async function confirmOrder(
   cartUuid: string,
-  language = "en"
+  language = "en",
+  cid?: string
 ): Promise<MusementBooking | null> {
   try {
-    const res = await fetch(`${MUSEMENT_API_BASE}/orders`, {
+    const res = await fetch(withCid(`${MUSEMENT_API_BASE}/orders`, cid), {
       method: "POST",
       headers: await getAuthHeaders(language),
       body: JSON.stringify({
@@ -1245,6 +1304,74 @@ export async function markOrderPaid(
     console.error("Musement markOrderPaid error:", err);
     return false;
   }
+}
+
+/**
+ * Fetch activity-update events since the given date. Per Musement docs
+ * this is the only sync mechanism — there are no push notifications for
+ * catalog changes. Run daily and invalidate cached activity details for
+ * any UUID returned.
+ *
+ * `date` must be an ISO date (YYYY-MM-DD).
+ */
+export async function getCatalogUpdates(
+  date: string,
+  language = "en"
+): Promise<{ uuid: string; updated_at?: string; status?: string }[]> {
+  try {
+    const res = await fetch(
+      `${MUSEMENT_API_BASE}/catalog/updates/${date}`,
+      { headers: getHeaders(language) }
+    );
+    if (!res.ok) {
+      console.error(`Musement catalog/updates HTTP ${res.status}`);
+      return [];
+    }
+    const data = await res.json();
+    const items = Array.isArray(data) ? data : data.data || [];
+    return items.map((it: Record<string, unknown>) => ({
+      uuid: (it.uuid as string) || (it.activity_uuid as string) || "",
+      updated_at: it.updated_at as string | undefined,
+      status: it.status as string | undefined,
+    })).filter((it: { uuid: string }) => it.uuid);
+  } catch (err) {
+    console.error("Musement catalog updates error:", err);
+    return [];
+  }
+}
+
+// Re-export the pure duration formatter from lib/duration so server
+// callers can keep importing from `@/lib/musement` even though the
+// implementation lives in a client-safe file.
+export { formatIso8601Duration } from "./duration";
+
+/**
+ * Poll the order endpoint until vouchers/QR codes appear, or until we
+ * hit the timeout. Used as a fallback for PENDING → OK transitions when
+ * the webhook either hasn't fired yet or isn't configured (sandbox).
+ *
+ * Returns the final booking (with tickets) on success, or null on timeout.
+ */
+export async function waitForVouchers(
+  orderId: string,
+  options: { intervalMs?: number; timeoutMs?: number; language?: string } = {}
+): Promise<MusementBooking | null> {
+  const interval = options.intervalMs ?? 30_000; // 30s default
+  const timeout = options.timeoutMs ?? 300_000;  // 5 min default
+  const language = options.language ?? "en";
+  const deadline = Date.now() + timeout;
+
+  while (Date.now() < deadline) {
+    const order = await getOrder(orderId, language);
+    if (order && order.tickets.length > 0) {
+      const ready = order.tickets.every(
+        (t) => Boolean(t.qrCode || t.barcode || t.pdfUrl)
+      );
+      if (ready) return order;
+    }
+    await new Promise((r) => setTimeout(r, interval));
+  }
+  return null;
 }
 
 /**

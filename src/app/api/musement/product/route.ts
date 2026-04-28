@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getActivity } from "@/lib/musement";
+import { getActivityResult } from "@/lib/musement";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -14,22 +14,34 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  try {
-    const product = await getActivity(uuid, language, currency);
+  const result = await getActivityResult(uuid, language, currency);
 
-    if (!product) {
-      return NextResponse.json(
-        { error: "Activity not found" },
-        { status: 404 }
-      );
-    }
+  if (result.ok) return NextResponse.json(result.product);
 
-    return NextResponse.json(product);
-  } catch (err) {
-    console.error("Musement product route error:", err);
+  // Activity-flap handling: an "unavailable" activity (Musement 403)
+  // exists but flipped back to DRAFT/REVIEW. Show a clear, recoverable
+  // message instead of a generic 404 — the user might want to retry
+  // later or pick a different activity.
+  if (result.code === "unavailable") {
     return NextResponse.json(
-      { error: "Failed to fetch Musement activity" },
-      { status: 502 }
+      {
+        error: "This activity is temporarily unavailable from Musement. Please try again later or choose another activity.",
+        code: "unavailable",
+      },
+      { status: 503 }
     );
   }
+
+  if (result.code === "not_found") {
+    return NextResponse.json(
+      { error: "Activity not found", code: "not_found" },
+      { status: 404 }
+    );
+  }
+
+  console.error("Musement product route error:", result);
+  return NextResponse.json(
+    { error: "Failed to fetch Musement activity", code: "api_error" },
+    { status: 502 }
+  );
 }

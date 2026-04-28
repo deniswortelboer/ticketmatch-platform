@@ -11,6 +11,7 @@ import {
   getCustomerSchema,
   getCartItems,
   setParticipants,
+  waitForVouchers,
   type MusementParticipant,
 } from "@/lib/musement";
 import { notifyAdmin } from "@/lib/notify";
@@ -337,7 +338,27 @@ export async function POST(
       }
 
       musementOrderId = order.orderId || null;
-      tickets = (order.tickets || []).map((t, i) => ({
+
+      // For PENDING orders the vouchers/QRs aren't immediately populated.
+      // Poll up to 5 min before falling back — most instant-confirmation
+      // activities resolve in <30s, but "needs confirmation" types can
+      // take minutes. The webhook is the long-term backstop, but at
+      // confirm time we want to ship tickets to the customer in the same
+      // request when possible.
+      let finalOrder = order;
+      const needsPolling =
+        order.status === "pending" ||
+        order.tickets.length === 0 ||
+        order.tickets.some((t) => !t.qrCode && !t.barcode && !t.pdfUrl);
+      if (needsPolling && musementOrderId) {
+        const polled = await waitForVouchers(musementOrderId, {
+          intervalMs: 30_000,
+          timeoutMs: 300_000,
+        });
+        if (polled) finalOrder = polled;
+      }
+
+      tickets = (finalOrder.tickets || []).map((t, i) => ({
         guest_name: body.guestNames?.[i] ?? null,
         qr_data: t.qrCode || t.ticketId || `MISSING-${i}`,
         seat: null,
