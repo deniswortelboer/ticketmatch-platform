@@ -92,22 +92,52 @@ function NewBookingForm() {
   const [activeImageIdx, setActiveImageIdx] = useState(0);
 
   // Musement timeslot state
+  type Holder = {
+    code: string;       // ADULT / CHILDREN / INFANT / STUDENT / SENIOR / ...
+    name: string;       // human-friendly: "Adult (+16)", "Child (6-15)"
+    productId: string;
+    priceEur: number;
+    minBuy: number;
+    maxBuy: number;     // -1 = unlimited
+    isPrimary: boolean;
+  };
   type Slot = {
     time: string;
     groupName: string;
+    // legacy single-product mirrors (= primary holder)
     productId: string;
     priceEur: number;
+    holderCode?: string;
     currency: string;
     languages: string[];
     maxBuy: number;
     minBuy: number;
+    // full breakdown
+    holders?: Holder[];
   };
   const [slots, setSlots] = useState<Slot[]>([]);
   const [selectedProductId, setSelectedProductId] = useState<string>("");
+  // Per-holder quantity map (key = holder.productId). Populated when a
+  // slot is selected; primary holder seeded with the group's headcount.
+  const [holderQty, setHolderQty] = useState<Record<string, number>>({});
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [slotsMessage, setSlotsMessage] = useState<string>("");
 
   const selectedSlot = slots.find((s) => s.productId === selectedProductId);
+  const slotHolders = selectedSlot?.holders || [];
+  const hasMultiHolder = slotHolders.length > 1;
+
+  // Sum across all holders the reseller picked for this slot.
+  const breakdownTotalGuests = hasMultiHolder
+    ? slotHolders.reduce((sum, h) => sum + (holderQty[h.productId] || 0), 0)
+    : numberOfGuests;
+  const breakdownTotalPrice = hasMultiHolder
+    ? slotHolders.reduce(
+        (sum, h) => sum + (holderQty[h.productId] || 0) * h.priceEur,
+        0,
+      )
+    : numberOfGuests * (selectedSlot?.priceEur || price);
+
   // -1 from Musement = unlimited; clamp to a sane UI upper bound
   const effectiveMax = selectedSlot
     ? selectedSlot.maxBuy === -1
@@ -115,9 +145,10 @@ function NewBookingForm() {
       : selectedSlot.maxBuy
     : 500;
   const effectiveMin = selectedSlot?.minBuy ?? 1;
-  const quantityOutOfRange =
-    !!selectedSlot &&
-    (numberOfGuests < effectiveMin || numberOfGuests > effectiveMax);
+  const quantityOutOfRange = hasMultiHolder
+    ? breakdownTotalGuests < 1 || breakdownTotalGuests > effectiveMax
+    : !!selectedSlot &&
+      (numberOfGuests < effectiveMin || numberOfGuests > effectiveMax);
 
   // Fetch reseller's own groups
   useEffect(() => {
@@ -159,6 +190,26 @@ function NewBookingForm() {
     if (numberOfGuests < effectiveMin) setNumberOfGuests(effectiveMin);
     else if (numberOfGuests > effectiveMax) setNumberOfGuests(effectiveMax);
   }, [selectedProductId, effectiveMin, effectiveMax, numberOfGuests, selectedSlot]);
+
+  // Seed holder quantities when the reseller picks a slot. Strategy: if
+  // the slot has multiple holders, put the entire group headcount on the
+  // primary (ADULT) holder by default — reseller adjusts from there to
+  // split into child/infant. For single-holder slots we leave holderQty
+  // empty and the legacy numberOfGuests path stays in charge.
+  useEffect(() => {
+    if (!selectedSlot || !selectedSlot.holders || selectedSlot.holders.length <= 1) {
+      setHolderQty({});
+      return;
+    }
+    const seed: Record<string, number> = {};
+    for (const h of selectedSlot.holders) {
+      seed[h.productId] = h.isPrimary ? Math.max(1, numberOfGuests) : 0;
+    }
+    setHolderQty(seed);
+    // Intentionally don't depend on numberOfGuests — once seeded we let
+    // the reseller drive holder qty independently.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedProductId]);
 
   // Fetch full activity details once we have a UUID — required fields per
   // Musement Quality Check #3 (Display Activity Information).
@@ -283,13 +334,49 @@ function NewBookingForm() {
 
   async function submit() {
     if (!groupId) return setError("Pick a group first.");
-    if (numberOfGuests < 1) return setError("Number of guests must be at least 1.");
-    if (selectedSlot && numberOfGuests < effectiveMin) {
-      return setError(`This timeslot requires at least ${effectiveMin} guests.`);
+
+    // Multi-holder validation — at least one holder must have qty>0
+    // and the sum must respect the slot's min/max.
+    if (hasMultiHolder) {
+      if (breakdownTotalGuests < 1) {
+        return setError("Add at least one ticket (any holder type).");
+      }
+      if (breakdownTotalGuests > effectiveMax) {
+        return setError(`This timeslot allows at most ${effectiveMax} tickets total.`);
+      }
+    } else {
+      if (numberOfGuests < 1) return setError("Number of guests must be at least 1.");
+      if (selectedSlot && numberOfGuests < effectiveMin) {
+        return setError(`This timeslot requires at least ${effectiveMin} guests.`);
+      }
+      if (selectedSlot && numberOfGuests > effectiveMax) {
+        return setError(`This timeslot allows at most ${effectiveMax} guests.`);
+      }
     }
-    if (selectedSlot && numberOfGuests > effectiveMax) {
-      return setError(`This timeslot allows at most ${effectiveMax} guests.`);
-    }
+
+    // Build the breakdown payload only when meaningful — any holder with
+    // qty>0 ends up as a row. Resellers booking a single-holder activity
+    // skip this entirely so the legacy single-product path stays in use.
+    const holderBreakdown = hasMultiHolder
+      ? slotHolders
+          .filter((h) => (holderQty[h.productId] || 0) > 0)
+          .map((h) => ({
+            code: h.code,
+            name: h.name,
+            qty: holderQty[h.productId],
+            productId: h.productId,
+            unitPrice: h.priceEur,
+            currency: selectedSlot?.currency || "EUR",
+          }))
+      : null;
+
+    const guestsToSend = hasMultiHolder ? breakdownTotalGuests : numberOfGuests;
+    const unitPriceToSend = hasMultiHolder
+      ? breakdownTotalGuests > 0
+        ? Math.round((breakdownTotalPrice / breakdownTotalGuests) * 100) / 100
+        : 0
+      : price;
+
     setError("");
     setSubmitting(true);
     try {
@@ -302,13 +389,15 @@ function NewBookingForm() {
           venueCategory: "Musement activity",
           venueCity: "",
           scheduledDate: scheduledDate || null,
-          numberOfGuests,
-          unitPrice: price,
+          numberOfGuests: guestsToSend,
+          unitPrice: unitPriceToSend,
           notes: `Musement booking · activity ${activityUuid}`,
           musementActivityUuid: activityUuid,
-          // If reseller picked a specific timeslot, save the product_id.
-          // If not, confirm-order will auto-resolve it later from scheduled_date.
-          ...(selectedProductId && { musementDateId: selectedProductId }),
+          // Single-holder bookings save the product_id in musement_date_id
+          // for back-compat. Multi-holder bookings leave it null and rely
+          // on holderBreakdown[].productId in confirm-order.
+          ...(selectedProductId && !hasMultiHolder && { musementDateId: selectedProductId }),
+          ...(holderBreakdown && holderBreakdown.length > 0 && { holderBreakdown }),
         }),
       });
       const json = await res.json();
@@ -623,31 +712,101 @@ function NewBookingForm() {
           )}
         </label>
 
-        {/* Guests */}
-        <label className="block mb-4">
-          <span className="text-xs font-semibold uppercase tracking-wider text-muted/70">Number of guests</span>
-          <input
-            type="number"
-            min={effectiveMin}
-            max={effectiveMax}
-            value={numberOfGuests}
-            onChange={(e) =>
-              setNumberOfGuests(
-                Math.max(effectiveMin, Math.min(effectiveMax, Number(e.target.value) || effectiveMin)),
-              )
-            }
-            className={`mt-1.5 h-11 w-full rounded-xl border bg-white px-4 text-sm ${
-              quantityOutOfRange ? "border-red-400" : "border-border"
-            }`}
-          />
-          {selectedSlot && (
+        {/* Guests — single quantity for activities with one holder type,
+            per-holder steppers when the slot exposes Adult/Child/Infant/etc. */}
+        {hasMultiHolder ? (
+          <div className="block mb-4">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted/70">Tickets per type</span>
+            <div className="mt-1.5 space-y-2">
+              {slotHolders.map((h) => {
+                const qty = holderQty[h.productId] || 0;
+                const max = h.maxBuy === -1 ? 500 : h.maxBuy;
+                return (
+                  <div
+                    key={h.productId}
+                    className="flex items-center gap-3 rounded-xl border border-border bg-white p-3"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-semibold">{h.name}</div>
+                      <div className="text-[11px] text-muted">
+                        {h.priceEur === 0
+                          ? "Free"
+                          : `${selectedSlot?.currency === "EUR" ? "€" : selectedSlot?.currency} ${h.priceEur.toFixed(2)} each`}
+                        {h.code && h.code !== h.name && ` · ${h.code}`}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setHolderQty((q) => ({
+                            ...q,
+                            [h.productId]: Math.max(0, (q[h.productId] || 0) - 1),
+                          }))
+                        }
+                        disabled={qty <= 0}
+                        className="h-8 w-8 rounded-full border border-border text-base font-bold disabled:opacity-40"
+                        aria-label={`Decrease ${h.name}`}
+                      >
+                        −
+                      </button>
+                      <span className="w-6 text-center text-sm font-semibold tabular-nums">{qty}</span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setHolderQty((q) => ({
+                            ...q,
+                            [h.productId]: Math.min(max, (q[h.productId] || 0) + 1),
+                          }))
+                        }
+                        disabled={qty >= max}
+                        className="h-8 w-8 rounded-full border border-border text-base font-bold disabled:opacity-40"
+                        aria-label={`Increase ${h.name}`}
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
             <p className="mt-1 text-[11px] text-muted">
-              {selectedSlot.maxBuy === -1
-                ? `Minimum ${effectiveMin} guests for this timeslot.`
-                : `This timeslot accepts ${effectiveMin}–${effectiveMax} guests.`}
+              Total: <span className="font-semibold text-foreground">{breakdownTotalGuests}</span>
+              {breakdownTotalGuests > 0 && selectedSlot && (
+                <>
+                  {" · "}
+                  {selectedSlot.currency === "EUR" ? "€" : selectedSlot.currency}{" "}
+                  {breakdownTotalPrice.toFixed(2)}
+                </>
+              )}
             </p>
-          )}
-        </label>
+          </div>
+        ) : (
+          <label className="block mb-4">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted/70">Number of guests</span>
+            <input
+              type="number"
+              min={effectiveMin}
+              max={effectiveMax}
+              value={numberOfGuests}
+              onChange={(e) =>
+                setNumberOfGuests(
+                  Math.max(effectiveMin, Math.min(effectiveMax, Number(e.target.value) || effectiveMin)),
+                )
+              }
+              className={`mt-1.5 h-11 w-full rounded-xl border bg-white px-4 text-sm ${
+                quantityOutOfRange ? "border-red-400" : "border-border"
+              }`}
+            />
+            {selectedSlot && (
+              <p className="mt-1 text-[11px] text-muted">
+                {selectedSlot.maxBuy === -1
+                  ? `Minimum ${effectiveMin} guests for this timeslot.`
+                  : `This timeslot accepts ${effectiveMin}–${effectiveMax} guests.`}
+              </p>
+            )}
+          </label>
+        )}
 
         {/* Date */}
         <label className="block mb-6">
@@ -735,11 +894,16 @@ function NewBookingForm() {
         )}
 
         {/* Total */}
-        {price > 0 && (
+        {(price > 0 || hasMultiHolder) && (
           <div className="mb-6 rounded-xl bg-gray-50 p-4 text-sm">
             <div className="flex justify-between">
               <span className="text-muted">Indicative total</span>
-              <span>{currency === "EUR" ? "€" : currency} {(price * numberOfGuests).toFixed(2)}</span>
+              <span className="font-semibold">
+                {(selectedSlot?.currency || currency) === "EUR"
+                  ? "€"
+                  : selectedSlot?.currency || currency}{" "}
+                {(hasMultiHolder ? breakdownTotalPrice : price * numberOfGuests).toFixed(2)}
+              </span>
             </div>
             <p className="text-xs text-muted mt-1">
               Final price is set at invoice time based on live Musement availability.

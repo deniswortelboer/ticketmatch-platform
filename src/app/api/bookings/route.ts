@@ -118,6 +118,60 @@ export async function POST(request: Request) {
   const musementActivityUuid = sanitize(body.musementActivityUuid, 64);
   const musementDateId = sanitize(body.musementDateId, 64);
 
+  // Optional per-holder breakdown for activities with multiple ticket
+  // holder types (e.g. "2 ADULT @ €40 + 1 CHILD @ €20"). When present,
+  // numberOfGuests/totalPrice are recomputed from the breakdown so the
+  // sums always reconcile.
+  type IncomingHolder = {
+    code?: unknown;
+    name?: unknown;
+    qty?: unknown;
+    productId?: unknown;
+    unitPrice?: unknown;
+    currency?: unknown;
+  };
+  const HOLDER_CODE_REGEX = /^[A-Z0-9_-]{1,32}$/;
+  let holderBreakdown:
+    | Array<{
+        code: string;
+        name: string;
+        qty: number;
+        product_id: string;
+        unit_price: number;
+        currency: string;
+      }>
+    | null = null;
+  if (Array.isArray(body.holderBreakdown) && body.holderBreakdown.length > 0) {
+    const cleaned = (body.holderBreakdown as IncomingHolder[])
+      .map((h) => {
+        const code = typeof h.code === "string" ? h.code.toUpperCase().slice(0, 32) : "";
+        const productId = typeof h.productId === "string" ? h.productId.slice(0, 64) : "";
+        const qty = Math.max(0, Math.min(10000, Math.round(Number(h.qty) || 0)));
+        const unitPriceH = Math.max(0, Math.min(100000, Number(h.unitPrice) || 0));
+        const name = typeof h.name === "string" ? h.name.slice(0, 100) : code;
+        const cur = typeof h.currency === "string" ? h.currency.slice(0, 8) : "EUR";
+        if (!HOLDER_CODE_REGEX.test(code) || !productId || qty <= 0) return null;
+        return { code, name, qty, product_id: productId, unit_price: unitPriceH, currency: cur };
+      })
+      .filter((x): x is NonNullable<typeof x> => x !== null);
+    if (cleaned.length > 0) holderBreakdown = cleaned;
+  }
+
+  // Reconcile guests + price with the breakdown when supplied so the
+  // booking row, invoice, and confirm-order all see the same numbers.
+  const finalGuests = holderBreakdown
+    ? holderBreakdown.reduce((s, h) => s + h.qty, 0)
+    : numberOfGuests;
+  const finalTotalPrice = holderBreakdown
+    ? Math.round(
+        holderBreakdown.reduce((s, h) => s + h.qty * h.unit_price, 0) * 100,
+      ) / 100
+    : totalPrice;
+  const finalUnitPrice =
+    holderBreakdown && finalGuests > 0
+      ? Math.round((finalTotalPrice / finalGuests) * 100) / 100
+      : unitPrice;
+
   const { data: booking, error } = await admin
     .from("bookings")
     .insert({
@@ -127,15 +181,18 @@ export async function POST(request: Request) {
       venue_category: venueCategory,
       venue_city: venueCity,
       scheduled_date: scheduledDate,
-      number_of_guests: numberOfGuests,
-      unit_price: unitPrice,
-      total_price: totalPrice,
+      number_of_guests: finalGuests,
+      unit_price: finalUnitPrice,
+      total_price: finalTotalPrice,
       notes,
       status: "pending",
       // Unique per-booking token used in /t/[token] ticket URLs (NOT NULL in schema)
       access_token: generateTicketToken(),
       ...(musementActivityUuid && { musement_activity_uuid: musementActivityUuid }),
-      ...(musementDateId && { musement_date_id: musementDateId }),
+      // musement_date_id is only meaningful for single-holder bookings.
+      // Multi-holder ones leave it null and rely on holder_breakdown[].product_id.
+      ...(musementDateId && !holderBreakdown && { musement_date_id: musementDateId }),
+      ...(holderBreakdown && { holder_breakdown: holderBreakdown }),
     })
     .select()
     .single();
@@ -161,12 +218,15 @@ export async function POST(request: Request) {
       venueName: venueName,
       groupName: group.name || "Your group",
       scheduledDate: scheduledDate || null,
-      numberOfGuests: numberOfGuests || 0,
+      numberOfGuests: finalGuests || 0,
       status: "pending",
       notes: notes || undefined,
     }).catch((err) => console.error("Email send error:", err));
 
-    notifyAdmin(`🟡 Pending booking — awaiting payment\n\n🏢 ${company?.name || "—"}\n📍 ${venueName}${venueCity ? ` (${venueCity})` : ""}\n👥 ${numberOfGuests} gasten\n📅 ${scheduledDate || "Geen datum"}\n💰 €${totalPrice.toFixed(2)}\n\nStatus flips to "confirmed" once Stripe webhook fires.\n→ ticketmatch.ai/dashboard/admin`);
+    const breakdownLine = holderBreakdown
+      ? `\n   ${holderBreakdown.map((h) => `${h.qty}× ${h.code}`).join(" + ")}`
+      : "";
+    notifyAdmin(`🟡 Pending booking — awaiting payment\n\n🏢 ${company?.name || "—"}\n📍 ${venueName}${venueCity ? ` (${venueCity})` : ""}\n👥 ${finalGuests} gasten${breakdownLine}\n📅 ${scheduledDate || "Geen datum"}\n💰 €${finalTotalPrice.toFixed(2)}\n\nStatus flips to "confirmed" once Stripe webhook fires.\n→ ticketmatch.ai/dashboard/admin`);
   }
 
   return NextResponse.json({ booking });
