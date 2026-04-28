@@ -1115,6 +1115,17 @@ export async function getCustomerSchema(
 // test@test.com — using real customer data in sandbox is a documented violation
 // and can get a partner's sandbox access revoked. Prod uses real values.
 const IS_SANDBOX = MUSEMENT_API_BASE.includes("sandbox");
+// Per Musement docs, the lead-booker payload requires these 4 GDPR
+// consent flags. Sandbox accepts requests without them; production
+// rejects with a 400. We default all 4 to "NO" — TicketMatch is B2B,
+// no marketing comms from Musement to the lead booker via Musement.
+const REQUIRED_LEAD_CONSENTS = {
+  musement_newsletter: "NO",
+  allow_profiling: "NO",
+  thirdparty_newsletter: "NO",
+  events_related_newsletter: "NO",
+} as const;
+
 const SANDBOX_LEAD_BOOKER = {
   firstname: "TEST",
   lastname: "TEST",
@@ -1139,12 +1150,14 @@ export async function setCartCustomer(
     const leadBooker = IS_SANDBOX
       ? {
           ...SANDBOX_LEAD_BOOKER,
+          ...REQUIRED_LEAD_CONSENTS,
           ...(customer.phone ? { phone_number: customer.phone } : {}),
         }
       : {
           firstname: customer.firstName,
           lastname: customer.lastName,
           email: customer.email,
+          ...REQUIRED_LEAD_CONSENTS,
           ...(customer.phone ? { phone_number: customer.phone } : {}),
         };
 

@@ -219,28 +219,37 @@ export async function POST(
 
       const breakdownItems: HolderBreakdownRow[] = booking.holder_breakdown || [];
       if (breakdownItems.length > 0) {
+        // NOTE: holder_breakdown stores product_ids captured at booking
+        // creation time. Per Musement docs product_id "must NEVER be
+        // cached" — for long-lead bookings we should re-resolve per
+        // holder code. TODO: refactor to re-fetch /dates/{date} here and
+        // map holder_code_normalized → fresh product_id.
         for (const h of breakdownItems) {
           const ok = await addToCart(cartUuid, h.product_id, h.qty, "en");
           if (!ok) throw new Error(`addToCart failed for holder ${h.code} (${h.product_id})`);
         }
       } else {
-        let productIdentifier = booking.musement_date_id;
-        if (!productIdentifier) {
-          const anchor =
-            booking.scheduled_date ||
-            new Date(Date.now() + 31 * 86400_000).toISOString().slice(0, 10); // 31 days out — default, sandbox requires ≥1 month
-          const resolved = await resolveProductIdentifier(
-            booking.musement_activity_uuid!,
-            anchor,
-            14
+        // Always re-resolve product_id at confirm-time. Musement docs
+        // are explicit: product_id must NEVER be cached, it can change
+        // for any activity at any time. We ignore booking.musement_date_id
+        // (kept only for diagnostics) and always hit /dates/{date}.
+        const anchor =
+          booking.scheduled_date ||
+          new Date(Date.now() + 31 * 86400_000).toISOString().slice(0, 10); // 31 days out — default, sandbox requires ≥1 month
+        const resolved = await resolveProductIdentifier(
+          booking.musement_activity_uuid!,
+          anchor,
+          14
+        );
+        if (!resolved) {
+          throw new Error(
+            `No Musement availability for activity ${booking.musement_activity_uuid} around ${anchor}`
           );
-          if (!resolved) {
-            throw new Error(
-              `No Musement availability for activity ${booking.musement_activity_uuid} around ${anchor}`
-            );
-          }
-          productIdentifier = resolved.productId;
-          // Persist what we resolved so retries are idempotent
+        }
+        const productIdentifier = resolved.productId;
+        // Persist last-resolved value purely for debugging — do not
+        // trust this on retry; always re-resolve.
+        if (productIdentifier !== booking.musement_date_id) {
           await admin
             .from("bookings")
             .update({ musement_date_id: productIdentifier })

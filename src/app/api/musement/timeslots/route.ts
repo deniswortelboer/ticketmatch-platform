@@ -36,17 +36,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const res = await fetch(
-      `${MUSEMENT_API_BASE}/activities/${activityUuid}/dates/${date}`,
-      {
-        headers: {
-          Accept: "application/json",
-          "X-Musement-Version": "3.5.0",
-          "X-Musement-Currency": "EUR",
-          ...(APP_HEADER ? { "x-musement-application": APP_HEADER } : {}),
-        },
-      }
-    );
+    const headers = {
+      Accept: "application/json",
+      "X-Musement-Version": "3.5.0",
+      "X-Musement-Currency": "EUR",
+      ...(APP_HEADER ? { "x-musement-application": APP_HEADER } : {}),
+    };
+
+    // Fetch activity + slots in parallel. We need the activity-level
+    // booking_type to know whether slot.time is real (CALENDAR-TIMESLOTS)
+    // or randomly generated (CALENDAR-NO-TIMESLOTS / open-date). Per
+    // Musement docs, day-based times must NOT be shown to customers.
+    const [res, activityRes] = await Promise.all([
+      fetch(`${MUSEMENT_API_BASE}/activities/${activityUuid}/dates/${date}`, { headers }),
+      fetch(`${MUSEMENT_API_BASE}/activities/${activityUuid}`, { headers }),
+    ]);
 
     if (!res.ok) {
       const body = await res.text();
@@ -54,6 +58,16 @@ export async function POST(request: NextRequest) {
         { error: `Musement ${res.status}`, detail: body.slice(0, 400) },
         { status: res.status }
       );
+    }
+
+    let dayBased = false;
+    if (activityRes.ok) {
+      const activity = await activityRes.json();
+      const bookingType = (activity?.booking_type as string) || "";
+      const isOpenDate = activity?.open === true;
+      // CALENDAR-NO-TIMESLOTS = date-only (daily=true); time is fake.
+      // Open-date activities likewise have no real time.
+      dayBased = bookingType === "CALENDAR-NO-TIMESLOTS" || isOpenDate || activity?.daily === true;
     }
 
     type MusementProductEntry = {
@@ -131,7 +145,9 @@ export async function POST(request: NextRequest) {
           const primary = holders[primaryIdx];
 
           slots.push({
-            time: slot.time || "",
+            // For day-based / open-date activities Musement returns a
+            // randomly generated time that we MUST NOT display per docs.
+            time: dayBased ? "" : (slot.time || ""),
             groupName: group.name || "Tour",
             languages: (slot.languages || [])
               .map((l) => l.code)
@@ -150,7 +166,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ slots });
+    return NextResponse.json({ slots, dayBased });
   } catch (err) {
     console.error("Musement timeslots route error:", err);
     return NextResponse.json(
