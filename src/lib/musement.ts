@@ -66,6 +66,7 @@ export type MusementProduct = {
   // Curated rails — set true when Musement flags the activity as such
   topSeller: boolean;
   mustSee: boolean;
+  likelyToSellOut: boolean;
   exclusive: boolean;
   bestPrice: boolean;
   specialOffer: boolean;
@@ -575,12 +576,16 @@ export async function searchActivities(params: MusementSearchParams): Promise<Mu
   try {
     let url = `${MUSEMENT_API_BASE}/cities/${cityId}/activities?limit=${limit}&offset=${offset}`;
 
-    // Default to descending relevance — Musement's docs warn that
-    // "relevance" alone returns lowest-relevance first.
+    // Sort defaults — per Musement Quality Checklist:
+    //   sort_by=price   → HIGHEST price first
+    //   sort_by=-price  → LOWEST price first
+    //   sort_by=rating  → highest rating first (descending implicit)
+    //   sort_by=-relevance → most relevant first (without minus = least relevant first)
+    // Customer "Sort by price" UX expectation = cheapest first → -price.
     if (params.sortBy === "price") {
-      url += "&sort_by=price";
+      url += "&sort_by=-price";
     } else if (params.sortBy === "rating") {
-      url += "&sort_by=-rating";
+      url += "&sort_by=rating";
     } else {
       url += "&sort_by=-relevance";
     }
@@ -1820,6 +1825,7 @@ function mapActivityToProduct(a: Record<string, unknown>, cityName: string, curr
       .filter((f) => f.id),
     topSeller: (a.top_seller as boolean) === true,
     mustSee: (a.must_see as boolean) === true,
+    likelyToSellOut: (a.likely_to_sell_out as boolean) === true,
     exclusive: (a.exclusive as boolean) === true,
     bestPrice: (a.best_price as boolean) === true,
     specialOffer: (a.special_offer as boolean) === true,
