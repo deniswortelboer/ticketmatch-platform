@@ -84,7 +84,7 @@ async function loadBooking(id: string) {
     .eq("id", id)
     .single();
   if (error || !booking) return null;
-  return booking as {
+  return booking as unknown as {
     id: string;
     status: string;
     musement_order_id: string | null;
