@@ -583,14 +583,16 @@ export async function searchActivities(params: MusementSearchParams): Promise<Mu
     //   sort_by=price   → HIGHEST price first
     //   sort_by=-price  → LOWEST price first
     //   sort_by=rating  → highest rating first (descending implicit)
-    //   sort_by=-relevance → most relevant first (without minus = least relevant first)
     // Customer "Sort by price" UX expectation = cheapest first → -price.
+    //
+    // HOTFIX 2026-04-29: Musement now rejects sort_by=-relevance silently
+    // (returns []), so we omit sort_by entirely for the default case and
+    // let Musement use its server-side default ordering. Was breaking the
+    // entire Experiences page in production.
     if (params.sortBy === "price") {
       url += "&sort_by=-price";
     } else if (params.sortBy === "rating") {
       url += "&sort_by=rating";
-    } else {
-      url += "&sort_by=-relevance";
     }
 
     if (params.verticalId) {
@@ -614,16 +616,28 @@ export async function searchActivities(params: MusementSearchParams): Promise<Mu
       url += `&default_price_range=${lo},${hi}`;
     }
 
+    // HOTFIX 2026-04-29: bypass the 7-day catalog cache for search.
+    // We had a stale empty result poisoning the cache → production showed
+    // an empty Experiences list even when Musement was healthy. Switching
+    // to no-store guarantees a fresh upstream call every time. Cost is
+    // a few extra Musement requests; correctness wins until we add a
+    // proper revalidateTag-on-error path.
     const res = await fetch(url, {
       headers: {
         ...getHeaders(params.language),
         "X-Musement-Currency": currency,
       },
-      ...CATALOG_CACHE,
+      cache: "no-store" as RequestCache,
     });
 
     if (!res.ok) {
-      console.error(`Musement API error: ${res.status} ${res.statusText}`);
+      // Read the body so we know WHY Musement is unhappy — silent empty
+      // arrays were what masked this last incident.
+      let detail = "";
+      try { detail = (await res.text()).slice(0, 500); } catch {}
+      console.error(
+        `[searchActivities] Musement ${res.status} ${res.statusText} url=${url} body=${detail}`
+      );
       return { products: [], totalCount: 0, hasMore: false };
     }
 
