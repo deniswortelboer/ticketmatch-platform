@@ -441,13 +441,15 @@ export default function ExperiencesPage() {
   const [countrySearch, setCountrySearch] = useState("");
   const [showCityDD2, setShowCityDD2] = useState(false);
 
-  // Sidebar filters (Musement reference layout): pickup-at-hotel + price range.
-  // priceMax === null means "no upper bound" (slider sits at the right edge).
-  // PRICE_CEIL is the slider ceiling — anything above is treated as unbounded.
+  // Inline filter pills on the country/city row (Denis 2026-04-29 — vertical
+  // sidebar pushed the grid too far right). Pickup is a one-click chip; price
+  // is a chip that opens a small popover with two sliders. PRICE_CEIL caps the
+  // slider; anything above is treated as "no upper bound".
   const PRICE_CEIL = 500;
   const [pickupOnly, setPickupOnly] = useState(false);
   const [priceMin, setPriceMin] = useState(0);
   const [priceMax, setPriceMax] = useState<number>(PRICE_CEIL);
+  const [showPriceDD, setShowPriceDD] = useState(false);
 
   // City search with debounce
   useEffect(() => {
@@ -766,7 +768,7 @@ export default function ExperiencesPage() {
     : [...NL_CITIES, ...MORE_NL_CITIES, ...EU_CITIES].find((c) => c.value === city)?.label || city;
 
   return (
-    <div onClick={() => { setShowCityDropdown(false); setShowMoreNL(false); setShowCountryDD(false); setShowCityDD2(false); }}>
+    <div onClick={() => { setShowCityDropdown(false); setShowMoreNL(false); setShowCountryDD(false); setShowCityDD2(false); setShowPriceDD(false); }}>
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
@@ -910,96 +912,57 @@ export default function ExperiencesPage() {
             </div>
           )}
         </div>
-      </div>
 
-      {/* Verticals taxonomy row (Musement's own 7 buckets + synthetic Combos) */}
-      <div className="mb-6 flex flex-wrap gap-1.5">
+        {/* Pickup-at-hotel — pill toggle on the same line as Country/City. */}
         <button
-          onClick={() => setVerticalSel(0)}
-          className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors ${
-            verticalSel === 0
-              ? "bg-foreground text-white"
-              : "border border-border bg-white text-muted hover:text-foreground"
+          type="button"
+          onClick={() => setPickupOnly(!pickupOnly)}
+          className={`flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
+            pickupOnly
+              ? "border-accent bg-accent text-white shadow-sm"
+              : "border-border bg-white text-foreground hover:bg-gray-50"
           }`}
+          aria-pressed={pickupOnly}
         >
-          All
+          <span className="text-base leading-none">🚐</span>
+          <span>Pick up at hotel</span>
+          {pickupOnly && <span className="text-white/70">✓</span>}
         </button>
-        {verticals.map((v) => (
+
+        {/* Price range — pill that opens a small popover with two sliders. */}
+        <div className="relative" onClick={(e) => e.stopPropagation()}>
           <button
-            key={v.id}
-            onClick={() => setVerticalSel(v.id)}
-            className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors ${
-              verticalSel === v.id
-                ? "bg-accent text-white"
-                : "border border-border bg-white text-muted hover:text-foreground"
+            type="button"
+            onClick={() => setShowPriceDD(!showPriceDD)}
+            className={`flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
+              priceMin > 0 || priceMax < PRICE_CEIL
+                ? "border-accent bg-accent/10 text-accent"
+                : "border-border bg-white text-foreground hover:bg-gray-50"
             }`}
           >
-            {VERTICAL_ICONS[v.name] || "•"} {v.name}
+            <span className="text-[10px] uppercase tracking-wider text-muted/60">Price</span>
+            <span>
+              €{priceMin}–€{priceMax >= PRICE_CEIL ? `${PRICE_CEIL}+` : priceMax}
+            </span>
+            <span className="text-muted">▾</span>
           </button>
-        ))}
-        <button
-          onClick={() => setVerticalSel(-1)}
-          className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors ${
-            verticalSel === -1
-              ? "bg-accent text-white"
-              : "border-2 border-dashed border-accent/40 bg-accent/5 text-accent hover:border-accent hover:bg-accent/10"
-          }`}
-        >
-          🎁 Combos
-        </button>
-      </div>
-
-      {/* Sidebar + results layout (Musement white-label reference). */}
-      <div className="flex gap-6">
-        {/* Filters sidebar */}
-        <aside className="hidden w-60 shrink-0 lg:block">
-          <div className="sticky top-4 space-y-5 rounded-2xl border border-border/60 bg-white p-4">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase tracking-wider text-muted/70">
-                Filters
-              </span>
-              {(pickupOnly || priceMin > 0 || priceMax < PRICE_CEIL) && (
-                <button
-                  onClick={() => {
-                    setPickupOnly(false);
-                    setPriceMin(0);
-                    setPriceMax(PRICE_CEIL);
-                  }}
-                  className="text-[10px] font-medium text-accent hover:underline"
-                >
-                  Clear
-                </button>
-              )}
-            </div>
-
-            {/* Pick up at hotel */}
-            <label className="flex cursor-pointer select-none items-start gap-2.5 rounded-xl border border-border/40 p-3 transition-colors hover:border-accent/40 hover:bg-accent/5">
-              <input
-                type="checkbox"
-                checked={pickupOnly}
-                onChange={(e) => setPickupOnly(e.target.checked)}
-                className="mt-0.5 h-4 w-4 cursor-pointer accent-accent"
-              />
-              <div className="flex-1">
-                <div className="flex items-center gap-1.5 text-sm font-medium text-foreground">
-                  <span>🚐</span>
-                  <span>Pick up at hotel</span>
-                </div>
-                <p className="mt-0.5 text-[11px] leading-tight text-muted">
-                  Tours that include hotel pickup
-                </p>
-              </div>
-            </label>
-
-            {/* Price range */}
-            <div>
-              <div className="mb-1 flex items-center justify-between">
+          {showPriceDD && (
+            <div className="absolute left-0 top-12 z-50 w-72 rounded-xl border border-border bg-white p-4 shadow-xl">
+              <div className="mb-3 flex items-center justify-between">
                 <span className="text-sm font-medium text-foreground">Price (per adult)</span>
+                {(priceMin > 0 || priceMax < PRICE_CEIL) && (
+                  <button
+                    onClick={() => { setPriceMin(0); setPriceMax(PRICE_CEIL); }}
+                    className="text-[10px] font-medium text-accent hover:underline"
+                  >
+                    Reset
+                  </button>
+                )}
               </div>
               <div className="mb-3 text-xs font-semibold text-accent">
                 €{priceMin} – €{priceMax >= PRICE_CEIL ? `${PRICE_CEIL}+` : priceMax}
               </div>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <div>
                   <label className="mb-1 flex items-center justify-between text-[10px] uppercase tracking-wider text-muted/70">
                     <span>Min</span>
@@ -1038,11 +1001,46 @@ export default function ExperiencesPage() {
                 </div>
               </div>
             </div>
-          </div>
-        </aside>
+          )}
+        </div>
+      </div>
 
-        {/* Main content column */}
-        <div className="min-w-0 flex-1">
+      {/* Verticals taxonomy row (Musement's own 7 buckets + synthetic Combos) */}
+      <div className="mb-6 flex flex-wrap gap-1.5">
+        <button
+          onClick={() => setVerticalSel(0)}
+          className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors ${
+            verticalSel === 0
+              ? "bg-foreground text-white"
+              : "border border-border bg-white text-muted hover:text-foreground"
+          }`}
+        >
+          All
+        </button>
+        {verticals.map((v) => (
+          <button
+            key={v.id}
+            onClick={() => setVerticalSel(v.id)}
+            className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors ${
+              verticalSel === v.id
+                ? "bg-accent text-white"
+                : "border border-border bg-white text-muted hover:text-foreground"
+            }`}
+          >
+            {VERTICAL_ICONS[v.name] || "•"} {v.name}
+          </button>
+        ))}
+        <button
+          onClick={() => setVerticalSel(-1)}
+          className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors ${
+            verticalSel === -1
+              ? "bg-accent text-white"
+              : "border-2 border-dashed border-accent/40 bg-accent/5 text-accent hover:border-accent hover:bg-accent/10"
+          }`}
+        >
+          🎁 Combos
+        </button>
+      </div>
 
       {/* Loading state */}
       {loading && (
@@ -1319,9 +1317,6 @@ export default function ExperiencesPage() {
           )}
         </div>
       )}
-
-        </div>
-      </div>
 
       {/* Footer — keep it neutral. Supplier names stay on customer-facing
           vouchers / PDFs (where attribution is required), never on the
