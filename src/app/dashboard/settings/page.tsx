@@ -310,9 +310,18 @@ export default function SettingsPage() {
     setSecurityNote("");
     try {
       const supabase = createClient();
+      const { data: factorList } = await supabase.auth.mfa.listFactors();
+      const stale = factorList?.all?.filter((f) => f.status !== "verified") ?? [];
+      for (const f of stale) {
+        try {
+          await supabase.auth.mfa.unenroll({ factorId: f.id });
+        } catch (err) {
+          console.warn("Could not clean up stale factor", f.id, err);
+        }
+      }
       const { data, error } = await supabase.auth.mfa.enroll({
         factorType: "totp",
-        friendlyName: `TicketMatch (${new Date().toLocaleDateString()})`,
+        friendlyName: `TicketMatch (${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()})`,
       });
       if (error || !data) {
         setMfaError(error?.message || "Could not start enrollment.");
@@ -324,7 +333,7 @@ export default function SettingsPage() {
         secret: data.totp.secret,
       });
     } catch (err) {
-      setMfaError("Could not start enrollment.");
+      setMfaError(err instanceof Error ? err.message : "Could not start enrollment.");
       console.error(err);
     } finally {
       setSecurityBusy(false);
@@ -1697,6 +1706,10 @@ export default function SettingsPage() {
                     >
                       Add another authenticator
                     </button>
+                  )}
+
+                  {!mfaEnroll && mfaError && (
+                    <p className="mt-2 text-sm text-red-600">{mfaError}</p>
                   )}
 
                   {mfaEnroll && (
