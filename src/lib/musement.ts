@@ -41,6 +41,7 @@ export type MusementProduct = {
   description: string;            // short (kept at 300 chars for card display)
   descriptionFull?: string;       // full unsliced version for detail view
   duration: string;
+  durationMinutes: number;        // parsed total minutes for client-side bucketing
   rating: number;
   reviewCount: number;
   pricing: {
@@ -95,9 +96,10 @@ export type MusementSearchParams = {
   categoryId?: number;
   verticalId?: number;            // Filter by Musement vertical (1..7)
   comboOnly?: boolean;            // Synthetic — keep only multi-activity bundles
-  pickupOnly?: boolean;           // feature_in=tours-and-activities-with-pickup
-  priceMin?: number;              // default_price_range lower bound (in currency units)
-  priceMax?: number;              // default_price_range upper bound (in currency units)
+  priceMin?: number;              // Client-side price filter (lower bound)
+  priceMax?: number;              // Client-side price filter (upper bound)
+  durationBucket?: "short" | "halfday" | "fullday"; // <=2h | 2-4h | >4h
+  freeCancellation?: boolean;     // Only activities with free cancellation
   limit?: number;
   offset?: number;
   currency?: string;
@@ -328,6 +330,28 @@ function formatDuration(durationStr: string | undefined): string {
   if (!durationStr) return "";
   // Musement returns duration like "2 hours", "1 hour 30 minutes", "45 minutes"
   return durationStr;
+}
+
+/**
+ * Parse Musement's duration string into total minutes. Accepts ISO-8601
+ * (PT1H30M / PT45M) and free-form text ("2 hours", "1 hour 30 minutes",
+ * "45 minutes"). Returns 0 when nothing recognisable is found.
+ */
+function parseDurationMinutes(s: string | undefined): number {
+  if (!s) return 0;
+  // ISO-8601 first — covers PT1H, PT30M, PT1H30M, PT2H45M
+  const iso = s.match(/^PT(?:(\d+)H)?(?:(\d+)M)?/i);
+  if (iso && (iso[1] || iso[2])) {
+    const h = parseInt(iso[1] || "0", 10);
+    const m = parseInt(iso[2] || "0", 10);
+    return h * 60 + m;
+  }
+  // Free-form English text
+  const hoursMatch = s.match(/(\d+(?:\.\d+)?)\s*hours?/i);
+  const minsMatch = s.match(/(\d+)\s*minutes?/i);
+  const h = hoursMatch ? parseFloat(hoursMatch[1]) : 0;
+  const m = minsMatch ? parseInt(minsMatch[1], 10) : 0;
+  return Math.round(h * 60) + m;
 }
 
 // ─── City Resolution ────────────────────────────────────────────────────────
@@ -666,19 +690,25 @@ export async function searchActivities(params: MusementSearchParams): Promise<Mu
       products = products.filter((p) => p.isCombo);
     }
 
-    // Pickup-at-hotel filter — Musement also ignores `feature_in=
-    // tours-and-activities-with-pickup` upstream and doesn't expose a
-    // dedicated `has_pickup` field on the product, so we derive it from a
-    // keyword search across title + description + meeting point. Catches the
-    // obvious phrasing ("hotel pickup", "pick-up included", "transfer from
-    // your hotel"). Better than nothing until Musement adds a structured
-    // signal we can rely on.
-    if (params.pickupOnly) {
-      const PICKUP_RE = /\bpick[\s-]?up\b|hotel\s*(transfer|pickup)|transfer\s*(from|to)\s*(your\s*)?hotel|round[\s-]?trip\s*transfer|with\s*transfer|including\s*pickup|including\s*transfer/i;
+    // Duration bucket filter — based on parsed durationMinutes:
+    //   short    : ≤ 120 minutes (anything up to 2h)
+    //   halfday  : 120 ≤ d ≤ 240 minutes
+    //   fullday  : > 240 minutes (4h+)
+    if (params.durationBucket) {
       products = products.filter((p) => {
-        const haystack = `${p.title} ${p.description || ""} ${p.meetingPoint || ""}`;
-        return PICKUP_RE.test(haystack);
+        const m = p.durationMinutes;
+        if (!m) return false; // unknown duration → exclude when filter is active
+        if (params.durationBucket === "short") return m <= 120;
+        if (params.durationBucket === "halfday") return m > 120 && m <= 240;
+        if (params.durationBucket === "fullday") return m > 240;
+        return true;
       });
+    }
+
+    // Free cancellation filter — Musement gives us a clean `free_cancellation`
+    // boolean, mapped to `cancellationPolicy === "Free cancellation"`.
+    if (params.freeCancellation) {
+      products = products.filter((p) => p.cancellationPolicy === "Free cancellation");
     }
 
     // Price range filter — applied client-side because Musement ignores
@@ -695,7 +725,8 @@ export async function searchActivities(params: MusementSearchParams): Promise<Mu
     return {
       products,
       totalCount:
-        (params.priceMin != null || params.priceMax != null || params.pickupOnly)
+        (params.priceMin != null || params.priceMax != null
+          || params.durationBucket || params.freeCancellation)
           ? products.length
           : totalCount,
       hasMore: activities.length === limit,
@@ -1824,6 +1855,11 @@ function mapActivityToProduct(a: Record<string, unknown>, cityName: string, curr
     description: fullDescription.slice(0, 300),
     descriptionFull: fullDescription,
     duration: formatDuration(
+      (a.duration_range as Record<string, unknown>)?.max as string
+      || (a.duration as string)
+      || ""
+    ),
+    durationMinutes: parseDurationMinutes(
       (a.duration_range as Record<string, unknown>)?.max as string
       || (a.duration as string)
       || ""

@@ -441,15 +441,21 @@ export default function ExperiencesPage() {
   const [countrySearch, setCountrySearch] = useState("");
   const [showCityDD2, setShowCityDD2] = useState(false);
 
-  // Inline filter pills on the country/city row (Denis 2026-04-29 — vertical
-  // sidebar pushed the grid too far right). Pickup is a one-click chip; price
-  // is a chip that opens a small popover with two sliders. PRICE_CEIL caps the
-  // slider; anything above is treated as "no upper bound".
+  // Inline filter pills on the country/city row. Pickup got dropped — it
+  // relied on a heuristic Musement doesn't structurally support, so it
+  // promised certainty it couldn't deliver. Replaced with two real-data
+  // filters that B2B resellers actually rely on:
+  //   - Duration bucket (short / halfday / fullday) from durationMinutes
+  //   - Free cancellation toggle from cancellationPolicy
+  // Price is a popover with two sliders; PRICE_CEIL caps the slider.
   const PRICE_CEIL = 500;
-  const [pickupOnly, setPickupOnly] = useState(false);
   const [priceMin, setPriceMin] = useState(0);
   const [priceMax, setPriceMax] = useState<number>(PRICE_CEIL);
   const [showPriceDD, setShowPriceDD] = useState(false);
+  type DurationBucket = "any" | "short" | "halfday" | "fullday";
+  const [durationBucket, setDurationBucket] = useState<DurationBucket>("any");
+  const [showDurationDD, setShowDurationDD] = useState(false);
+  const [freeCancelOnly, setFreeCancelOnly] = useState(false);
 
   // City search with debounce
   useEffect(() => {
@@ -566,9 +572,10 @@ export default function ExperiencesPage() {
     };
     if (useVertical) payload.verticalId = verticalSel;
     if (useCombo) payload.comboOnly = true;
-    if (pickupOnly) payload.pickupOnly = true;
     if (priceMin > 0) payload.priceMin = priceMin;
     if (priceMax < PRICE_CEIL) payload.priceMax = priceMax;
+    if (durationBucket !== "any") payload.durationBucket = durationBucket;
+    if (freeCancelOnly) payload.freeCancellation = true;
 
     const res = await fetch("/api/musement/search", {
       method: "POST",
@@ -587,7 +594,7 @@ export default function ExperiencesPage() {
         ? finalProducts.length
         : (data.totalCount || 0),
     };
-  }, [verticalSel, pickupOnly, priceMin, priceMax]);
+  }, [verticalSel, priceMin, priceMax, durationBucket, freeCancelOnly]);
 
   const fetchExperiences = useCallback(async (selectedCity: string, selectedCategory: string, destId?: number, startPage = 1, append = false) => {
     if (append) {
@@ -647,7 +654,7 @@ export default function ExperiencesPage() {
     } else {
       fetchExperiences(city, activeTag, undefined, 1, false);
     }
-  }, [city, customCity, categoryFilter, subCategoryFilter, source, verticalSel, pickupOnly, priceMin, priceMax, fetchExperiences]);
+  }, [city, customCity, categoryFilter, subCategoryFilter, source, verticalSel, priceMin, priceMax, durationBucket, freeCancelOnly, fetchExperiences]);
 
   const handleLoadMore = () => {
     const activeTag = subCategoryFilter || categoryFilter;
@@ -768,7 +775,7 @@ export default function ExperiencesPage() {
     : [...NL_CITIES, ...MORE_NL_CITIES, ...EU_CITIES].find((c) => c.value === city)?.label || city;
 
   return (
-    <div onClick={() => { setShowCityDropdown(false); setShowMoreNL(false); setShowCountryDD(false); setShowCityDD2(false); setShowPriceDD(false); }}>
+    <div onClick={() => { setShowCityDropdown(false); setShowMoreNL(false); setShowCountryDD(false); setShowCityDD2(false); setShowPriceDD(false); setShowDurationDD(false); }}>
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
@@ -913,22 +920,6 @@ export default function ExperiencesPage() {
           )}
         </div>
 
-        {/* Pickup-at-hotel — pill toggle on the same line as Country/City. */}
-        <button
-          type="button"
-          onClick={() => setPickupOnly(!pickupOnly)}
-          className={`flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
-            pickupOnly
-              ? "border-accent bg-accent text-white shadow-sm"
-              : "border-border bg-white text-foreground hover:bg-gray-50"
-          }`}
-          aria-pressed={pickupOnly}
-        >
-          <span className="text-base leading-none">🚐</span>
-          <span>Pick up at hotel</span>
-          {pickupOnly && <span className="text-white/70">✓</span>}
-        </button>
-
         {/* Price range — pill that opens a small popover with two sliders. */}
         <div className="relative" onClick={(e) => e.stopPropagation()}>
           <button
@@ -1003,6 +994,67 @@ export default function ExperiencesPage() {
             </div>
           )}
         </div>
+
+        {/* Duration — pill with bucket popover (≤ 2h / 2-4h / 4h+). */}
+        <div className="relative" onClick={(e) => e.stopPropagation()}>
+          <button
+            type="button"
+            onClick={() => setShowDurationDD(!showDurationDD)}
+            className={`flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
+              durationBucket !== "any"
+                ? "border-accent bg-accent/10 text-accent"
+                : "border-border bg-white text-foreground hover:bg-gray-50"
+            }`}
+          >
+            <span className="text-[10px] uppercase tracking-wider text-muted/60">Duration</span>
+            <span>
+              {durationBucket === "any" ? "Any" :
+               durationBucket === "short" ? "≤ 2 hours" :
+               durationBucket === "halfday" ? "Half-day" :
+               "Full-day"}
+            </span>
+            <span className="text-muted">▾</span>
+          </button>
+          {showDurationDD && (
+            <div className="absolute left-0 top-12 z-50 w-52 rounded-xl border border-border bg-white py-1 shadow-xl">
+              {([
+                { value: "any" as const, label: "Any duration" },
+                { value: "short" as const, label: "≤ 2 hours" },
+                { value: "halfday" as const, label: "Half-day (2-4 hours)" },
+                { value: "fullday" as const, label: "Full-day (4 hours+)" },
+              ]).map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => { setDurationBucket(opt.value); setShowDurationDD(false); }}
+                  className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm transition-colors ${
+                    durationBucket === opt.value
+                      ? "bg-accent/10 font-medium text-accent"
+                      : "hover:bg-accent/5"
+                  }`}
+                >
+                  <span>{opt.label}</span>
+                  {durationBucket === opt.value && <span className="text-accent">✓</span>}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Free cancellation — toggle pill, real Musement boolean. */}
+        <button
+          type="button"
+          onClick={() => setFreeCancelOnly(!freeCancelOnly)}
+          className={`flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
+            freeCancelOnly
+              ? "border-accent bg-accent text-white shadow-sm"
+              : "border-border bg-white text-foreground hover:bg-gray-50"
+          }`}
+          aria-pressed={freeCancelOnly}
+        >
+          <span className="text-base leading-none">↩️</span>
+          <span>Free cancellation</span>
+          {freeCancelOnly && <span className="text-white/70">✓</span>}
+        </button>
       </div>
 
       {/* Verticals taxonomy row (Musement's own 7 buckets + synthetic Combos) */}
