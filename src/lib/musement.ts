@@ -613,15 +613,11 @@ export async function searchActivities(params: MusementSearchParams): Promise<Mu
       url += `&feature_in=tours-and-activities-with-pickup`;
     }
 
-    // Price range — Musement expects `default_price_range=min,max` as integer
-    // currency units. Either bound may be omitted; we always send both with
-    // a 0 floor / a generous ceiling when only one side is set so Musement
-    // doesn't reject the param.
-    if (typeof params.priceMin === "number" || typeof params.priceMax === "number") {
-      const lo = Math.max(0, Math.round(params.priceMin ?? 0));
-      const hi = Math.max(lo, Math.round(params.priceMax ?? 9999));
-      url += `&default_price_range=${lo},${hi}`;
-    }
+    // NOTE 2026-04-29: Musement silently ignores `default_price_range`
+    // (verified on prod against amsterdam — same 100 products returned with
+    // and without the param). We apply the price filter client-side after
+    // mapping the response, using the activity's retailPrice. Same pattern
+    // as the vertical filter.
 
     // HOTFIX 2026-04-29: bypass the 7-day catalog cache for search.
     // We had a stale empty result poisoning the cache → production showed
@@ -675,9 +671,22 @@ export async function searchActivities(params: MusementSearchParams): Promise<Mu
       products = products.filter((p) => p.isCombo);
     }
 
+    // Price range filter — applied client-side because Musement ignores
+    // `default_price_range` upstream. Inclusive on both bounds.
+    if (typeof params.priceMin === "number" || typeof params.priceMax === "number") {
+      const lo = typeof params.priceMin === "number" ? params.priceMin : 0;
+      const hi = typeof params.priceMax === "number" ? params.priceMax : Number.POSITIVE_INFINITY;
+      products = products.filter((p) => {
+        const price = p.pricing?.retailPrice ?? 0;
+        return price >= lo && price <= hi;
+      });
+    }
+
     return {
       products,
-      totalCount,
+      totalCount: (params.priceMin != null || params.priceMax != null)
+        ? products.length
+        : totalCount,
       hasMore: activities.length === limit,
     };
   } catch (err) {
