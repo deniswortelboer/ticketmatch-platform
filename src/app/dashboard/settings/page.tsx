@@ -1706,11 +1706,11 @@ export default function SettingsPage() {
                         <p className="text-xs text-muted">Or enter the secret manually if scanning isn&apos;t possible.</p>
                       </div>
                       <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-start">
-                        <div
-                          className="rounded-xl bg-white p-3 border border-border/60 shrink-0"
-                          // qr_code is an SVG document returned by Supabase
-                          dangerouslySetInnerHTML={{ __html: mfaEnroll.qrSvg }}
-                        />
+                        <div className="rounded-xl bg-white p-3 border border-border/60 shrink-0">
+                          {/* qr_code is a data:image/svg+xml URL — render via <img>, not innerHTML */}
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={mfaEnroll.qrSvg} alt="2FA QR code" width={200} height={200} />
+                        </div>
                         <div className="flex-1 min-w-0 w-full">
                           <p className="text-xs font-medium text-muted mb-1">Manual setup secret</p>
                           <code className="block break-all rounded-lg border border-border/60 bg-white px-3 py-2 text-xs font-mono text-foreground">
