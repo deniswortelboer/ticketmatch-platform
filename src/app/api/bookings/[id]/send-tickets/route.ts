@@ -97,12 +97,22 @@ function buildEmailHtml(opts: {
     supportPhone,
   } = opts;
 
+  // Branding tiers — must mirror the PDF footer logic in src/lib/pdf-tickets.ts:
+  //   full_managed     → TicketMatch Support footer (no partner)
+  //   co_branded       → Partner name + small "Verzonden via TicketMatch" line
+  //   white_label_light → Partner name ONLY, no TicketMatch attribution
+  // White-label is sold as a premium feature — leaking "via TicketMatch" here
+  // breaks the promise and matches PDF tickets which already hide it correctly.
   const footer =
     brandingMode === "full_managed"
       ? `
         <p style="margin:24px 0 4px;color:#0f172a;font-weight:600">TicketMatch Support</p>
         ${supportEmail ? `<p style="margin:0;color:#64748b;font-size:13px">${supportEmail}</p>` : ""}
         ${supportPhone ? `<p style="margin:0;color:#64748b;font-size:13px">${supportPhone}</p>` : ""}
+      `
+      : brandingMode === "white_label_light"
+      ? `
+        <p style="margin:24px 0 4px;color:#0f172a">Met vriendelijke groet,<br/><strong>${companyName}</strong></p>
       `
       : `
         <p style="margin:24px 0 4px;color:#0f172a">Met vriendelijke groet,<br/><strong>${companyName}</strong></p>

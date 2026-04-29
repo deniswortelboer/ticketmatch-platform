@@ -541,8 +541,26 @@ export default function SettingsPage() {
     setTimeout(() => setSaved(false), 2000);
   };
 
-  const handleSaveWhitelabel = () => {
+  const handleSaveWhitelabel = async () => {
+    // Local cache so the preview/Logo upload survive a refresh — logo file
+    // upload + persistence is a follow-up; for now logo stays in localStorage.
     localStorage.setItem("tm_whitelabel", JSON.stringify(whitelabel));
+    // Push the bits that ACTUALLY change customer-facing delivery (branding
+    // mode + primary color) to the DB so PDFs, emails and wallet passes
+    // pick them up. Soft-fail on the network call — the local UI still
+    // shows a saved confirmation; admin can resync if needed.
+    try {
+      await fetch("/api/company/whitelabel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          primaryColor: whitelabel.primaryColor,
+          showPoweredBy: whitelabel.showPoweredBy,
+        }),
+      });
+    } catch (err) {
+      console.warn("White-label remote save failed:", err);
+    }
     showSaved();
   };
 
