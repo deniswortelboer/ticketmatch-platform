@@ -192,6 +192,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     const loadUser = async () => {
       try {
+        // ─── MFA gate ────────────────────────────────────────────────
+        // If the signed-in user has a verified TOTP factor and the current
+        // session is still at AAL1, redirect them to /auth/mfa-challenge to
+        // bump it to AAL2 before they reach any dashboard data. Soft-fails
+        // when the call errors so a transient issue doesn't lock anyone out.
+        try {
+          const supabase = createClient();
+          const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+          if (aal?.currentLevel === "aal1" && aal?.nextLevel === "aal2") {
+            router.replace("/auth/mfa-challenge");
+            return;
+          }
+        } catch (mfaErr) {
+          console.warn("MFA gate check failed (non-fatal):", mfaErr);
+        }
+
         // Use server-side API route to bypass RLS restrictions
         const res = await fetch("/api/me");
         if (res.status === 403) {
