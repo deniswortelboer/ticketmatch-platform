@@ -187,6 +187,31 @@ export default function SettingsPage() {
   const [securityBusy, setSecurityBusy] = useState(false);
   const [securityNote, setSecurityNote] = useState("");
 
+  // Billing tab — subscription summary + invoices via Stripe.
+  type BillingSubscription = {
+    hasSubscription: boolean;
+    status: string | null;
+    productName: string | null;
+    amount: number | null;
+    currency: string | null;
+    interval: string | null;
+    currentPeriodEnd: number | null;
+    cancelAtPeriodEnd: boolean;
+  };
+  type BillingInvoice = {
+    id: string;
+    number: string | null;
+    date: number;
+    amount: number;
+    currency: string;
+    status: string | null;
+    hostedUrl: string | null;
+    pdfUrl: string | null;
+  };
+  const [billingSubscription, setBillingSubscription] = useState<BillingSubscription | null>(null);
+  const [billingInvoices, setBillingInvoices] = useState<BillingInvoice[]>([]);
+  const [billingLoaded, setBillingLoaded] = useState(false);
+
   const refreshSecurity = useCallback(async () => {
     try {
       const supabase = createClient();
@@ -211,6 +236,28 @@ export default function SettingsPage() {
       refreshSecurity();
     }
   }, [activeTab, securityLoaded, refreshSecurity]);
+
+  // Lazy-load billing summary on tab activation. Soft-fail on errors —
+  // Plan card still renders from `company.plan`, just without status/invoices.
+  useEffect(() => {
+    if (activeTab !== "billing" || billingLoaded) return;
+    (async () => {
+      try {
+        const res = await fetch("/api/stripe/billing-summary");
+        if (!res.ok) {
+          setBillingLoaded(true);
+          return;
+        }
+        const data = await res.json();
+        setBillingSubscription(data.subscription || null);
+        setBillingInvoices(Array.isArray(data.invoices) ? data.invoices : []);
+      } catch (err) {
+        console.warn("Billing load failed:", err);
+      } finally {
+        setBillingLoaded(true);
+      }
+    })();
+  }, [activeTab, billingLoaded]);
 
   const connectProvider = useCallback(async (provider: "google" | "azure") => {
     setSecurityBusy(true);
@@ -923,7 +970,30 @@ export default function SettingsPage() {
           )}
 
           {/* ─── PLAN & BILLING ─── */}
-          {activeTab === "billing" && (
+          {activeTab === "billing" && (() => {
+            const sub = billingSubscription;
+            const statusBadge = (() => {
+              if (!sub?.hasSubscription || !sub.status) return null;
+              const map: Record<string, { label: string; cls: string }> = {
+                active: { label: "Active", cls: "bg-green-50 border-green-200 text-green-700" },
+                trialing: { label: "Trial", cls: "bg-blue-50 border-blue-200 text-blue-700" },
+                past_due: { label: "Past due", cls: "bg-orange-50 border-orange-200 text-orange-700" },
+                unpaid: { label: "Unpaid", cls: "bg-red-50 border-red-200 text-red-700" },
+                canceled: { label: "Canceled", cls: "bg-gray-100 border-border text-muted" },
+                incomplete: { label: "Incomplete", cls: "bg-amber-50 border-amber-200 text-amber-700" },
+                incomplete_expired: { label: "Expired", cls: "bg-gray-100 border-border text-muted" },
+                paused: { label: "Paused", cls: "bg-gray-100 border-border text-muted" },
+              };
+              return map[sub.status] || { label: sub.status, cls: "bg-gray-100 border-border text-muted" };
+            })();
+            const formatMoney = (amt: number, cur: string) => {
+              try { return new Intl.NumberFormat("nl-NL", { style: "currency", currency: cur }).format(amt); }
+              catch { return `${cur} ${amt.toFixed(2)}`; }
+            };
+            const formatDate = (unixSec: number) =>
+              new Date(unixSec * 1000).toLocaleDateString("nl-NL", { day: "numeric", month: "short", year: "numeric" });
+
+            return (
             <div className="space-y-6">
               <div className="rounded-2xl border border-border/60 bg-white p-6 shadow-sm">
                 <h2 className="text-lg font-semibold mb-6">Current Plan</h2>
@@ -939,8 +1009,20 @@ export default function SettingsPage() {
                       <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
                     </svg>
                   </div>
-                  <div className="flex-1">
-                    <p className="text-lg font-bold capitalize">{company.plan || "Free"} Plan</p>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-lg font-bold capitalize">{company.plan || "Free"} Plan</p>
+                      {statusBadge && (
+                        <span className={`rounded-full border px-2.5 py-0.5 text-[10px] font-semibold ${statusBadge.cls}`}>
+                          {statusBadge.label}
+                        </span>
+                      )}
+                      {sub?.cancelAtPeriodEnd && (
+                        <span className="rounded-full border border-orange-200 bg-orange-50 px-2.5 py-0.5 text-[10px] font-semibold text-orange-700">
+                          Cancels at period end
+                        </span>
+                      )}
+                    </div>
                     {company.plan_id ? (
                       <p className="text-xs text-muted">
                         {company.plan_id.includes("annual") ? "Annual billing" : "Monthly billing"}
@@ -959,6 +1041,26 @@ export default function SettingsPage() {
                     {company.plan === "free" || !company.plan ? "Upgrade" : "Change Plan"}
                   </a>
                 </div>
+
+                {/* Next billing line — only when an active subscription exists */}
+                {sub?.hasSubscription && sub.currentPeriodEnd && (
+                  <div className="mt-4 flex items-center justify-between gap-4 rounded-xl bg-gray-50/60 px-5 py-3 text-sm">
+                    <div className="min-w-0">
+                      <p className="font-medium text-foreground">
+                        {sub.cancelAtPeriodEnd ? "Access until" : "Next invoice"}
+                      </p>
+                      <p className="text-xs text-muted">
+                        {formatDate(sub.currentPeriodEnd)}
+                        {sub.amount != null && sub.currency && !sub.cancelAtPeriodEnd && (
+                          <span> &middot; {formatMoney(sub.amount, sub.currency)}{sub.interval ? ` / ${sub.interval}` : ""}</span>
+                        )}
+                      </p>
+                    </div>
+                    {sub.productName && (
+                      <span className="hidden sm:inline text-xs text-muted truncate">{sub.productName}</span>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="rounded-2xl border border-border/60 bg-white p-6 shadow-sm">
@@ -1010,8 +1112,82 @@ export default function SettingsPage() {
                   </button>
                 </div>
               </div>
+
+              {/* ─── Invoices ─── */}
+              <div className="rounded-2xl border border-border/60 bg-white p-6 shadow-sm">
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <div>
+                    <h2 className="text-lg font-semibold">Invoices</h2>
+                    <p className="text-sm text-muted">Recent invoices from Stripe. Open the Billing Portal above for the full history.</p>
+                  </div>
+                </div>
+                {!billingLoaded ? (
+                  <p className="text-sm text-muted">Loading…</p>
+                ) : billingInvoices.length === 0 ? (
+                  <p className="text-sm text-muted">No invoices yet. They appear here once you activate a paid plan.</p>
+                ) : (
+                  <div className="overflow-x-auto -mx-2">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-border/40 text-left text-xs uppercase tracking-wider text-muted/70">
+                          <th className="px-2 py-2 font-medium">Date</th>
+                          <th className="px-2 py-2 font-medium">Number</th>
+                          <th className="px-2 py-2 font-medium">Amount</th>
+                          <th className="px-2 py-2 font-medium">Status</th>
+                          <th className="px-2 py-2 font-medium text-right">PDF</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {billingInvoices.map((inv) => {
+                          const statusCls = inv.status === "paid"
+                            ? "bg-green-50 text-green-700 border border-green-200"
+                            : inv.status === "open"
+                            ? "bg-amber-50 text-amber-700 border border-amber-200"
+                            : "bg-gray-100 text-muted border border-border";
+                          return (
+                            <tr key={inv.id} className="border-b border-border/30 hover:bg-gray-50/40">
+                              <td className="px-2 py-3 text-foreground whitespace-nowrap">{formatDate(inv.date)}</td>
+                              <td className="px-2 py-3 text-muted">{inv.number || "—"}</td>
+                              <td className="px-2 py-3 font-medium text-foreground whitespace-nowrap">{formatMoney(inv.amount, inv.currency)}</td>
+                              <td className="px-2 py-3">
+                                <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${statusCls}`}>
+                                  {inv.status || "—"}
+                                </span>
+                              </td>
+                              <td className="px-2 py-3 text-right whitespace-nowrap">
+                                {inv.pdfUrl ? (
+                                  <a
+                                    href={inv.pdfUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-xs font-medium text-accent hover:underline"
+                                  >
+                                    Download
+                                  </a>
+                                ) : inv.hostedUrl ? (
+                                  <a
+                                    href={inv.hostedUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-xs font-medium text-accent hover:underline"
+                                  >
+                                    View
+                                  </a>
+                                ) : (
+                                  <span className="text-xs text-muted">—</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
             </div>
-          )}
+            );
+          })()}
 
           {/* ─── NOTIFICATIONS ─── */}
           {activeTab === "notifications" && (
