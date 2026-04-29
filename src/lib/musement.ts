@@ -580,14 +580,16 @@ export async function searchActivities(params: MusementSearchParams): Promise<Mu
     //   sort_by=price   → HIGHEST price first
     //   sort_by=-price  → LOWEST price first
     //   sort_by=rating  → highest rating first (descending implicit)
-    //   sort_by=-relevance → most relevant first (without minus = least relevant first)
     // Customer "Sort by price" UX expectation = cheapest first → -price.
+    //
+    // HOTFIX 2026-04-29: Musement now rejects sort_by=-relevance silently
+    // (returns []), so we omit sort_by entirely for the default case and
+    // let Musement use its server-side default ordering. Was breaking the
+    // entire Experiences page in production.
     if (params.sortBy === "price") {
       url += "&sort_by=-price";
     } else if (params.sortBy === "rating") {
       url += "&sort_by=rating";
-    } else {
-      url += "&sort_by=-relevance";
     }
 
     if (params.verticalId) {
