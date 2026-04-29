@@ -1,10 +1,14 @@
 import type { Metadata } from "next";
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+// Lazy-init: Vercel's page-data collection evaluates this module before env
+// vars are reliably populated.
+function getSupabaseAdmin() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
 
 export async function generateMetadata({
   params,
@@ -16,6 +20,7 @@ export async function generateMetadata({
   // Look up reseller name
   let resellerName = "";
   try {
+    const supabaseAdmin = getSupabaseAdmin();
     const { data: companies } = await supabaseAdmin
       .from("companies")
       .select("name, message")
