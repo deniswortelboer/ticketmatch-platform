@@ -26,9 +26,12 @@ function withCid(url: string, cid?: string): string {
   return `${url}${sep}cid=${encodeURIComponent(value)}`;
 }
 
-// Hard cap on list-endpoint pagination. Musement docs warn that limit > 20
-// degrades exponentially; the API allows up to 100 but we never want it.
-const MAX_LIST_LIMIT = 20;
+// Hard cap on list-endpoint pagination. Musement allows up to 100 per page;
+// the experiences page asks for 100 deliberately so vertical/combo client-side
+// filters and rails (Top Sellers / Must See / Exclusive — 8 each) have a rich
+// pool to draw from. Below 100 the Museums vertical was collapsing to ~6 items
+// in Amsterdam after Musement started honouring filters strictly upstream.
+const MAX_LIST_LIMIT = 100;
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -595,9 +598,13 @@ export async function searchActivities(params: MusementSearchParams): Promise<Mu
       url += "&sort_by=rating";
     }
 
-    if (params.verticalId) {
-      url += `&vertical_in=${params.verticalId}`;
-    }
+    // NOTE 2026-04-29: deliberately NOT sending `vertical_in` upstream.
+    // Production Musement now honours the filter strictly and returns only
+    // explicitly-tagged activities (e.g. 6 items for Amsterdam → Museums &
+    // art) — but Musement under-tags many obvious matches (Van Gogh ticket
+    // tagged only "Tours & attractions"). We fetch the unfiltered city
+    // catalog and apply our own OR-filter (vertical tag OR title heuristic)
+    // post-fetch, giving the reseller the wider 80-item shelf instead of 6.
 
     // Pickup-at-hotel filter — Musement's `tours-and-activities-with-pickup`
     // feature flag. Reseller-side surfaced as a checkbox; high-priority filter

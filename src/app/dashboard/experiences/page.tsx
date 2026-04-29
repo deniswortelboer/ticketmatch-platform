@@ -716,8 +716,6 @@ export default function ExperiencesPage() {
   // (by review count) → Must See (by rating) → Exclusive (premium signals).
   // Each rail tops up to RAIL_TARGET from the remaining pool — so all three
   // shelves are uniform when the catalog is big enough.
-  const exclusivePattern =
-    /\bprivate\b|\bvip\b|skip[\s-]?the[\s-]?line|\bexclusive\b|fast[\s-]?track|\bpriority\b/i;
   const { topSellersRail, mustSeeRail, exclusiveRail } = (() => {
     const used = new Set<string>();
     const take = (pool: UnifiedProduct[]) => {
@@ -743,23 +741,14 @@ export default function ExperiencesPage() {
       ...sortedByRating.filter((p) => p.rating >= 4.0),
       ...sortedByRating, // last-resort backfill
     ];
-    // Exclusive should always feel premium — VIP tours, private guides,
-    // skip-the-line packages — never a cheap entrance ticket. We enforce a
-    // €50 floor on every fallback so the rail can't surface a €18.50 museum
-    // skip-the-line. P75 in Amsterdam sits at €48; €50 is a clean threshold
-    // that cleanly separates premium tiers from standard tickets.
-    const PREMIUM_FLOOR = 50;
+    // Exclusive = simply the most expensive activities in the city. Reseller-
+    // intent (per Denis 2026-04-29): give them the top-priced rail to surface
+    // premium ticket types fast — no rating gates, no title heuristics, no
+    // API-tag dependency. Keep the API-tagged exclusives at the front so a
+    // future Musement curation still wins, then fill with pure price-desc.
     const exclPool = [
-      // 1. API-tagged exclusive AND meets price floor (production-correct).
-      ...musementOnly.filter((p) => p.exclusive && p.price >= PREMIUM_FLOOR),
-      // 2. Premium-signal title (private/VIP/skip-the-line/...) at €50+.
-      ...musementOnly
-        .filter((p) => exclusivePattern.test(p.title) && p.price >= PREMIUM_FLOOR)
-        .sort((a, b) => b.price - a.price),
-      // 3. Pure-price fallback: most expensive activities with ≥4.0 rating.
-      ...musementOnly
-        .filter((p) => p.price >= PREMIUM_FLOOR && p.rating >= 4.0)
-        .sort((a, b) => b.price - a.price),
+      ...musementOnly.filter((p) => p.exclusive),
+      ...[...musementOnly].sort((a, b) => b.price - a.price),
     ];
 
     // Allocate in NARROWEST-FIRST priority so the strictest rail (Exclusive,
