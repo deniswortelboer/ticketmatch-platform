@@ -606,14 +606,9 @@ export async function searchActivities(params: MusementSearchParams): Promise<Mu
     // catalog and apply our own OR-filter (vertical tag OR title heuristic)
     // post-fetch, giving the reseller the wider 80-item shelf instead of 6.
 
-    // Pickup-at-hotel filter — Musement's `tours-and-activities-with-pickup`
-    // feature flag. Reseller-side surfaced as a checkbox; high-priority filter
-    // for groups that want their hotel-pickup options pre-narrowed.
-    if (params.pickupOnly) {
-      url += `&feature_in=tours-and-activities-with-pickup`;
-    }
-
-    // NOTE 2026-04-29: Musement silently ignores `default_price_range`
+    // NOTE 2026-04-29: Musement silently ignores BOTH the pickup feature
+    // filter (`feature_in=tours-and-activities-with-pickup`) AND
+    // `default_price_range` upstream — verified on prod for amsterdam.
     // (verified on prod against amsterdam — same 100 products returned with
     // and without the param). We apply the price filter client-side after
     // mapping the response, using the activity's retailPrice. Same pattern
@@ -671,6 +666,21 @@ export async function searchActivities(params: MusementSearchParams): Promise<Mu
       products = products.filter((p) => p.isCombo);
     }
 
+    // Pickup-at-hotel filter — Musement also ignores `feature_in=
+    // tours-and-activities-with-pickup` upstream and doesn't expose a
+    // dedicated `has_pickup` field on the product, so we derive it from a
+    // keyword search across title + description + meeting point. Catches the
+    // obvious phrasing ("hotel pickup", "pick-up included", "transfer from
+    // your hotel"). Better than nothing until Musement adds a structured
+    // signal we can rely on.
+    if (params.pickupOnly) {
+      const PICKUP_RE = /\bpick[\s-]?up\b|hotel\s*(transfer|pickup)|transfer\s*(from|to)\s*(your\s*)?hotel|round[\s-]?trip\s*transfer|with\s*transfer|including\s*pickup|including\s*transfer/i;
+      products = products.filter((p) => {
+        const haystack = `${p.title} ${p.description || ""} ${p.meetingPoint || ""}`;
+        return PICKUP_RE.test(haystack);
+      });
+    }
+
     // Price range filter — applied client-side because Musement ignores
     // `default_price_range` upstream. Inclusive on both bounds.
     if (typeof params.priceMin === "number" || typeof params.priceMax === "number") {
@@ -684,9 +694,10 @@ export async function searchActivities(params: MusementSearchParams): Promise<Mu
 
     return {
       products,
-      totalCount: (params.priceMin != null || params.priceMax != null)
-        ? products.length
-        : totalCount,
+      totalCount:
+        (params.priceMin != null || params.priceMax != null || params.pickupOnly)
+          ? products.length
+          : totalCount,
       hasMore: activities.length === limit,
     };
   } catch (err) {
