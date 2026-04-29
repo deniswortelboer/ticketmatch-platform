@@ -26,9 +26,12 @@ function withCid(url: string, cid?: string): string {
   return `${url}${sep}cid=${encodeURIComponent(value)}`;
 }
 
-// Hard cap on list-endpoint pagination. Musement docs warn that limit > 20
-// degrades exponentially; the API allows up to 100 but we never want it.
-const MAX_LIST_LIMIT = 20;
+// Hard cap on list-endpoint pagination. Musement allows up to 100 per page;
+// the experiences page asks for 100 deliberately so vertical/combo client-side
+// filters and rails (Top Sellers / Must See / Exclusive — 8 each) have a rich
+// pool to draw from. Below 100 the Museums vertical was collapsing to ~6 items
+// in Amsterdam after Musement started honouring filters strictly upstream.
+const MAX_LIST_LIMIT = 100;
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
