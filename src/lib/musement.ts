@@ -592,9 +592,13 @@ export async function searchActivities(params: MusementSearchParams): Promise<Mu
       url += "&sort_by=rating";
     }
 
-    if (params.verticalId) {
-      url += `&vertical_in=${params.verticalId}`;
-    }
+    // NOTE 2026-04-29: deliberately NOT sending `vertical_in` upstream.
+    // Production Musement now honours the filter strictly and returns only
+    // explicitly-tagged activities (e.g. 6 items for Amsterdam → Museums &
+    // art) — but Musement under-tags many obvious matches (Van Gogh ticket
+    // tagged only "Tours & attractions"). We fetch the unfiltered city
+    // catalog and apply our own OR-filter (vertical tag OR title heuristic)
+    // post-fetch, giving the reseller the wider 80-item shelf instead of 6.
 
     // HOTFIX 2026-04-29: bypass the 7-day catalog cache for search.
     // We had a stale empty result poisoning the cache → production showed
