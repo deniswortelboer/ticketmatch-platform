@@ -11,10 +11,16 @@ import { cookies } from "next/headers";
 
 const ADMIN_EMAILS = ["wortelboerdenis@gmail.com", "patekrolexvc@gmail.com"];
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+// Lazy-init: Vercel build's page-data collection evaluates this module
+// before env vars are reliably populated.
+function getSupabaseAdmin() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
+
+export const dynamic = "force-dynamic";
 
 const TEST_PASSWORD = "TestTM2026!";
 
@@ -79,6 +85,7 @@ async function verifyAdmin(): Promise<boolean> {
 }
 
 export async function POST(request: Request) {
+  const supabaseAdmin = getSupabaseAdmin();
   // ── Security gate ──
   const isAdmin = await verifyAdmin();
   if (!isAdmin) {

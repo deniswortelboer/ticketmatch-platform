@@ -11,10 +11,16 @@ import { notifyAdmin } from "@/lib/notify";
 // - Length limits on strings
 // ════════════════════════════════════════════════════════════
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+// Lazy-init: Vercel build's page-data collection evaluates this module
+// before env vars are reliably populated.
+function getSupabaseAdmin() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
+
+export const dynamic = "force-dynamic";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const ALLOWED_COMPANY_TYPES = ["tour_operator", "tour-operator", "dmc", "travel_agency", "travel-agency", "reseller", "corporate", "developer", "mice", "other"];
@@ -25,6 +31,7 @@ function sanitize(str: string | undefined | null, maxLength = 255): string {
 }
 
 export async function POST(request: Request) {
+  const supabaseAdmin = getSupabaseAdmin();
   try {
     const body = await request.json();
 
