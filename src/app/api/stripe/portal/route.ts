@@ -3,7 +3,12 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+// Lazy-init for Vercel build safety.
+function getStripe() {
+  return new Stripe(process.env.STRIPE_SECRET_KEY!);
+}
+
+export const dynamic = "force-dynamic";
 
 // ═══════════════════════════════════════════════════════════════════════
 // POST /api/stripe/portal
@@ -18,6 +23,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 // ═══════════════════════════════════════════════════════════════════════
 
 export async function POST() {
+  const stripe = getStripe();
   const cookieStore = await cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

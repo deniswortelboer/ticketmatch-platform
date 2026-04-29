@@ -3,7 +3,12 @@ import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { notifyAdmin } from "@/lib/notify";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+// Lazy-init for Vercel build safety.
+function getStripe() {
+  return new Stripe(process.env.STRIPE_SECRET_KEY!);
+}
+
+export const dynamic = "force-dynamic";
 
 // ═══════════════════════════════════════════════════════════════
 // POST /api/musement/webhook
@@ -193,6 +198,7 @@ export async function POST(request: Request) {
         booking.currency
       ) {
         try {
+          const stripe = getStripe();
           const refund = await stripe.refunds.create(
             {
               payment_intent: booking.stripe_payment_intent_id,

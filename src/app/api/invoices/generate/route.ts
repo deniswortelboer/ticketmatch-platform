@@ -4,7 +4,12 @@ import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { generateInvoicePDF } from "@/lib/pdf-invoice";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+// Lazy-init for Vercel build safety.
+function getStripe() {
+  return new Stripe(process.env.STRIPE_SECRET_KEY!);
+}
+
+export const dynamic = "force-dynamic";
 
 async function getAuthUser() {
   const cookieStore = await cookies();
@@ -42,6 +47,7 @@ function generateInvoiceNumber(): string {
 }
 
 export async function POST(request: Request) {
+  const stripe = getStripe();
   const user = await getAuthUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

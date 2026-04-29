@@ -3,7 +3,12 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse } from "next/server";
 import { notifyAdmin } from "@/lib/notify";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+// Lazy-init for Vercel build safety.
+function getStripe() {
+  return new Stripe(process.env.STRIPE_SECRET_KEY!);
+}
+
+export const dynamic = "force-dynamic";
 
 function getAdminClient() {
   return createServerClient(
@@ -14,6 +19,7 @@ function getAdminClient() {
 }
 
 export async function POST(request: Request) {
+  const stripe = getStripe();
   const ts = new Date().toISOString();
   const body = await request.text();
   const sig = request.headers.get("stripe-signature");

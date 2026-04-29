@@ -37,7 +37,13 @@ const VALID_CANCEL_REASONS = new Set([
   "VENUE-CLOSED",
 ]);
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+// Lazy-init: Vercel build's page-data collection evaluates this module
+// before STRIPE_SECRET_KEY is reliably populated.
+function getStripe() {
+  return new Stripe(process.env.STRIPE_SECRET_KEY!);
+}
+
+export const dynamic = "force-dynamic";
 
 async function getAuthUser() {
   const cookieStore = await cookies();
@@ -263,6 +269,7 @@ export async function POST(
     booking.currency
   ) {
     try {
+      const stripe = getStripe();
       const refund = await stripe.refunds.create({
         payment_intent: booking.stripe_payment_intent_id,
         // Stripe expects amount in the smallest currency unit (cents/eurocents).

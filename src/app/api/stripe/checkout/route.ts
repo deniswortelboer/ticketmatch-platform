@@ -3,7 +3,12 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+// Lazy-init for Vercel build safety.
+function getStripe() {
+  return new Stripe(process.env.STRIPE_SECRET_KEY!);
+}
+
+export const dynamic = "force-dynamic";
 
 const PLANS: Record<string, { priceAmount: number; name: string; interval?: "month" | "year" }> = {
   "pro-monthly": { priceAmount: 4900, name: "TicketMatch Growth — Monthly", interval: "month" },
@@ -13,6 +18,7 @@ const PLANS: Record<string, { priceAmount: number; name: string; interval?: "mon
 };
 
 export async function POST(request: Request) {
+  const stripe = getStripe();
   const cookieStore = await cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
