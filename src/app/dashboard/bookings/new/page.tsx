@@ -634,12 +634,10 @@ function NewBookingForm() {
         </div>
       )}
 
-      {details && (
-        <p className="mt-4 text-[10px] text-muted/60">
-          Activity content and inventory provided via TUI Musement Partner API.
-          Copyright &copy; TUI Musement. All rights reserved.
-        </p>
-      )}
+      {/* Supplier attribution intentionally omitted from partner dashboard.
+          The customer-facing voucher (delivered as a PDF attachment by the
+          send-tickets flow) carries the supplier's full attribution per
+          their Quality Check requirements. */}
 
         </div>{/* /left column */}
 

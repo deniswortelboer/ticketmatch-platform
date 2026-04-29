@@ -441,6 +441,14 @@ export default function ExperiencesPage() {
   const [countrySearch, setCountrySearch] = useState("");
   const [showCityDD2, setShowCityDD2] = useState(false);
 
+  // Sidebar filters (Musement reference layout): pickup-at-hotel + price range.
+  // priceMax === null means "no upper bound" (slider sits at the right edge).
+  // PRICE_CEIL is the slider ceiling — anything above is treated as unbounded.
+  const PRICE_CEIL = 500;
+  const [pickupOnly, setPickupOnly] = useState(false);
+  const [priceMin, setPriceMin] = useState(0);
+  const [priceMax, setPriceMax] = useState<number>(PRICE_CEIL);
+
   // City search with debounce
   useEffect(() => {
     if (citySearch.length < 2) { setCityResults([]); return; }
@@ -556,6 +564,9 @@ export default function ExperiencesPage() {
     };
     if (useVertical) payload.verticalId = verticalSel;
     if (useCombo) payload.comboOnly = true;
+    if (pickupOnly) payload.pickupOnly = true;
+    if (priceMin > 0) payload.priceMin = priceMin;
+    if (priceMax < PRICE_CEIL) payload.priceMax = priceMax;
 
     const res = await fetch("/api/musement/search", {
       method: "POST",
@@ -574,7 +585,7 @@ export default function ExperiencesPage() {
         ? finalProducts.length
         : (data.totalCount || 0),
     };
-  }, [verticalSel]);
+  }, [verticalSel, pickupOnly, priceMin, priceMax]);
 
   const fetchExperiences = useCallback(async (selectedCity: string, selectedCategory: string, destId?: number, startPage = 1, append = false) => {
     if (append) {
@@ -634,7 +645,7 @@ export default function ExperiencesPage() {
     } else {
       fetchExperiences(city, activeTag, undefined, 1, false);
     }
-  }, [city, customCity, categoryFilter, subCategoryFilter, source, verticalSel, fetchExperiences]);
+  }, [city, customCity, categoryFilter, subCategoryFilter, source, verticalSel, pickupOnly, priceMin, priceMax, fetchExperiences]);
 
   const handleLoadMore = () => {
     const activeTag = subCategoryFilter || categoryFilter;
@@ -949,6 +960,101 @@ export default function ExperiencesPage() {
         </button>
       </div>
 
+      {/* Sidebar + results layout (Musement white-label reference). */}
+      <div className="flex gap-6">
+        {/* Filters sidebar */}
+        <aside className="hidden w-60 shrink-0 lg:block">
+          <div className="sticky top-4 space-y-5 rounded-2xl border border-border/60 bg-white p-4">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted/70">
+                Filters
+              </span>
+              {(pickupOnly || priceMin > 0 || priceMax < PRICE_CEIL) && (
+                <button
+                  onClick={() => {
+                    setPickupOnly(false);
+                    setPriceMin(0);
+                    setPriceMax(PRICE_CEIL);
+                  }}
+                  className="text-[10px] font-medium text-accent hover:underline"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+
+            {/* Pick up at hotel */}
+            <label className="flex cursor-pointer select-none items-start gap-2.5 rounded-xl border border-border/40 p-3 transition-colors hover:border-accent/40 hover:bg-accent/5">
+              <input
+                type="checkbox"
+                checked={pickupOnly}
+                onChange={(e) => setPickupOnly(e.target.checked)}
+                className="mt-0.5 h-4 w-4 cursor-pointer accent-accent"
+              />
+              <div className="flex-1">
+                <div className="flex items-center gap-1.5 text-sm font-medium text-foreground">
+                  <span>🚐</span>
+                  <span>Pick up at hotel</span>
+                </div>
+                <p className="mt-0.5 text-[11px] leading-tight text-muted">
+                  Tours that include hotel pickup
+                </p>
+              </div>
+            </label>
+
+            {/* Price range */}
+            <div>
+              <div className="mb-1 flex items-center justify-between">
+                <span className="text-sm font-medium text-foreground">Price (per adult)</span>
+              </div>
+              <div className="mb-3 text-xs font-semibold text-accent">
+                €{priceMin} – €{priceMax >= PRICE_CEIL ? `${PRICE_CEIL}+` : priceMax}
+              </div>
+              <div className="space-y-2">
+                <div>
+                  <label className="mb-1 flex items-center justify-between text-[10px] uppercase tracking-wider text-muted/70">
+                    <span>Min</span>
+                    <span>€{priceMin}</span>
+                  </label>
+                  <input
+                    type="range"
+                    min={0}
+                    max={PRICE_CEIL}
+                    step={5}
+                    value={priceMin}
+                    onChange={(e) => {
+                      const v = Number(e.target.value);
+                      setPriceMin(Math.min(v, priceMax - 5));
+                    }}
+                    className="w-full cursor-pointer accent-accent"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 flex items-center justify-between text-[10px] uppercase tracking-wider text-muted/70">
+                    <span>Max</span>
+                    <span>€{priceMax >= PRICE_CEIL ? `${PRICE_CEIL}+` : priceMax}</span>
+                  </label>
+                  <input
+                    type="range"
+                    min={0}
+                    max={PRICE_CEIL}
+                    step={5}
+                    value={priceMax}
+                    onChange={(e) => {
+                      const v = Number(e.target.value);
+                      setPriceMax(Math.max(v, priceMin + 5));
+                    }}
+                    className="w-full cursor-pointer accent-accent"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        {/* Main content column */}
+        <div className="min-w-0 flex-1">
+
       {/* Loading state */}
       {loading && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -1225,14 +1331,16 @@ export default function ExperiencesPage() {
         </div>
       )}
 
-      {/* Powered by */}
+        </div>
+      </div>
+
+      {/* Footer — keep it neutral. Supplier names stay on customer-facing
+          vouchers / PDFs (where attribution is required), never on the
+          partner dashboard. */}
       <div className="mt-8 text-center">
         <p className="text-xs text-muted/60">
-          Experiences powered by TUI Musement &amp; Viator &mdash; Prices shown are retail rates
-        </p>
-        <p className="mt-1 text-[10px] text-muted/50">
-          Activity content and inventory via TUI Musement Partner API.
-          Copyright &copy; TUI Musement. All rights reserved.
+          Prices shown are suggested retail rates. Your B2B net price &amp; margin
+          appear on each card.
         </p>
       </div>
     </div>

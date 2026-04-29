@@ -92,6 +92,9 @@ export type MusementSearchParams = {
   categoryId?: number;
   verticalId?: number;            // Filter by Musement vertical (1..7)
   comboOnly?: boolean;            // Synthetic — keep only multi-activity bundles
+  pickupOnly?: boolean;           // feature_in=tours-and-activities-with-pickup
+  priceMin?: number;              // default_price_range lower bound (in currency units)
+  priceMax?: number;              // default_price_range upper bound (in currency units)
   limit?: number;
   offset?: number;
   currency?: string;
@@ -592,6 +595,23 @@ export async function searchActivities(params: MusementSearchParams): Promise<Mu
 
     if (params.verticalId) {
       url += `&vertical_in=${params.verticalId}`;
+    }
+
+    // Pickup-at-hotel filter — Musement's `tours-and-activities-with-pickup`
+    // feature flag. Reseller-side surfaced as a checkbox; high-priority filter
+    // for groups that want their hotel-pickup options pre-narrowed.
+    if (params.pickupOnly) {
+      url += `&feature_in=tours-and-activities-with-pickup`;
+    }
+
+    // Price range — Musement expects `default_price_range=min,max` as integer
+    // currency units. Either bound may be omitted; we always send both with
+    // a 0 floor / a generous ceiling when only one side is set so Musement
+    // doesn't reject the param.
+    if (typeof params.priceMin === "number" || typeof params.priceMax === "number") {
+      const lo = Math.max(0, Math.round(params.priceMin ?? 0));
+      const hi = Math.max(lo, Math.round(params.priceMax ?? 9999));
+      url += `&default_price_range=${lo},${hi}`;
     }
 
     const res = await fetch(url, {

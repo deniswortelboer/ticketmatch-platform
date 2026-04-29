@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useCurrency } from "@/components/CurrencySelector";
 import { CURRENCIES } from "@/lib/currency";
 import UpgradeLock from "@/components/UpgradeLock";
+import { createClient } from "@/lib/supabase";
 
 type Profile = {
   full_name: string;
@@ -172,6 +173,234 @@ export default function SettingsPage() {
   });
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [logoDragOver, setLogoDragOver] = useState(false);
+
+  // Security tab — login methods (identities), MFA factors, sign-out-others.
+  // Loaded lazily on tab activation; safe to no-op on transient auth errors.
+  type Identity = { provider: string; identity_data?: Record<string, unknown> };
+  type MfaFactor = { id: string; factor_type: string; friendly_name?: string; status: string };
+  const [identities, setIdentities] = useState<Identity[]>([]);
+  const [mfaFactors, setMfaFactors] = useState<MfaFactor[]>([]);
+  const [securityLoaded, setSecurityLoaded] = useState(false);
+  const [mfaEnroll, setMfaEnroll] = useState<{ factorId: string; qrSvg: string; secret: string } | null>(null);
+  const [mfaCode, setMfaCode] = useState("");
+  const [mfaError, setMfaError] = useState("");
+  const [securityBusy, setSecurityBusy] = useState(false);
+  const [securityNote, setSecurityNote] = useState("");
+
+  const refreshSecurity = useCallback(async () => {
+    try {
+      const supabase = createClient();
+      const [{ data: userData }, { data: factorData }] = await Promise.all([
+        supabase.auth.getUser(),
+        supabase.auth.mfa.listFactors(),
+      ]);
+      const ids = (userData.user?.identities || []) as Identity[];
+      setIdentities(ids);
+      // listFactors returns { totp: Factor[], phone: Factor[], all: Factor[] }
+      const all = (factorData?.all as MfaFactor[] | undefined) || [];
+      setMfaFactors(all);
+      setSecurityLoaded(true);
+    } catch (err) {
+      console.warn("Security load failed:", err);
+      setSecurityLoaded(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === "security" && !securityLoaded) {
+      refreshSecurity();
+    }
+  }, [activeTab, securityLoaded, refreshSecurity]);
+
+  const connectProvider = useCallback(async (provider: "google" | "azure") => {
+    setSecurityBusy(true);
+    setSecurityNote("");
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.linkIdentity({
+        provider,
+        options: { redirectTo: `${window.location.origin}/dashboard/settings?tab=security` },
+      });
+      if (error) {
+        setSecurityNote(`Could not start ${provider} link: ${error.message}`);
+      }
+    } catch (err) {
+      setSecurityNote("Could not connect provider. Please try again.");
+      console.error(err);
+    } finally {
+      setSecurityBusy(false);
+    }
+  }, []);
+
+  const unlinkProvider = useCallback(async (identity: Identity) => {
+    if (identities.length <= 1) {
+      setSecurityNote("Cannot unlink the only login method — you'd lock yourself out. Add another method first.");
+      return;
+    }
+    if (!confirm(`Remove ${identity.provider} as a login method?`)) return;
+    setSecurityBusy(true);
+    setSecurityNote("");
+    try {
+      const supabase = createClient();
+      // Cast: Supabase's TS types differ across versions on unlinkIdentity arg.
+      const { error } = await supabase.auth.unlinkIdentity(identity as unknown as Parameters<typeof supabase.auth.unlinkIdentity>[0]);
+      if (error) {
+        setSecurityNote(`Could not unlink: ${error.message}`);
+      } else {
+        await refreshSecurity();
+      }
+    } catch (err) {
+      setSecurityNote("Could not unlink provider.");
+      console.error(err);
+    } finally {
+      setSecurityBusy(false);
+    }
+  }, [identities.length, refreshSecurity]);
+
+  const startMfaEnroll = useCallback(async () => {
+    setSecurityBusy(true);
+    setMfaError("");
+    setSecurityNote("");
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase.auth.mfa.enroll({
+        factorType: "totp",
+        friendlyName: `TicketMatch (${new Date().toLocaleDateString()})`,
+      });
+      if (error || !data) {
+        setMfaError(error?.message || "Could not start enrollment.");
+        return;
+      }
+      setMfaEnroll({
+        factorId: data.id,
+        qrSvg: data.totp.qr_code,
+        secret: data.totp.secret,
+      });
+    } catch (err) {
+      setMfaError("Could not start enrollment.");
+      console.error(err);
+    } finally {
+      setSecurityBusy(false);
+    }
+  }, []);
+
+  const cancelMfaEnroll = useCallback(async () => {
+    if (!mfaEnroll) return;
+    try {
+      const supabase = createClient();
+      await supabase.auth.mfa.unenroll({ factorId: mfaEnroll.factorId });
+    } catch (err) {
+      console.warn("MFA cancel-unenroll failed:", err);
+    }
+    setMfaEnroll(null);
+    setMfaCode("");
+    setMfaError("");
+  }, [mfaEnroll]);
+
+  const verifyMfaEnroll = useCallback(async () => {
+    if (!mfaEnroll) return;
+    if (mfaCode.replace(/\D/g, "").length !== 6) {
+      setMfaError("Enter the 6-digit code from your authenticator app.");
+      return;
+    }
+    setSecurityBusy(true);
+    setMfaError("");
+    try {
+      const supabase = createClient();
+      const { data: chData, error: chError } = await supabase.auth.mfa.challenge({
+        factorId: mfaEnroll.factorId,
+      });
+      if (chError || !chData) {
+        setMfaError(chError?.message || "Could not verify — try again.");
+        return;
+      }
+      const { error: vError } = await supabase.auth.mfa.verify({
+        factorId: mfaEnroll.factorId,
+        challengeId: chData.id,
+        code: mfaCode.replace(/\D/g, ""),
+      });
+      if (vError) {
+        setMfaError(vError.message || "Invalid code. Try again.");
+        return;
+      }
+      setMfaEnroll(null);
+      setMfaCode("");
+      setSecurityNote("Two-factor authentication enabled.");
+      await refreshSecurity();
+    } catch (err) {
+      setMfaError("Verification failed. Try again.");
+      console.error(err);
+    } finally {
+      setSecurityBusy(false);
+    }
+  }, [mfaEnroll, mfaCode, refreshSecurity]);
+
+  const removeMfaFactor = useCallback(async (factorId: string) => {
+    if (!confirm("Remove this two-factor method? You'll lose 2FA protection until you set up a new one.")) return;
+    setSecurityBusy(true);
+    setSecurityNote("");
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.mfa.unenroll({ factorId });
+      if (error) {
+        setSecurityNote(`Could not remove: ${error.message}`);
+      } else {
+        setSecurityNote("Two-factor method removed.");
+        await refreshSecurity();
+      }
+    } catch (err) {
+      setSecurityNote("Could not remove factor.");
+      console.error(err);
+    } finally {
+      setSecurityBusy(false);
+    }
+  }, [refreshSecurity]);
+
+  const signOutOtherSessions = useCallback(async () => {
+    if (!confirm("Sign out of all other devices? You'll stay signed in here.")) return;
+    setSecurityBusy(true);
+    setSecurityNote("");
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.signOut({ scope: "others" });
+      if (error) {
+        setSecurityNote(`Could not sign out other sessions: ${error.message}`);
+      } else {
+        setSecurityNote("Signed out from all other devices.");
+      }
+    } catch (err) {
+      setSecurityNote("Could not sign out other sessions.");
+      console.error(err);
+    } finally {
+      setSecurityBusy(false);
+    }
+  }, []);
+
+  const sendPasswordReset = useCallback(async () => {
+    setSecurityBusy(true);
+    setSecurityNote("");
+    try {
+      const supabase = createClient();
+      const email = profile.email;
+      if (!email) {
+        setSecurityNote("No email on file.");
+        return;
+      }
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/reset-password`,
+      });
+      if (error) {
+        setSecurityNote(`Could not send reset link: ${error.message}`);
+      } else {
+        setSecurityNote(`Password reset link sent to ${email}.`);
+      }
+    } catch (err) {
+      setSecurityNote("Could not send reset link.");
+      console.error(err);
+    } finally {
+      setSecurityBusy(false);
+    }
+  }, [profile.email]);
 
   // Load whitelabel settings from localStorage
   useEffect(() => {
@@ -1086,42 +1315,292 @@ export default function SettingsPage() {
           )}
 
           {/* ─── SECURITY ─── */}
-          {activeTab === "security" && (
-            <div className="space-y-6">
-              <div className="rounded-2xl border border-border/60 bg-white p-6 shadow-sm">
-                <h2 className="text-lg font-semibold mb-2">Login Method</h2>
-                <p className="text-sm text-muted mb-4">You are currently signed in via:</p>
-                <div className="flex items-center gap-3 rounded-xl border border-border/40 px-5 py-4 max-w-lg">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50">
-                    <svg width="18" height="18" viewBox="0 0 18 18">
-                      <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4" />
-                      <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853" />
-                      <path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.997 8.997 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05" />
-                      <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335" />
-                    </svg>
+          {activeTab === "security" && (() => {
+            const providerInfo: Record<string, { label: string; iconBg: string; icon: React.ReactNode }> = {
+              google: {
+                label: "Google",
+                iconBg: "bg-blue-50",
+                icon: (
+                  <svg width="18" height="18" viewBox="0 0 18 18">
+                    <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4" />
+                    <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853" />
+                    <path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.997 8.997 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05" />
+                    <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335" />
+                  </svg>
+                ),
+              },
+              azure: {
+                label: "Microsoft",
+                iconBg: "bg-blue-50",
+                icon: (
+                  <svg width="18" height="18" viewBox="0 0 23 23">
+                    <path fill="#f3f3f3" d="M0 0h23v23H0z" />
+                    <path fill="#f35325" d="M1 1h10v10H1z" />
+                    <path fill="#81bc06" d="M12 1h10v10H12z" />
+                    <path fill="#05a6f0" d="M1 12h10v10H1z" />
+                    <path fill="#ffba08" d="M12 12h10v10H12z" />
+                  </svg>
+                ),
+              },
+              email: {
+                label: "Email (magic link)",
+                iconBg: "bg-amber-50",
+                icon: (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="2" y="4" width="20" height="16" rx="2" />
+                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                  </svg>
+                ),
+              },
+            };
+            const connectedProviders = new Set(identities.map((i) => i.provider));
+            const orderedProviders: Array<keyof typeof providerInfo> = ["google", "azure", "email"];
+            const totpFactors = mfaFactors.filter((f) => f.factor_type === "totp" && f.status === "verified");
+
+            return (
+              <div className="space-y-6">
+
+                {/* ─── Login Methods ─── */}
+                <div className="rounded-2xl border border-border/60 bg-white p-6 shadow-sm">
+                  <div className="mb-4">
+                    <h2 className="text-lg font-semibold">Login Methods</h2>
+                    <p className="text-sm text-muted">Connect more sign-in options so you&apos;re never locked out.</p>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium">Google Account</p>
-                    <p className="text-xs text-muted">{profile.email}</p>
+                  {!securityLoaded ? (
+                    <p className="text-sm text-muted">Loading…</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {orderedProviders.map((p) => {
+                        const info = providerInfo[p];
+                        const linkedIdentities = identities.filter((id) => id.provider === p);
+                        const isConnected = connectedProviders.has(p);
+                        return (
+                          <div key={p} className="flex items-center gap-3 rounded-xl border border-border/40 px-5 py-4">
+                            <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${info.iconBg}`}>
+                              {info.icon}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium">{info.label}</p>
+                              <p className="truncate text-xs text-muted">
+                                {isConnected
+                                  ? (linkedIdentities[0]?.identity_data?.email as string) || profile.email
+                                  : `Add ${info.label} as a backup login.`}
+                              </p>
+                            </div>
+                            {isConnected ? (
+                              <>
+                                <span className="rounded-full bg-green-50 px-3 py-1 text-xs font-medium text-green-700">Connected</span>
+                                {p !== "email" && identities.length > 1 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => unlinkProvider(linkedIdentities[0])}
+                                    disabled={securityBusy}
+                                    className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted transition-colors hover:border-red-200 hover:text-red-600 disabled:opacity-50"
+                                  >
+                                    Unlink
+                                  </button>
+                                )}
+                              </>
+                            ) : p === "email" ? (
+                              <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-muted">Not linked</span>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => connectProvider(p as "google" | "azure")}
+                                disabled={securityBusy}
+                                className="rounded-lg bg-foreground px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-foreground/90 disabled:opacity-50"
+                              >
+                                Connect
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* ─── Password ─── */}
+                <div className="rounded-2xl border border-border/60 bg-white p-6 shadow-sm">
+                  <div className="mb-4">
+                    <h2 className="text-lg font-semibold">Password</h2>
+                    <p className="text-sm text-muted">
+                      Set or change a password for email-and-password sign-in. We&apos;ll email you a secure reset link.
+                    </p>
                   </div>
-                  <span className="ml-auto rounded-full bg-green-50 px-3 py-1 text-xs font-medium text-green-700">Connected</span>
+                  <button
+                    type="button"
+                    onClick={sendPasswordReset}
+                    disabled={securityBusy || !profile.email}
+                    className="rounded-xl bg-accent px-5 py-2.5 text-sm font-semibold text-white transition-all hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    Send password reset email
+                  </button>
+                </div>
+
+                {/* ─── Two-factor Authentication ─── */}
+                <div className="rounded-2xl border border-border/60 bg-white p-6 shadow-sm">
+                  <div className="mb-4 flex items-start justify-between gap-4">
+                    <div>
+                      <h2 className="text-lg font-semibold">Two-factor Authentication</h2>
+                      <p className="text-sm text-muted">
+                        Protect your account with a 6-digit code from an authenticator app
+                        (Google Authenticator, 1Password, Authy, …).
+                      </p>
+                    </div>
+                    {totpFactors.length > 0 && (
+                      <span className="shrink-0 rounded-full bg-green-50 px-3 py-1 text-xs font-medium text-green-700 border border-green-200">
+                        Enabled
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Existing factors list */}
+                  {totpFactors.length > 0 && (
+                    <div className="mb-4 space-y-2">
+                      {totpFactors.map((f) => (
+                        <div key={f.id} className="flex items-center gap-3 rounded-xl border border-border/40 px-5 py-3">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-green-50 text-green-700">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <rect x="3" y="11" width="18" height="11" rx="2" />
+                              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                            </svg>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium">{f.friendly_name || "Authenticator app"}</p>
+                            <p className="text-xs text-muted">TOTP · Active</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeMfaFactor(f.id)}
+                            disabled={securityBusy}
+                            className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted transition-colors hover:border-red-200 hover:text-red-600 disabled:opacity-50"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Enroll flow */}
+                  {!mfaEnroll && totpFactors.length === 0 && (
+                    <button
+                      type="button"
+                      onClick={startMfaEnroll}
+                      disabled={securityBusy}
+                      className="rounded-xl bg-foreground px-5 py-2.5 text-sm font-semibold text-white transition-all hover:bg-foreground/90 disabled:opacity-50"
+                    >
+                      Set up authenticator app
+                    </button>
+                  )}
+                  {!mfaEnroll && totpFactors.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={startMfaEnroll}
+                      disabled={securityBusy}
+                      className="rounded-xl border border-border bg-white px-5 py-2.5 text-sm font-medium text-foreground transition-all hover:bg-gray-50 disabled:opacity-50"
+                    >
+                      Add another authenticator
+                    </button>
+                  )}
+
+                  {mfaEnroll && (
+                    <div className="rounded-xl border border-border/60 bg-gray-50/50 p-5 space-y-4">
+                      <div>
+                        <p className="text-sm font-medium mb-1">1. Scan this QR with your authenticator app</p>
+                        <p className="text-xs text-muted">Or enter the secret manually if scanning isn&apos;t possible.</p>
+                      </div>
+                      <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-start">
+                        <div
+                          className="rounded-xl bg-white p-3 border border-border/60 shrink-0"
+                          // qr_code is an SVG document returned by Supabase
+                          dangerouslySetInnerHTML={{ __html: mfaEnroll.qrSvg }}
+                        />
+                        <div className="flex-1 min-w-0 w-full">
+                          <p className="text-xs font-medium text-muted mb-1">Manual setup secret</p>
+                          <code className="block break-all rounded-lg border border-border/60 bg-white px-3 py-2 text-xs font-mono text-foreground">
+                            {mfaEnroll.secret}
+                          </code>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium mb-2">2. Enter the 6-digit code</p>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          maxLength={6}
+                          value={mfaCode}
+                          onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                          placeholder="123456"
+                          autoComplete="one-time-code"
+                          className="h-11 w-32 rounded-xl border border-border bg-white px-4 text-center text-base font-mono tracking-[0.3em] outline-none focus:border-accent focus:ring-2 focus:ring-accent/10"
+                        />
+                      </div>
+                      {mfaError && <p className="text-sm text-red-600">{mfaError}</p>}
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={verifyMfaEnroll}
+                          disabled={securityBusy || mfaCode.length !== 6}
+                          className="rounded-xl bg-accent px-5 py-2.5 text-sm font-semibold text-white transition-all hover:bg-blue-700 disabled:opacity-50"
+                        >
+                          Verify &amp; enable
+                        </button>
+                        <button
+                          type="button"
+                          onClick={cancelMfaEnroll}
+                          disabled={securityBusy}
+                          className="rounded-xl border border-border bg-white px-5 py-2.5 text-sm font-medium text-muted transition-all hover:bg-gray-50 disabled:opacity-50"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* ─── Active Sessions ─── */}
+                <div className="rounded-2xl border border-border/60 bg-white p-6 shadow-sm">
+                  <div className="mb-4">
+                    <h2 className="text-lg font-semibold">Active Sessions</h2>
+                    <p className="text-sm text-muted">
+                      You&apos;re signed in on this device. If a phone or laptop went missing, sign out everywhere else.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={signOutOtherSessions}
+                    disabled={securityBusy}
+                    className="rounded-xl border border-border bg-white px-5 py-2.5 text-sm font-medium text-foreground transition-all hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    Sign out of all other devices
+                  </button>
+                </div>
+
+                {/* Inline status / errors for the whole tab */}
+                {securityNote && (
+                  <div className="rounded-xl border border-blue-200 bg-blue-50/60 px-5 py-3 text-sm text-blue-800">
+                    {securityNote}
+                  </div>
+                )}
+
+                {/* ─── Danger Zone ─── */}
+                <div className="rounded-2xl border border-red-200 bg-red-50/50 p-6">
+                  <h2 className="text-lg font-semibold text-red-700 mb-2">Danger Zone</h2>
+                  <p className="text-sm text-red-600/70 mb-4">
+                    Permanently delete your account and all associated data. This action cannot be undone.
+                  </p>
+                  <button
+                    onClick={() => { if (confirm("Are you sure? This will permanently delete your account and all data.")) { alert("Please contact hello@ticketmatch.ai to delete your account."); } }}
+                    className="rounded-xl border border-red-300 bg-white px-5 py-2.5 text-sm font-medium text-red-600 transition-all hover:bg-red-50"
+                  >
+                    Delete Account
+                  </button>
                 </div>
               </div>
-
-              <div className="rounded-2xl border border-red-200 bg-red-50/50 p-6">
-                <h2 className="text-lg font-semibold text-red-700 mb-2">Danger Zone</h2>
-                <p className="text-sm text-red-600/70 mb-4">
-                  Permanently delete your account and all associated data. This action cannot be undone.
-                </p>
-                <button
-                  onClick={() => { if (confirm("Are you sure? This will permanently delete your account and all data.")) { alert("Please contact hello@ticketmatch.ai to delete your account."); } }}
-                  className="rounded-xl border border-red-300 bg-white px-5 py-2.5 text-sm font-medium text-red-600 transition-all hover:bg-red-50"
-                >
-                  Delete Account
-                </button>
-              </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* ─── WHITE LABEL ─── */}
           {activeTab === "whitelabel" && (
