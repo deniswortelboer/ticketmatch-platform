@@ -1,12 +1,22 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+// Build on Vercel evaluates this module during page-data collection, when
+// env vars are not always populated. Lazy-init the client inside the handler
+// so missing env vars only surface at request time (and never break the build).
+function getSupabaseAdmin() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
+
+// Force dynamic rendering — this route always reads query params, never
+// pre-rendered. Belt-and-suspenders against future page-data attempts.
+export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
+  const supabaseAdmin = getSupabaseAdmin();
   const { searchParams } = new URL(request.url);
   const code = searchParams.get("code");
 
