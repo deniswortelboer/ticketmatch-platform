@@ -28,13 +28,14 @@ const APP_HEADER = process.env.MUSEMENT_APP_HEADER || "";
 
 export async function POST(request: NextRequest) {
   try {
-    const { activityUuid, date } = await request.json();
+    const { activityUuid, date, pickup } = await request.json();
     if (!activityUuid || !date) {
       return NextResponse.json(
         { error: "activityUuid and date are required" },
         { status: 400 }
       );
     }
+    const pickupQs = pickup ? `?pickup=${encodeURIComponent(pickup)}` : "";
 
     const headers = {
       Accept: "application/json",
@@ -48,7 +49,7 @@ export async function POST(request: NextRequest) {
     // or randomly generated (CALENDAR-NO-TIMESLOTS / open-date). Per
     // Musement docs, day-based times must NOT be shown to customers.
     const [res, activityRes] = await Promise.all([
-      fetch(`${MUSEMENT_API_BASE}/activities/${activityUuid}/dates/${date}`, { headers }),
+      fetch(`${MUSEMENT_API_BASE}/activities/${activityUuid}/dates/${date}${pickupQs}`, { headers }),
       fetch(`${MUSEMENT_API_BASE}/activities/${activityUuid}`, { headers }),
     ]);
 

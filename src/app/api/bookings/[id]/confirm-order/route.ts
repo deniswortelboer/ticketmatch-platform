@@ -136,6 +136,7 @@ export async function POST(
     .select(
       `id, venue_name, venue_city, scheduled_date, number_of_guests, status,
        musement_activity_uuid, musement_date_id, musement_order_id, musement_status,
+       musement_pickup_uuid,
        holder_breakdown,
        company_id, group_id,
        groups(name, contact_person),
@@ -168,6 +169,7 @@ export async function POST(
     musement_date_id: string | null;
     musement_order_id: string | null;
     musement_status: string | null;
+    musement_pickup_uuid: string | null;
     holder_breakdown: HolderBreakdownRow[] | null;
     groups?: { name: string | null; contact_person: string | null } | null;
     companies?: { name: string | null } | null;
@@ -241,6 +243,7 @@ export async function POST(
       const cartUuid = await createCart("en");
       if (!cartUuid) throw new Error("createCart returned null");
 
+      const pickupUuid = booking.musement_pickup_uuid || undefined;
       const breakdownItems: HolderBreakdownRow[] = booking.holder_breakdown || [];
       if (breakdownItems.length > 0) {
         // NOTE: holder_breakdown stores product_ids captured at booking
@@ -249,7 +252,7 @@ export async function POST(
         // holder code. TODO: refactor to re-fetch /dates/{date} here and
         // map holder_code_normalized → fresh product_id.
         for (const h of breakdownItems) {
-          const ok = await addToCart(cartUuid, h.product_id, h.qty, "en");
+          const ok = await addToCart(cartUuid, h.product_id, h.qty, "en", { pickup: pickupUuid });
           if (!ok) throw new Error(`addToCart failed for holder ${h.code} (${h.product_id})`);
         }
       } else {
@@ -263,7 +266,9 @@ export async function POST(
         const resolved = await resolveProductIdentifier(
           booking.musement_activity_uuid!,
           anchor,
-          14
+          14,
+          "en",
+          pickupUuid
         );
         if (!resolved) {
           throw new Error(
@@ -280,7 +285,7 @@ export async function POST(
             .eq("id", id);
         }
 
-        const added = await addToCart(cartUuid, productIdentifier, quantity, "en");
+        const added = await addToCart(cartUuid, productIdentifier, quantity, "en", { pickup: pickupUuid });
         if (!added) throw new Error("addToCart failed");
       }
 

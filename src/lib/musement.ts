@@ -906,11 +906,58 @@ export async function getAvailability(
  *
  * Returns { date, productId, priceEur } or null if nothing is bookable.
  */
+export type MusementPickup = {
+  uuid: string;
+  type: string;
+  name: string;
+  latitude?: number;
+  longitude?: number;
+  tags?: string[];
+};
+
+/**
+ * Fetch the available pickup points for a pickup-flow activity.
+ * Returns [] for activities that don't require pickups.
+ *
+ * Per Musement docs, pickup-required activities have
+ * `order_box_elements` containing "tours-and-activities-with-pickup".
+ * Calling /pickups on a non-pickup activity returns 200 + [].
+ */
+export async function getPickups(
+  activityUuid: string,
+  language = "en"
+): Promise<MusementPickup[]> {
+  try {
+    const res = await fetch(
+      `${MUSEMENT_API_BASE}/activities/${activityUuid}/pickups`,
+      { headers: getHeaders(language) }
+    );
+    if (!res.ok) {
+      console.error(`Musement getPickups HTTP ${res.status}`);
+      return [];
+    }
+    const arr = (await res.json()) as Array<Record<string, unknown>>;
+    if (!Array.isArray(arr)) return [];
+    return arr.map((p) => ({
+      uuid: p.uuid as string,
+      type: (p.type as string) || "",
+      name: (p.name as string) || "",
+      latitude: typeof p.latitude === "number" ? p.latitude : undefined,
+      longitude: typeof p.longitude === "number" ? p.longitude : undefined,
+      tags: Array.isArray(p.tags) ? (p.tags as string[]) : undefined,
+    }));
+  } catch (err) {
+    console.error("Musement getPickups error:", err);
+    return [];
+  }
+}
+
 export async function resolveProductIdentifier(
   activityUuid: string,
   targetDate: string,
   toleranceDays = 14,
-  language = "en"
+  language = "en",
+  pickupUuid?: string
 ): Promise<{ date: string; productId: string; priceEur: number } | null> {
   try {
     const from = targetDate;
@@ -920,8 +967,12 @@ export async function resolveProductIdentifier(
           .slice(0, 10)
       : targetDate;
 
+    // Activities of type tours-and-activities-with-pickup require ?pickup={uuid}
+    // on /dates AND /dates/{day} or Musement returns HTTP 400 (code 1578).
+    const pickupQs = pickupUuid ? `&pickup=${encodeURIComponent(pickupUuid)}` : "";
+
     const datesRes = await fetch(
-      `${MUSEMENT_API_BASE}/activities/${activityUuid}/dates?date_from=${from}&date_to=${to}`,
+      `${MUSEMENT_API_BASE}/activities/${activityUuid}/dates?date_from=${from}&date_to=${to}${pickupQs}`,
       { headers: getHeaders(language) }
     );
     if (!datesRes.ok) {
@@ -936,7 +987,7 @@ export async function resolveProductIdentifier(
     const day = firstOpen.day as string;
 
     const detailRes = await fetch(
-      `${MUSEMENT_API_BASE}/activities/${activityUuid}/dates/${day}`,
+      `${MUSEMENT_API_BASE}/activities/${activityUuid}/dates/${day}${pickupUuid ? `?pickup=${encodeURIComponent(pickupUuid)}` : ""}`,
       { headers: getHeaders(language) }
     );
     if (!detailRes.ok) return null;

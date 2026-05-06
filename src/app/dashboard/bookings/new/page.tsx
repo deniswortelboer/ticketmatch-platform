@@ -118,6 +118,11 @@ function NewBookingForm() {
   };
   const [slots, setSlots] = useState<Slot[]>([]);
   const [selectedProductId, setSelectedProductId] = useState<string>("");
+  // Pickup-flow state — only populated for "tours-and-activities-with-pickup".
+  // For regular activities the array stays empty and the UI hides the selector.
+  type Pickup = { uuid: string; name: string; type: string };
+  const [pickups, setPickups] = useState<Pickup[]>([]);
+  const [selectedPickupUuid, setSelectedPickupUuid] = useState<string>("");
   // Per-holder quantity map (key = holder.productId). Populated when a
   // slot is selected; primary holder seeded with the group's headcount.
   const [holderQty, setHolderQty] = useState<Record<string, number>>({});
@@ -212,6 +217,39 @@ function NewBookingForm() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedProductId]);
 
+  // Fetch pickups for activities that require pickup selection. Empty array
+  // for normal activities → UI hides the selector. We do this BEFORE the
+  // date fetch because /dates returns 400 (1578) without ?pickup= for
+  // tours-and-activities-with-pickup.
+  useEffect(() => {
+    if (source !== "musement" || !activityUuid) {
+      setPickups([]);
+      setSelectedPickupUuid("");
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(
+          `/api/musement/pickups?activityUuid=${encodeURIComponent(activityUuid)}`,
+        );
+        if (!res.ok) return;
+        const j = await res.json();
+        if (cancelled) return;
+        const list = (j.pickups || []) as Pickup[];
+        setPickups(list);
+        // Auto-select first pickup so the rest of the flow can proceed.
+        if (list.length > 0) setSelectedPickupUuid(list[0].uuid);
+        else setSelectedPickupUuid("");
+      } catch {
+        // non-fatal — bookings without pickups continue to work
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [source, activityUuid]);
+
   // Fetch full activity details once we have a UUID — required fields per
   // Musement Quality Check #3 (Display Activity Information).
   useEffect(() => {
@@ -294,7 +332,11 @@ function NewBookingForm() {
         const res = await fetch("/api/musement/timeslots", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ activityUuid, date: scheduledDate }),
+          body: JSON.stringify({
+            activityUuid,
+            date: scheduledDate,
+            ...(selectedPickupUuid && { pickup: selectedPickupUuid }),
+          }),
         });
         const json = await res.json();
         if (cancelled) return;
@@ -331,7 +373,7 @@ function NewBookingForm() {
     return () => {
       cancelled = true;
     };
-  }, [source, activityUuid, scheduledDate]);
+  }, [source, activityUuid, scheduledDate, selectedPickupUuid]);
 
   async function submit() {
     if (!groupId) return setError("Pick a group first.");
@@ -399,6 +441,7 @@ function NewBookingForm() {
           // on holderBreakdown[].productId in confirm-order.
           ...(selectedProductId && !hasMultiHolder && { musementDateId: selectedProductId }),
           ...(holderBreakdown && holderBreakdown.length > 0 && { holderBreakdown }),
+          ...(selectedPickupUuid && { musementPickupUuid: selectedPickupUuid }),
         }),
       });
       const json = await res.json();
@@ -812,6 +855,27 @@ function NewBookingForm() {
                   : `This timeslot accepts ${effectiveMin}–${effectiveMax} guests.`}
               </p>
             )}
+          </label>
+        )}
+
+        {/* Pickup selector — only for activities that require pickup selection */}
+        {source === "musement" && pickups.length > 0 && (
+          <label className="block mb-4">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted/70">Pickup point</span>
+            <select
+              value={selectedPickupUuid}
+              onChange={(e) => setSelectedPickupUuid(e.target.value)}
+              className="mt-1.5 h-11 w-full rounded-xl border border-border bg-white px-4 text-sm"
+            >
+              {pickups.map((p) => (
+                <option key={p.uuid} value={p.uuid}>
+                  {p.name}{p.type ? ` · ${p.type}` : ""}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-muted mt-1">
+              This activity requires a pickup. Available dates and prices depend on which pickup the customer chooses.
+            </p>
           </label>
         )}
 

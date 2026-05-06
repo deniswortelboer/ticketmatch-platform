@@ -117,6 +117,9 @@ export async function POST(request: Request) {
   // the later confirm-order flow can execute the real Musement API call.
   const musementActivityUuid = sanitize(body.musementActivityUuid, 64);
   const musementDateId = sanitize(body.musementDateId, 64);
+  // For tours-and-activities-with-pickup: required to re-resolve product_id
+  // and to addToCart at confirm-time. Null for normal activities.
+  const musementPickupUuid = sanitize(body.musementPickupUuid, 64);
 
   // Optional per-holder breakdown for activities with multiple ticket
   // holder types (e.g. "2 ADULT @ €40 + 1 CHILD @ €20"). When present,
@@ -193,6 +196,7 @@ export async function POST(request: Request) {
       // Multi-holder ones leave it null and rely on holder_breakdown[].product_id.
       ...(musementDateId && !holderBreakdown && { musement_date_id: musementDateId }),
       ...(holderBreakdown && { holder_breakdown: holderBreakdown }),
+      ...(musementPickupUuid && { musement_pickup_uuid: musementPickupUuid }),
     })
     .select()
     .single();
