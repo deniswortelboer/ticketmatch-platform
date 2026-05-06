@@ -22,7 +22,14 @@ export function sendWhatsApp(message: string) {
   const token = process.env.WHATSAPP_TOKEN;
   const phoneId = process.env.WHATSAPP_PHONE_ID;
   const to = process.env.WHATSAPP_TO;
-  if (!token || !phoneId || !to) return;
+  if (!token || !phoneId || !to) {
+    console.warn("[notify] WhatsApp skipped — missing env", {
+      hasToken: Boolean(token),
+      hasPhoneId: Boolean(phoneId),
+      hasTo: Boolean(to),
+    });
+    return;
+  }
 
   fetch(`https://graph.facebook.com/v21.0/${phoneId}/messages`, {
     method: "POST",
@@ -36,7 +43,16 @@ export function sendWhatsApp(message: string) {
       type: "text",
       text: { preview_url: true, body: message },
     }),
-  }).catch(() => {});
+  })
+    .then(async (r) => {
+      if (!r.ok) {
+        const body = await r.text().catch(() => "");
+        console.error(`[notify] WhatsApp HTTP ${r.status}:`, body.slice(0, 400));
+      }
+    })
+    .catch((err) => {
+      console.error("[notify] WhatsApp fetch threw:", err);
+    });
 }
 
 /** Send to both Telegram + WhatsApp */

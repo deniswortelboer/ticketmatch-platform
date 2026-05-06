@@ -139,6 +139,8 @@ export type MusementBookingRequest = {
 
 export type MusementBooking = {
   orderId: string;
+  /** Internal Musement UUID (separate from the human MUS… identifier). Required by the certification typeform. */
+  orderUuid?: string;
   status: "confirmed" | "pending" | "failed";
   tickets: {
     ticketId: string;
@@ -1358,6 +1360,7 @@ export async function confirmOrder(
         (order.identifier as string) ||
         (order.uuid as string) ||
         (order.id as string),
+      orderUuid: (order.uuid as string) || undefined,
       status: mapOrderStatus(order.status as string),
       tickets: ((order.items || []) as Record<string, unknown>[]).map((item) => {
         const product = (item.product || {}) as Record<string, unknown>;
@@ -1569,6 +1572,7 @@ export async function getOrder(orderId: string, language = "en"): Promise<Museme
     const order = await res.json();
     return {
       orderId: (order.uuid as string) || (order.id as string),
+      orderUuid: (order.uuid as string) || undefined,
       status: mapOrderStatus(order.status as string),
       tickets: ((order.items || []) as Record<string, unknown>[]).map((item) => {
         const vouchers = (item.vouchers as Array<Record<string, unknown>>) || [];

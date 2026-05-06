@@ -222,6 +222,7 @@ export async function POST(
 
   let tickets: TicketRow[] = [];
   let musementOrderId: string | null = null;
+  let musementOrderUuid: string | null = null;
   let mode: "real" | "mock" = "mock";
 
   try {
@@ -358,6 +359,8 @@ export async function POST(
       const order = await confirmOrder(cartUuid, "en");
       if (!order) throw new Error("confirmOrder returned null");
       musementOrderId = order.orderId || null;
+      musementOrderUuid = order.orderUuid || null;
+      if (musementOrderUuid) console.log(`[confirm-order] Musement UUID for ${musementOrderId}: ${musementOrderUuid}`);
 
       // Required step for Merchant-of-Record partners: tell Musement the
       // order is paid (we collected payment via Stripe earlier). Without
@@ -427,20 +430,26 @@ export async function POST(
       })
       .eq("id", id);
 
+    const orderUuidLine = musementOrderUuid
+      ? `🆔 UUID: ${musementOrderUuid}\n`
+      : "";
+
     notifyAdmin(
       `🎫 Order bevestigd (${mode})\n\n` +
         `🏢 ${booking.companies?.name || "-"}\n` +
         `📍 ${booking.venue_name}\n` +
         `👥 ${quantity} tickets\n` +
         `📅 ${booking.scheduled_date || "-"}\n` +
-        `🔖 Ref: ${musementOrderId}\n\n` +
-        `Klik "Send Tickets" om te versturen.`
+        `🔖 Ref: ${musementOrderId}\n` +
+        orderUuidLine +
+        `\nKlik "Send Tickets" om te versturen.`
     );
 
     return NextResponse.json({
       ok: true,
       mode,
       musement_order_id: musementOrderId,
+      musement_order_uuid: musementOrderUuid,
       tickets_count: tickets.length,
     });
   } catch (err) {
