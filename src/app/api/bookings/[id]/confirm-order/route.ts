@@ -357,19 +357,25 @@ export async function POST(
 
       const order = await confirmOrder(cartUuid, "en");
       if (!order) throw new Error("confirmOrder returned null");
+      musementOrderId = order.orderId || null;
 
       // Required step for Merchant-of-Record partners: tell Musement the
       // order is paid (we collected payment via Stripe earlier). Without
-      // this, vouchers are never generated and the order stays PENDING
-      // indefinitely. Sandbox accepts the call without prior auth; prod
-      // requires Musement to flip the no-payment-flow flag on our partner
-      // account (request via business-support@musement.com).
-      if (order.orderId) {
-        const paid = await markOrderPaid(order.orderId, "en");
-        if (!paid) throw new Error("markOrderPaid failed");
+      // this, vouchers stay PENDING until the webhook backstop populates
+      // them. Sandbox is supposed to accept the call without prior auth,
+      // but it's been flaky 2026-05-06 — failing markOrderPaid no longer
+      // throws away the orderId we just received. We log + flag the row
+      // and let the user re-trigger payment from the booking page once
+      // Mario re-enables the sandbox flag.
+      let markedPaid = false;
+      if (musementOrderId) {
+        try {
+          markedPaid = await markOrderPaid(musementOrderId, "en");
+          if (!markedPaid) console.warn("[confirm-order] markOrderPaid returned false for", musementOrderId);
+        } catch (err) {
+          console.error("[confirm-order] markOrderPaid threw:", err);
+        }
       }
-
-      musementOrderId = order.orderId || null;
 
       // For PENDING orders the vouchers/QRs aren't immediately populated.
       // Poll up to 5 min before falling back — most instant-confirmation
