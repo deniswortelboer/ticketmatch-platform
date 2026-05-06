@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { formatIso8601Duration } from "@/lib/duration";
 
 /* ───── Types ───── */
 type ViatorProduct = {
@@ -51,6 +52,7 @@ type MusementProduct = {
   bestPrice?: boolean;
   specialOffer?: boolean;
   isCombo?: boolean;
+  maxConfirmationTime?: string;
 };
 
 // Unified product type for display
@@ -80,6 +82,7 @@ type UnifiedProduct = {
   exclusive?: boolean;
   bestPrice?: boolean;
   isCombo?: boolean;
+  maxConfirmationTime?: string;
 };
 
 function viatorToUnified(p: ViatorProduct): UnifiedProduct {
@@ -128,6 +131,7 @@ function musementToUnified(p: MusementProduct): UnifiedProduct {
     exclusive: p.exclusive,
     bestPrice: p.bestPrice,
     isCombo: p.isCombo,
+    maxConfirmationTime: p.maxConfirmationTime,
   };
 }
 
@@ -1277,6 +1281,22 @@ export default function ExperiencesPage() {
                   {product.rating > 0 && (
                     <div className="mt-1.5">
                       <StarRating rating={product.rating} count={product.reviewCount} />
+                    </div>
+                  )}
+
+                  {/* Confirmation time — Musement booker signal: instant vs delayed */}
+                  {product.source === "musement" && (
+                    <div className="mt-1.5 inline-flex items-center gap-1 text-[11px] text-muted">
+                      <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="12" cy="12" r="9" />
+                        <path d="M12 7v5l3 2" strokeLinecap="round" />
+                      </svg>
+                      {(() => {
+                        const t = product.maxConfirmationTime;
+                        if (!t || t === "PT0M" || t === "PT0S") return <span>Instant confirmation</span>;
+                        const formatted = formatIso8601Duration(t) ?? t;
+                        return <span>Confirmation within {formatted}</span>;
+                      })()}
                     </div>
                   )}
 
