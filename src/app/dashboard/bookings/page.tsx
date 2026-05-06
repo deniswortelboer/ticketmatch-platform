@@ -1175,13 +1175,7 @@ export default function BookingsPage() {
               </button>
               <button
                 onClick={handleCancelBooking}
-                disabled={
-                  cancelSubmitting ||
-                  cancelLoading ||
-                  (cancelEligibility !== null &&
-                    !cancelEligibility.refundable &&
-                    cancelEligibility.source === "musement")
-                }
+                disabled={cancelSubmitting || cancelLoading}
                 className="flex-1 rounded-xl bg-red-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50 transition flex items-center justify-center gap-2"
               >
                 {cancelSubmitting && (
