@@ -188,7 +188,18 @@ export default function BookingsPage() {
       }
 
       // Step 2 — no booking questions required → confirm straight through.
-      const { ok, data } = await submitConfirmOrder(booking.id, {});
+      let { ok, status, data } = await submitConfirmOrder(booking.id, {});
+
+      // 409 "already in progress" usually means a previous attempt timed
+      // out at the Vercel edge before our catch block could flip the row
+      // back to "failed" (see maxDuration note in the route file). Auto-
+      // retry once with forceReset — the route's reset is gated on the
+      // DB row actually being "placing", so we can't accidentally clobber
+      // a legitimate concurrent claim.
+      if (!ok && status === 409) {
+        ({ ok, status, data } = await submitConfirmOrder(booking.id, { forceReset: true }));
+      }
+
       if (!ok) {
         alert(`Order failed: ${data.error || "unknown"}`);
         return;

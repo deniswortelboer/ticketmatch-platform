@@ -34,6 +34,16 @@ import { notifyAdmin } from "@/lib/notify";
 // musement_order_id, returns summary.
 // ═══════════════════════════════════════════════════════════════
 
+// Vercel kills serverless functions at the platform-default timeout (10s on
+// Hobby, 15s on Pro free) — our Musement happy path (cart → addItem →
+// customer → confirm → markPaid → poll vouchers) regularly needed >30s,
+// causing requests to be killed before the catch block could flip
+// musement_status from "placing" back to "failed". Result: rows stuck on
+// "placing" forever and the next attempt 409s with "Order placement
+// already in progress". Bumping to 60s + capping voucher polling keeps us
+// within budget.
+export const maxDuration = 60;
+
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 async function getAuthUser() {
@@ -107,6 +117,7 @@ export async function POST(
     guestNames?: string[];
     bookingAnswers?: Record<string, Record<string, unknown>>;
     participants?: MusementParticipant[];
+    forceReset?: boolean;
   };
 
   const admin = getAdminClient();
@@ -171,6 +182,18 @@ export async function POST(
     });
   }
 
+  // Stuck-lock recovery: if the previous attempt timed out at the platform
+  // edge before our catch block ran, the row is left on "placing" and every
+  // retry 409s. forceReset (sent by the UI's "Retry order" path) wipes the
+  // stale lock so a fresh attempt can claim it.
+  if (body.forceReset && booking.musement_status === "placing") {
+    await admin
+      .from("bookings")
+      .update({ musement_status: "failed" })
+      .eq("id", id)
+      .eq("musement_status", "placing");
+  }
+
   // Atomic claim: only proceed if no other request is mid-flight.
   // Musement has no Idempotency-Key header on POST /orders, so a duplicate
   // confirmOrder call would create two real orders. The DB serialises this
@@ -179,7 +202,7 @@ export async function POST(
     .from("bookings")
     .update({ musement_status: "placing" })
     .eq("id", id)
-    .or("musement_status.is.null,musement_status.eq.failed")
+    .or("musement_status.is.null,musement_status.eq.failed,musement_status.eq.not_ordered")
     .select("id");
 
   if (claimErr || !claimed || claimed.length === 0) {
@@ -360,9 +383,14 @@ export async function POST(
         order.tickets.length === 0 ||
         order.tickets.some((t) => !t.qrCode && !t.barcode && !t.pdfUrl);
       if (needsPolling && musementOrderId) {
+        // Tight budget: maxDuration is 60s. Poll briefly so we can ship
+        // tickets in the same request when the order confirms instantly,
+        // but bail out fast for "needs confirmation" types — the webhook
+        // backstop will populate vouchers later and "Send Tickets" picks
+        // them up on demand.
         const polled = await waitForVouchers(musementOrderId, {
-          intervalMs: 30_000,
-          timeoutMs: 300_000,
+          intervalMs: 5_000,
+          timeoutMs: 25_000,
         });
         if (polled) finalOrder = polled;
       }
