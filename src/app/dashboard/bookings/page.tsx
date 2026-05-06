@@ -603,7 +603,17 @@ export default function BookingsPage() {
                       <polygon points="22 2 15 22 11 13 2 9 22 2" />
                     </svg>
                   </button>
-                  {booking.status === "confirmed" ? (
+                  {/*
+                    Action-icon switching rules:
+                      - Cancelled booking → no action icon
+                      - Booking has a Musement order_id → ALWAYS use the
+                        cancel modal (DELETE on Musement + Stripe refund).
+                        Plain Supabase row-delete on a row with a live
+                        Musement order leaves an orphan supplier-side.
+                      - Otherwise (no supplier order yet) → trash is safe
+                        because there's nothing external to clean up.
+                  */}
+                  {booking.status === "cancelled" ? null : booking.musement_order_id ? (
                     <button
                       onClick={() => openCancelModal(booking)}
                       className="rounded-lg p-2 text-muted hover:bg-red-50 hover:text-red-600 transition-colors"
@@ -613,11 +623,15 @@ export default function BookingsPage() {
                         <circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" />
                       </svg>
                     </button>
-                  ) : booking.status === "cancelled" ? null : (
+                  ) : (
                     <button
-                      onClick={() => handleDelete(booking.id)}
+                      onClick={() => {
+                        if (confirm("Delete this booking? Local row only — no supplier order to cancel.")) {
+                          handleDelete(booking.id);
+                        }
+                      }}
                       className="rounded-lg p-2 text-muted hover:bg-red-50 hover:text-red-600 transition-colors"
-                      title="Delete pending booking"
+                      title="Delete pending booking (no Musement order placed yet)"
                     >
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                         <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6" /><path d="M14 11v6" />
