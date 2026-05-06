@@ -84,7 +84,7 @@ async function loadBooking(id: string) {
   const { data: booking, error } = await admin
     .from("bookings")
     .select(
-      "id, status, musement_order_id, musement_status, venue_name, number_of_guests, " +
+      "id, status, musement_order_id, musement_order_uuid, musement_status, venue_name, number_of_guests, " +
         "stripe_payment_intent_id, total_price, currency, refund_status"
     )
     .eq("id", id)
@@ -94,6 +94,7 @@ async function loadBooking(id: string) {
     id: string;
     status: string;
     musement_order_id: string | null;
+    musement_order_uuid: string | null;
     musement_status: string | null;
     venue_name: string;
     number_of_guests: number;
@@ -130,8 +131,13 @@ export async function GET(
     });
   }
 
+  // /orders/{id}* endpoints want the UUID, not the human MUS… identifier
+  // (sandbox returns 404 on identifier). Older bookings without UUID
+  // captured fall back to identifier — which works in prod but not sandbox.
+  const lookupId = booking.musement_order_uuid || booking.musement_order_id!;
+
   // Real Musement order — fetch the first item uuid and check its refund policy.
-  const order = await getOrder(booking.musement_order_id!);
+  const order = await getOrder(lookupId);
   if (!order || order.tickets.length === 0) {
     return NextResponse.json(
       { error: "Could not fetch the Musement order to check refund eligibility." },
@@ -140,7 +146,7 @@ export async function GET(
   }
 
   const itemId = order.tickets[0].ticketId;
-  const eligibility = await getRefundEligibility(booking.musement_order_id!, itemId);
+  const eligibility = await getRefundEligibility(lookupId, itemId);
 
   if (!eligibility.ok) {
     return NextResponse.json({
@@ -202,8 +208,11 @@ export async function POST(
     return NextResponse.json({ ok: true, source: "mock", refunded: false });
   }
 
+  // /orders/{id}* endpoints want the UUID, not the human identifier.
+  const lookupId = booking.musement_order_uuid || booking.musement_order_id!;
+
   // Real Musement order — fetch all items and cancel each with refund-policy gating.
-  const order = await getOrder(booking.musement_order_id!);
+  const order = await getOrder(lookupId);
   if (!order || order.tickets.length === 0) {
     return NextResponse.json(
       { error: "Could not fetch the Musement order for cancellation." },
@@ -237,7 +246,7 @@ export async function POST(
       });
       continue;
     }
-    const r = await cancelOrderItem(booking.musement_order_id!, t.ticketId, reason);
+    const r = await cancelOrderItem(lookupId, t.ticketId, reason);
     if (r.ok) {
       results.push({ itemId: t.ticketId, ok: true, refunded: r.refunded });
     } else {

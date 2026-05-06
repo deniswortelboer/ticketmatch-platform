@@ -436,6 +436,7 @@ export async function POST(
       .update({
         tickets,
         musement_order_id: musementOrderId,
+        musement_order_uuid: musementOrderUuid,
         musement_status: "confirmed",
         status: "confirmed",
       })
