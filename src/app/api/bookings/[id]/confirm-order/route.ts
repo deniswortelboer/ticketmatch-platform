@@ -370,14 +370,18 @@ export async function POST(
       // throws away the orderId we just received. We log + flag the row
       // and let the user re-trigger payment from the booking page once
       // Mario re-enables the sandbox flag.
+      // /payments/no/payment expects the order's UUID, not the human MUS… identifier.
+      // We previously passed musementOrderId (= identifier) and got HTTP 400 "Invalid UUID".
       let markedPaid = false;
-      if (musementOrderId) {
+      if (musementOrderUuid) {
         try {
-          markedPaid = await markOrderPaid(musementOrderId, "en");
-          if (!markedPaid) console.warn("[confirm-order] markOrderPaid returned false for", musementOrderId);
+          markedPaid = await markOrderPaid(musementOrderUuid, "en");
+          if (!markedPaid) console.warn("[confirm-order] markOrderPaid returned false for", musementOrderUuid);
         } catch (err) {
           console.error("[confirm-order] markOrderPaid threw:", err);
         }
+      } else {
+        console.warn("[confirm-order] no orderUuid — skipping markOrderPaid for", musementOrderId);
       }
 
       // For PENDING orders the vouchers/QRs aren't immediately populated.
@@ -391,13 +395,15 @@ export async function POST(
         order.status === "pending" ||
         order.tickets.length === 0 ||
         order.tickets.some((t) => !t.qrCode && !t.barcode && !t.pdfUrl);
-      if (needsPolling && musementOrderId) {
+      // /orders/{id} also wants the UUID (sandbox returns 404 on the MUS… identifier).
+      const lookupId = musementOrderUuid || musementOrderId;
+      if (needsPolling && lookupId) {
         // Tight budget: maxDuration is 60s. Poll briefly so we can ship
         // tickets in the same request when the order confirms instantly,
         // but bail out fast for "needs confirmation" types — the webhook
         // backstop will populate vouchers later and "Send Tickets" picks
         // them up on demand.
-        const polled = await waitForVouchers(musementOrderId, {
+        const polled = await waitForVouchers(lookupId, {
           intervalMs: 5_000,
           timeoutMs: 25_000,
         });
