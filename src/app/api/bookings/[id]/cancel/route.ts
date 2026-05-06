@@ -87,12 +87,14 @@ function getAdminClient() {
 
 async function loadBooking(id: string) {
   const admin = getAdminClient();
+  // Use SELECT * because some optional columns (stripe_payment_intent_id,
+  // refund_status, currency) were never migrated. Listing them explicitly
+  // makes the whole query 42703 ("column does not exist") so the loader
+  // returned null for every booking — surfaced in the UI as "Booking not
+  // found". Anything missing from the row is just undefined downstream.
   const { data: booking, error } = await admin
     .from("bookings")
-    .select(
-      "id, status, musement_order_id, musement_order_uuid, musement_status, venue_name, number_of_guests, " +
-        "stripe_payment_intent_id, total_price, currency, refund_status"
-    )
+    .select("*")
     .eq("id", id)
     .single();
   if (error) {
