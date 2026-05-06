@@ -1,4 +1,5 @@
 import { createServerClient } from "@supabase/ssr";
+import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
@@ -72,10 +73,15 @@ async function getAuthUser() {
 }
 
 function getAdminClient() {
-  return createServerClient(
+  // Use the plain @supabase/supabase-js client for service-role admin work.
+  // createServerClient (from @supabase/ssr) is designed for cookie-based user
+  // sessions; passing the service-role key there does not reliably bypass
+  // RLS, which previously caused loadBooking() to return null and the cancel
+  // modal to surface "Booking not found" even though the row exists.
+  return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { cookies: { getAll: () => [], setAll: () => {} } }
+    { auth: { persistSession: false } }
   );
 }
 
