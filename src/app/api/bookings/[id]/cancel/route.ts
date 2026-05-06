@@ -95,7 +95,14 @@ async function loadBooking(id: string) {
     )
     .eq("id", id)
     .single();
-  if (error || !booking) return null;
+  if (error) {
+    console.error("[cancel.loadBooking] supabase error:", { id, code: error.code, message: error.message, details: error.details });
+    return null;
+  }
+  if (!booking) {
+    console.warn("[cancel.loadBooking] no row for id:", id);
+    return null;
+  }
   return booking as unknown as {
     id: string;
     status: string;
