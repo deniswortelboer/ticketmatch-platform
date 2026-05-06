@@ -440,7 +440,7 @@ export async function POST(
       ? `🆔 UUID: ${musementOrderUuid}\n`
       : "";
 
-    notifyAdmin(
+    await notifyAdmin(
       `🎫 Order bevestigd (${mode})\n\n` +
         `🏢 ${booking.companies?.name || "-"}\n` +
         `📍 ${booking.venue_name}\n` +
@@ -464,7 +464,7 @@ export async function POST(
       .from("bookings")
       .update({ musement_status: "failed" })
       .eq("id", id);
-    notifyAdmin(
+    await notifyAdmin(
       `⚠️ Musement order FAILED voor ${booking.venue_name}: ${
         err instanceof Error ? err.message : "unknown"
       }`

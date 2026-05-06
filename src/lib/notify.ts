@@ -6,19 +6,27 @@
  *   WHATSAPP_TOKEN, WHATSAPP_PHONE_ID, WHATSAPP_TO (admin phone in international format, e.g. 31612345678)
  */
 
-export function sendTelegram(message: string) {
+export async function sendTelegram(message: string): Promise<void> {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   const chatId = process.env.TELEGRAM_CHAT_ID;
   if (!token || !chatId) return;
 
-  fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ chat_id: chatId, text: message }),
-  }).catch(() => {});
+  try {
+    const r = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: chatId, text: message }),
+    });
+    if (!r.ok) {
+      const body = await r.text().catch(() => "");
+      console.error(`[notify] Telegram HTTP ${r.status}:`, body.slice(0, 400));
+    }
+  } catch (err) {
+    console.error("[notify] Telegram fetch threw:", err);
+  }
 }
 
-export function sendWhatsApp(message: string) {
+export async function sendWhatsApp(message: string): Promise<void> {
   const token = process.env.WHATSAPP_TOKEN;
   const phoneId = process.env.WHATSAPP_PHONE_ID;
   const to = process.env.WHATSAPP_TO;
@@ -31,32 +39,37 @@ export function sendWhatsApp(message: string) {
     return;
   }
 
-  fetch(`https://graph.facebook.com/v21.0/${phoneId}/messages`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({
-      messaging_product: "whatsapp",
-      to,
-      type: "text",
-      text: { preview_url: true, body: message },
-    }),
-  })
-    .then(async (r) => {
-      if (!r.ok) {
-        const body = await r.text().catch(() => "");
-        console.error(`[notify] WhatsApp HTTP ${r.status}:`, body.slice(0, 400));
-      }
-    })
-    .catch((err) => {
-      console.error("[notify] WhatsApp fetch threw:", err);
+  try {
+    const r = await fetch(`https://graph.facebook.com/v21.0/${phoneId}/messages`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        to,
+        type: "text",
+        text: { preview_url: true, body: message },
+      }),
     });
+    if (!r.ok) {
+      const body = await r.text().catch(() => "");
+      console.error(`[notify] WhatsApp HTTP ${r.status}:`, body.slice(0, 400));
+    }
+  } catch (err) {
+    console.error("[notify] WhatsApp fetch threw:", err);
+  }
 }
 
-/** Send to both Telegram + WhatsApp */
-export function notifyAdmin(message: string) {
-  sendTelegram(message);
-  sendWhatsApp(message);
+/**
+ * Send to both Telegram + WhatsApp.
+ *
+ * Vercel serverless terminates the function once the route returns, so a
+ * fire-and-forget pattern (no await) silently drops the network requests
+ * before they're flushed. We `Promise.all` here so the route awaits delivery.
+ * Both senders swallow their own errors, so this never throws.
+ */
+export async function notifyAdmin(message: string): Promise<void> {
+  await Promise.all([sendTelegram(message), sendWhatsApp(message)]);
 }
