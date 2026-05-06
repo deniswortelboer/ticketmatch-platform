@@ -1355,12 +1355,18 @@ export async function confirmOrder(
     }
 
     const order = await res.json();
+    console.log("[confirmOrder] keys:", Object.keys(order).join(","));
+    console.log("[confirmOrder] uuid/id/identifier:", order.uuid, order.id, order.identifier);
     return {
       orderId:
         (order.identifier as string) ||
         (order.uuid as string) ||
         (order.id as string),
-      orderUuid: (order.uuid as string) || undefined,
+      orderUuid:
+        (order.uuid as string) ||
+        (order.order_uuid as string) ||
+        (typeof order.id === "string" && /^[0-9a-f-]{32,}$/i.test(order.id) ? (order.id as string) : undefined) ||
+        undefined,
       status: mapOrderStatus(order.status as string),
       tickets: ((order.items || []) as Record<string, unknown>[]).map((item) => {
         const product = (item.product || {}) as Record<string, unknown>;
