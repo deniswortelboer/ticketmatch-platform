@@ -553,7 +553,7 @@ export default function ExperiencesPage() {
     selectedCity: string,
     _selectedCategory: string,
     startPage = 1,
-  ): Promise<{ products: UnifiedProduct[]; totalCount: number }> => {
+  ): Promise<{ products: UnifiedProduct[]; totalCount: number; upstreamTimeout: boolean }> => {
     // Verticals row is now the only category filter. The legacy keyword-based
     // categoryFilter state still exists for backwards compat (URL/query params
     // elsewhere) but is intentionally NOT applied here — it caused a "stuck on
