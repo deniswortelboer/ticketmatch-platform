@@ -1119,7 +1119,13 @@ export default function ExperiencesPage() {
         >
           All
         </button>
-        {verticals.map((v) => (
+        {verticals
+          // TUI Collection (vertical id 10) is a Musement-only category
+          // (TUI is Musement's parent group). Hide it whenever the source
+          // is Viator / All — that catalogue has no concept of TUI Collection
+          // and showing the chip there is misleading.
+          .filter((v) => !(v.id === 10 && source !== "musement"))
+          .map((v) => (
           <button
             key={v.id}
             onClick={() => setVerticalSel(v.id)}
