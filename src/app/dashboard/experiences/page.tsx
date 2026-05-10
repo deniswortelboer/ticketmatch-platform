@@ -939,6 +939,13 @@ export default function ExperiencesPage() {
             <span className="capitalize">
               {customCity?.name
                 || countryCities.find((c) => c.name.toLowerCase() === city)?.name
+                /* Fallback to the static NL/EU city list label so we still
+                   show "Amsterdam" even when the dynamic countryCities
+                   fetch (Musement-backed) hasn't returned yet — was
+                   showing "—" for both Musement & Viator sources during
+                   today's sandbox outage. The actual search still uses
+                   the `city` state value, which defaults to "amsterdam". */
+                || activeCityLabel
                 || (countryCities.length ? "Select…" : "—")}
             </span>
             <span className="text-muted">▾</span>
