@@ -49,45 +49,80 @@ type ViatorSearchResult = {
   hasMore: boolean;
 };
 
-// City destination IDs for Viator
-const DESTINATION_IDS: Record<string, number> = {
-  // Netherlands
-  all: 60,
-  amsterdam: 525,
-  rotterdam: 4211,
-  "the hague": 5436,
-  "den haag": 5436,
-  utrecht: 24976,
-  eindhoven: 24978,
-  haarlem: 26223,
-  maastricht: 22820,
-  leiden: 26505,
-  groningen: 26476,
-  leeuwarden: 26514,
-  arnhem: 26525,
-  alkmaar: 26416,
-  gouda: 26397,
-  dordrecht: 26382,
-  zaandam: 22382,
-  hoorn: 26383,
-  nijmegen: 26498,
-  middelburg: 26475,
-  // Europe
-  brussels: 458,
-  paris: 479,
-  london: 737,
-  barcelona: 562,
-  berlin: 488,
-  madrid: 566,
-  rome: 511,
-  lisbon: 538,
-  vienna: 454,
-  prague: 462,
-  copenhagen: 463,
-  budapest: 499,
-  dublin: 503,
-  stockholm: 907,
-};
+// ─── Destination resolution ────────────────────────────────────────────────
+// Source of truth = Viator's live /destinations endpoint (3.389 entries
+// worldwide). Previously this lib kept a hardcoded ~30-entry city → id map
+// which silently failed for any city outside that list (Buenos Aires,
+// Tokyo, Mendoza, etc. all returned 0 products even though Viator has full
+// catalogues for them). Removed 2026-05-10 — same rule we apply to
+// Musement: never substitute supplier data with our own.
+//
+// In-memory cache populates from the FIRST live response. Subsequent
+// resolutions are O(1) within a warm Vercel worker. Cache key = lowercased
+// destination name; value = { id, type } so we can prefer CITY over
+// REGION/PROVINCE when both exist (e.g. Tokyo CITY 334 vs Tokyo Prefecture
+// REGION 50157).
+
+type ViatorDestination = { id: number; name: string; type: string };
+let viatorDestinationsCache: ViatorDestination[] | null = null;
+const viatorIdByName: Map<string, ViatorDestination> = new Map();
+
+const VIATOR_FETCH_TIMEOUT_MS_CATALOG = 15_000;
+
+async function loadViatorDestinations(): Promise<ViatorDestination[]> {
+  if (viatorDestinationsCache) return viatorDestinationsCache;
+  try {
+    const res = await fetch(`${VIATOR_API_BASE}/destinations`, {
+      method: "GET",
+      headers: getHeaders(),
+      signal: AbortSignal.timeout(VIATOR_FETCH_TIMEOUT_MS_CATALOG),
+      cache: "force-cache" as RequestCache,
+      next: { revalidate: 86400, tags: ["viator-destinations"] },
+    });
+    if (!res.ok) {
+      console.error(`[loadViatorDestinations] Viator ${res.status} ${res.statusText}`);
+      return [];
+    }
+    const data = (await res.json()) as { destinations?: Array<Record<string, unknown>> };
+    const list: ViatorDestination[] = (data.destinations || [])
+      .map((d) => ({
+        id: d.destinationId as number,
+        name: (d.name as string) || "",
+        type: (d.type as string) || "",
+      }))
+      .filter((d) => d.id && d.name);
+    viatorDestinationsCache = list;
+    // Index for O(1) lookup. When the same name maps to multiple types
+    // (CITY, REGION, PROVINCE), prefer CITY.
+    for (const d of list) {
+      const key = d.name.toLowerCase();
+      const existing = viatorIdByName.get(key);
+      if (!existing || (d.type === "CITY" && existing.type !== "CITY")) {
+        viatorIdByName.set(key, d);
+      }
+    }
+    return list;
+  } catch (err) {
+    const isTimeout = err instanceof Error && err.name === "TimeoutError";
+    if (isTimeout) {
+      console.error(`[loadViatorDestinations] timed out after ${VIATOR_FETCH_TIMEOUT_MS_CATALOG}ms`);
+    } else {
+      console.error("[loadViatorDestinations] fetch error:", err);
+    }
+    return [];
+  }
+}
+
+/** Resolve a city name to Viator's destinationId via the live catalogue. */
+async function resolveViatorDestinationId(city: string): Promise<number | null> {
+  if (!city) return null;
+  // Special-case "all" (the legacy "all of NL" sentinel) — Viator's
+  // Netherlands country destination is 60.
+  if (city.toLowerCase() === "all") return 60;
+  await loadViatorDestinations();
+  const hit = viatorIdByName.get(city.toLowerCase());
+  return hit ? hit.id : null;
+}
 
 function getHeaders(language = "en") {
   return {
@@ -140,8 +175,12 @@ function buildAffiliateUrl(productCode: string, productUrl?: string, title?: str
  * Search for products/experiences in a city
  */
 export async function searchProducts(params: ViatorSearchParams): Promise<ViatorSearchResult> {
-  const destId = DESTINATION_IDS[params.city.toLowerCase()];
+  // Live destinationId lookup against Viator's /destinations catalogue.
+  // Was a hardcoded ~30-entry map that silently failed for any city
+  // outside that list (Buenos Aires, Tokyo, Mendoza, ...).
+  const destId = await resolveViatorDestinationId(params.city);
   if (!destId) {
+    console.warn(`[searchProducts] Viator has no destinationId for "${params.city}"`);
     return { products: [], totalCount: 0, hasMore: false };
   }
 
@@ -394,36 +433,16 @@ function formatPrice(amount: number | undefined, currency: string): string {
  * Search for city destinations by name
  */
 export async function searchDestinations(query: string): Promise<{ id: number; name: string; type: string }[]> {
-  try {
-    // Check local mapping first
-    const localKey = query.toLowerCase();
-    if (DESTINATION_IDS[localKey]) {
-      return [{ id: DESTINATION_IDS[localKey], name: query, type: "CITY" }];
-    }
-
-    const res = await fetch(`${VIATOR_API_BASE}/destinations`, {
-      method: "GET",
-      headers: getHeaders(),
-    });
-
-    if (!res.ok) return [];
-
-    const data = await res.json();
-    const q = query.toLowerCase();
-    return (data.destinations || [])
-      .filter((d: Record<string, unknown>) =>
-        (d.name as string)?.toLowerCase().includes(q) && d.type === "CITY"
-      )
-      .slice(0, 10)
-      .map((d: Record<string, unknown>) => ({
-        id: d.destinationId as number,
-        name: d.name as string,
-        type: d.type as string,
-      }));
-  } catch (err) {
-    console.error("Viator destination search error:", err);
-    return [];
-  }
+  // Source of truth = Viator's live /destinations catalogue (loaded once
+  // and indexed). Free-text query against the indexed list — no
+  // hardcoded shortcut.
+  await loadViatorDestinations();
+  const q = query.toLowerCase();
+  if (!q) return [];
+  return (viatorDestinationsCache || [])
+    .filter((d) => d.type === "CITY" && d.name.toLowerCase().includes(q))
+    .slice(0, 10)
+    .map((d) => ({ id: d.id, name: d.name, type: d.type }));
 }
 
 /**
