@@ -456,7 +456,7 @@ export default function ExperiencesPage() {
   // Source of truth = Viator's /destinations + /products/search totalCount.
   // Counts shown in the dropdown are real — cities with zero Viator products
   // are never rendered ("what you see is what you get").
-  type ViatorCountryOpt = { id: number; name: string };
+  type ViatorCountryOpt = { id: number; name: string; iso?: string };
   type ViatorCityOpt = { id: number; name: string; count: number };
   const [viatorCountries, setViatorCountries] = useState<ViatorCountryOpt[]>([]);
   const [viatorCountry, setViatorCountry] = useState<string>("Netherlands");
@@ -967,14 +967,25 @@ export default function ExperiencesPage() {
         {/* ─── VIATOR-SOURCE DROPDOWNS ─────────────────────────────────── */}
         {source === "viator" && (
           <>
-            {/* Country (Viator) */}
+            {/* Country (Viator) — with flag + ISO label, mirroring the
+                Musement-source dropdown. ISO is parsed from Viator's
+                BCP-47 `languages` field; not every country has it (e.g.
+                some territories), so flag falls back to a globe glyph. */}
             <div className="relative" onClick={(e) => e.stopPropagation()}>
               <button
                 onClick={() => setShowViatorCountryDD(!showViatorCountryDD)}
                 className="flex items-center gap-2 rounded-full border border-border bg-white px-4 py-2 text-sm font-medium text-foreground hover:bg-gray-50"
               >
                 <span className="text-[10px] uppercase tracking-wider text-muted/60">Country</span>
-                <span>{viatorCountry || "Select…"}</span>
+                {(() => {
+                  const sel = viatorCountries.find((c) => c.name === viatorCountry);
+                  return (
+                    <>
+                      <span className="text-base leading-none">{sel?.iso ? isoToFlag(sel.iso) : "🌐"}</span>
+                      <span>{viatorCountry || "Select…"}</span>
+                    </>
+                  );
+                })()}
                 <span className="text-muted">▾</span>
               </button>
               {showViatorCountryDD && (
@@ -993,7 +1004,7 @@ export default function ExperiencesPage() {
                   {viatorCountries
                     .filter((c) => {
                       const q = countrySearch.toLowerCase();
-                      return !q || c.name.toLowerCase().includes(q);
+                      return !q || c.name.toLowerCase().includes(q) || (c.iso || "").toLowerCase().includes(q);
                     })
                     .map((c) => (
                       <button
@@ -1003,7 +1014,9 @@ export default function ExperiencesPage() {
                           viatorCountry === c.name ? "bg-accent/10 font-medium text-accent" : "hover:bg-accent/5"
                         }`}
                       >
+                        <span className="text-base leading-none">{c.iso ? isoToFlag(c.iso) : "🌐"}</span>
                         <span className="flex-1">{c.name}</span>
+                        {c.iso && <span className="text-xs text-muted/60">{c.iso}</span>}
                       </button>
                     ))}
                   {!viatorCountries.length && (
