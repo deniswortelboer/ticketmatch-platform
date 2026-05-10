@@ -147,6 +147,7 @@ export function ViatorBookingModal({ product, agentUserRef, isOpen, onClose }: P
 
   async function goToReview() {
     setError("");
+    if (!product) return;
     // Quick traveller validation — first traveller must be complete (lead).
     if (!travellers[0]?.firstName || !travellers[0]?.lastName || !travellers[0]?.email) {
       setError("Please complete the lead traveller's name and email.");
