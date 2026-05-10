@@ -847,7 +847,7 @@ export default function ExperiencesPage() {
         <span className="mr-1 text-xs font-semibold uppercase tracking-wider text-muted/70">Source</span>
         {([
           { key: "musement" as ProductSource, label: "Musement", icon: "🎫", sublabel: "Primary · Merchant" },
-          { key: "viator" as ProductSource, label: "Viator", icon: "🌐", sublabel: "Fallback · Affiliate" },
+          { key: "viator" as ProductSource, label: "Viator", icon: "🌐", sublabel: "TAP · Direct booking" },
           { key: "all" as ProductSource, label: "All Sources", icon: "🔗" },
         ]).map((s) => (
           <button
