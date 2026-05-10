@@ -111,6 +111,13 @@ export type MusementSearchResult = {
   products: MusementProduct[];
   totalCount: number;
   hasMore: boolean;
+  /**
+   * Set to true when the upstream Musement call aborted via our hard
+   * timeout (AbortSignal.timeout). The route handler / UI can use this
+   * to distinguish "Musement is slow today, try again" from a genuine
+   * empty catalog and surface the right message to the user.
+   */
+  upstreamTimeout?: boolean;
 };
 
 export type MusementAvailability = {
@@ -172,6 +179,74 @@ const NL_CITY_NAMES = [
 
 // Cache for city lookups (cityName -> cityId)
 const cityIdCache: Map<string, number> = new Map();
+
+// ─── Known city IDs (short-circuit for the most-asked cities) ───────────────
+// Hotfix 2026-05-10: Musement's `/cities?country_in=…` endpoint has hung
+// >30s under intermittent sandbox load, blowing through Vercel's function
+// budget and Cloudflare's 100s edge timeout. For the cities customers
+// actually book, we skip the fan-out entirely and resolve the ID in O(1).
+// Add more here whenever a new market goes live; the dynamic fan-out
+// remains as a fallback for cities not yet on this list.
+const KNOWN_CITY_IDS: Record<string, number> = {
+  // Netherlands
+  "amsterdam": 178,
+  // Italy
+  "rome": 11,
+  "florence": 8,
+  "venice": 9,
+  "milan": 5,
+  "naples": 56,
+  // France
+  "paris": 4,
+  // Spain
+  "barcelona": 80,
+  "madrid": 90,
+  // United Kingdom
+  "london": 12,
+  // Germany
+  "berlin": 65,
+  "munich": 158,
+  // Portugal
+  "lisbon": 28,
+  // Czech Republic
+  "prague": 38,
+  // Austria
+  "vienna": 47,
+  // Ireland
+  "dublin": 110,
+};
+
+// Pre-seed the resolution cache so even the first call after a cold start
+// is O(1) for any of the cities above. Each Vercel worker that warms up
+// inherits the seeded entries on import.
+for (const [name, id] of Object.entries(KNOWN_CITY_IDS)) {
+  cityIdCache.set(name, id);
+}
+
+// ─── Upstream fetch resilience ──────────────────────────────────────────────
+// Musement's sandbox occasionally takes 30-90s to respond on /cities and
+// fan-out endpoints. We guard EVERY hot-path upstream call with a hard
+// timeout so our serverless function fails fast instead of being killed
+// by Cloudflare at 100s with no useful state. Per-call timeout, not
+// per-request — so a single slow country in the resolveCityId fan-out
+// doesn't block the others (we use Promise.allSettled there too).
+const MUSEMENT_FETCH_TIMEOUT_MS = 12_000;
+
+/**
+ * Returns an AbortSignal that fires after MUSEMENT_FETCH_TIMEOUT_MS.
+ * Pass to `fetch(url, { signal: musementTimeoutSignal() })`.
+ *
+ * On timeout: fetch rejects with `TimeoutError` (a subclass of DOMException).
+ * Callers should catch and return their graceful empty/null shape so the
+ * UI gets a usable error state instead of hanging indefinitely.
+ *
+ * Note: passing a signal opts the request out of Next.js render-pass
+ * memoization, but does NOT disable the Data Cache (force-cache /
+ * revalidate). Our route handlers don't benefit from memoization anyway.
+ */
+function musementTimeoutSignal(ms: number = MUSEMENT_FETCH_TIMEOUT_MS): AbortSignal {
+  return AbortSignal.timeout(ms);
+}
 
 // ─── API Helpers ────────────────────────────────────────────────────────────
 
@@ -396,7 +471,14 @@ export async function resolveCityId(cityName: string, language = "en"): Promise<
       for (let page = 0; page < MAX_PAGES; page++) {
         const res = await fetch(
           `${MUSEMENT_API_BASE}/cities?limit=${PAGE_SIZE}&offset=${page * PAGE_SIZE}&sort_by=weight&country_in=${countryId}`,
-          { headers: getHeaders(language), ...CATALOG_CACHE }
+          {
+            headers: getHeaders(language),
+            ...CATALOG_CACHE,
+            // Per-country timeout so a single hung country doesn't take
+            // down the whole resolveCityId call. Caught at the outer
+            // Promise.allSettled boundary.
+            signal: musementTimeoutSignal(),
+          }
         );
         if (!res.ok) return;
         const cities = (await res.json()) as Record<string, unknown>[];
@@ -409,7 +491,19 @@ export async function resolveCityId(cityName: string, language = "en"): Promise<
       }
     }
 
-    await Promise.all(PRIORITY_COUNTRIES.map((c) => loadCountry(c.id)));
+    // Use allSettled so one slow/failing country doesn't block resolution
+    // for the others. Any country that times out via musementTimeoutSignal
+    // simply rejects; cities resolved by faster countries still land in
+    // the cache.
+    const settled = await Promise.allSettled(
+      PRIORITY_COUNTRIES.map((c) => loadCountry(c.id))
+    );
+    const failures = settled.filter((s) => s.status === "rejected").length;
+    if (failures > 0) {
+      console.warn(
+        `[resolveCityId] ${failures}/${PRIORITY_COUNTRIES.length} priority country lookups failed (timeout or upstream error); falling back to whatever resolved`
+      );
+    }
 
     if (cityIdCache.has(key)) return cityIdCache.get(key)!;
 
@@ -418,7 +512,11 @@ export async function resolveCityId(cityName: string, language = "en"): Promise<
     // hard cap) — for deeper coverage we'd rely on cityId from the UI.
     const fallbackRes = await fetch(
       `${MUSEMENT_API_BASE}/cities?limit=100&offset=0&sort_by=weight`,
-      { headers: getHeaders(language), ...CATALOG_CACHE }
+      {
+        headers: getHeaders(language),
+        ...CATALOG_CACHE,
+        signal: musementTimeoutSignal(),
+      }
     );
     if (!fallbackRes.ok) return null;
     const cities = (await fallbackRes.json()) as Record<string, unknown>[];
@@ -429,7 +527,16 @@ export async function resolveCityId(cityName: string, language = "en"): Promise<
     }
     return cityIdCache.get(key) || null;
   } catch (err) {
-    console.error("Musement city resolution error:", err);
+    // AbortSignal.timeout() rejects with a DOMException whose name is
+    // "TimeoutError" — surface it explicitly so it's obvious in logs.
+    const isTimeout = err instanceof Error && err.name === "TimeoutError";
+    if (isTimeout) {
+      console.error(
+        `[resolveCityId] upstream timed out after ${MUSEMENT_FETCH_TIMEOUT_MS}ms for "${cityName}"`
+      );
+    } else {
+      console.error("Musement city resolution error:", err);
+    }
     return null;
   }
 }
@@ -652,6 +759,11 @@ export async function searchActivities(params: MusementSearchParams): Promise<Mu
         "X-Musement-Currency": currency,
       },
       cache: "no-store" as RequestCache,
+      // Hard timeout so a hung Musement upstream can't stall our
+      // serverless function past Cloudflare's 100s edge timeout.
+      // On AbortSignal.timeout fire, fetch rejects with TimeoutError
+      // which the outer try/catch turns into a graceful empty result.
+      signal: musementTimeoutSignal(),
     });
 
     if (!res.ok) {
@@ -734,6 +846,15 @@ export async function searchActivities(params: MusementSearchParams): Promise<Mu
       hasMore: activities.length === limit,
     };
   } catch (err) {
+    // Distinguish AbortSignal.timeout fires from real upstream errors so
+    // we can spot Musement-flakiness vs a code bug at a glance.
+    const isTimeout = err instanceof Error && err.name === "TimeoutError";
+    if (isTimeout) {
+      console.error(
+        `[searchActivities] upstream timed out after ${MUSEMENT_FETCH_TIMEOUT_MS}ms for cityId=${params.cityId ?? "?"} cityName=${params.cityName ?? "?"}`
+      );
+      return { products: [], totalCount: 0, hasMore: false, upstreamTimeout: true };
+    }
     console.error("Musement search error:", err);
     return { products: [], totalCount: 0, hasMore: false };
   }
