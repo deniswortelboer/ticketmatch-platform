@@ -418,7 +418,12 @@ export default function ExperiencesPage() {
   const [citySearch, setCitySearch] = useState("");
   const [cityResults, setCityResults] = useState<{ id: number; name: string; type: string }[]>([]);
   const [showCityDropdown, setShowCityDropdown] = useState(false);
-  const [categoryFilter, setCategoryFilter] = useState("21514");
+  // Default to no category filter so the search returns the supplier's
+  // full catalogue for the selected city. Previous default of "21514"
+  // (Museums) silently filtered out every non-Museum product — e.g.
+  // Ushuaia (360 Viator products, 0 of which are Museums) showed an
+  // empty list. Users opt into a category by clicking a chip.
+  const [categoryFilter, setCategoryFilter] = useState("");
   const [subCategoryFilter, setSubCategoryFilter] = useState("");
   const [search, setSearch] = useState("");
   const [products, setProducts] = useState<UnifiedProduct[]>([]);
