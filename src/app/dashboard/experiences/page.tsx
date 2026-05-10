@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { formatIso8601Duration } from "@/lib/duration";
+import { ViatorBookingModal, type ViatorModalProduct } from "@/components/viator/ViatorBookingModal";
 
 /* ───── Types ───── */
 type ViatorProduct = {
@@ -430,6 +431,12 @@ export default function ExperiencesPage() {
   // Musement is primary supplier (live since 2026-04-23). Viator Affiliate
   // kept as fallback for cities Musement doesn't cover yet.
   const [source, setSource] = useState<ProductSource>("musement");
+
+  // Viator TAP booking modal state. Opens in-platform when reseller clicks
+  // "View & Book" on a Viator product, instead of redirecting to viator.com.
+  // Backend runs in mock mode until Carmen approves Affiliate Full + Booking
+  // Access on P00300314 — flip via VIATOR_TAP_LIVE env var with no UI changes.
+  const [viatorModalProduct, setViatorModalProduct] = useState<ViatorModalProduct | null>(null);
 
   // ─── Country → City → Vertical hierarchy (Musement taxonomy) ──────────────
   type CountryOpt = { id: number; name: string; iso: string };
@@ -1363,14 +1370,19 @@ export default function ExperiencesPage() {
                         Book Direct
                       </button>
                     ) : (
-                      <a
-                        href={product.bookingUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="rounded-xl bg-foreground px-4 py-2.5 text-xs font-semibold text-white transition-all hover:bg-gray-800"
+                      <button
+                        onClick={() => setViatorModalProduct({
+                          id: product.id,
+                          title: product.title,
+                          imageUrl: product.images?.[0]?.url,
+                          currency: product.currency,
+                          pricePerPerson: product.price,
+                          location: product.location,
+                        })}
+                        className="rounded-xl bg-[#0F4A4C] px-4 py-2.5 text-xs font-semibold text-white transition-all hover:bg-[#186B6D]"
                       >
-                        View & Book
-                      </a>
+                        Book via TAP
+                      </button>
                     )}
                   </div>
                 </div>
@@ -1431,6 +1443,18 @@ export default function ExperiencesPage() {
           appear on each card.
         </p>
       </div>
+
+      {/* Viator TAP booking modal — opens when reseller clicks "Book via TAP"
+          on a Viator product. Mock-mode until VIATOR_TAP_LIVE=true. The agent
+          ref U00806230 is hardcoded for now (Denis as solo agent under
+          P00300314); once we add member management we'll resolve this from
+          the logged-in user's Viator agent identity. */}
+      <ViatorBookingModal
+        product={viatorModalProduct}
+        agentUserRef="U00806230"
+        isOpen={Boolean(viatorModalProduct)}
+        onClose={() => setViatorModalProduct(null)}
+      />
     </div>
   );
 }
