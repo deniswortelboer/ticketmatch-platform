@@ -70,9 +70,29 @@ type ViatorDestination = {
   /** Chain of parent destinations (e.g. CITY → REGION → COUNTRY). Last
    *  entry is typically the country. Used to filter cities by country. */
   parentDestinationIds: number[];
-  /** ISO country code if Viator exposes one (e.g. "NL", "AR"). Optional. */
+  /**
+   * ISO 3166-1 alpha-2 country code. Viator's /destinations response has
+   * no explicit ISO field, so we parse it from the BCP-47 `languages`
+   * array — e.g. "nl-NL" → "NL", "es-AR" → "AR". Falls back to undefined
+   * for entries without language metadata.
+   */
   iso?: string;
 };
+
+/** Extract ISO 3166-1 alpha-2 from Viator's BCP-47 language tag. */
+function isoFromLanguages(langs: unknown): string | undefined {
+  if (!Array.isArray(langs) || langs.length === 0) return undefined;
+  for (const tag of langs) {
+    if (typeof tag !== "string") continue;
+    // Tag shape "nl-NL" / "es-AR" / "en-GB". Take the part after the dash.
+    const parts = tag.split("-");
+    if (parts.length >= 2) {
+      const code = parts[parts.length - 1].toUpperCase();
+      if (/^[A-Z]{2}$/.test(code)) return code;
+    }
+  }
+  return undefined;
+}
 let viatorDestinationsCache: ViatorDestination[] | null = null;
 const viatorIdByName: Map<string, ViatorDestination> = new Map();
 const viatorById: Map<number, ViatorDestination> = new Map();
@@ -132,7 +152,9 @@ async function loadViatorDestinations(): Promise<ViatorDestination[]> {
           name: (d.name as string) || "",
           type: (d.type as string) || "",
           parentDestinationIds: parents,
-          iso: typeof d.iso === "string" ? d.iso as string : undefined,
+          // Viator has no direct ISO field — derive from the BCP-47
+          // `languages` array (e.g. ["nl-NL"] → "NL", ["es-AR"] → "AR").
+          iso: isoFromLanguages(d.languages),
         };
       })
       .filter((d) => d.id && d.name);
@@ -187,7 +209,7 @@ async function resolveViatorDestinationId(city: string): Promise<number | null> 
 // /products/search calls (totalCount field), so what the user sees in the
 // dropdown is exactly what they'll get on click.
 
-export type ViatorCountrySummary = { id: number; name: string };
+export type ViatorCountrySummary = { id: number; name: string; iso?: string };
 export type ViatorCityWithCount = { id: number; name: string; count: number };
 
 /** Live list of all COUNTRY-type destinations Viator sells. */
@@ -196,7 +218,7 @@ export async function getViatorCountries(): Promise<ViatorCountrySummary[]> {
   const all = viatorDestinationsCache || [];
   return all
     .filter((d) => d.type === "COUNTRY")
-    .map((d) => ({ id: d.id, name: d.name }))
+    .map((d) => ({ id: d.id, name: d.name, iso: d.iso }))
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
