@@ -553,7 +553,7 @@ export default function ExperiencesPage() {
     selectedCity: string,
     _selectedCategory: string,
     startPage = 1,
-  ): Promise<{ products: UnifiedProduct[]; totalCount: number }> => {
+  ): Promise<{ products: UnifiedProduct[]; totalCount: number; upstreamTimeout: boolean }> => {
     // Verticals row is now the only category filter. The legacy keyword-based
     // categoryFilter state still exists for backwards compat (URL/query params
     // elsewhere) but is intentionally NOT applied here — it caused a "stuck on
@@ -586,7 +586,7 @@ export default function ExperiencesPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
-    if (!res.ok) return { products: [], totalCount: 0 };
+    if (!res.ok) return { products: [], totalCount: 0, upstreamTimeout: false };
     const data = await res.json();
     const rawProducts = (data.products || []) as MusementProduct[];
     const finalProducts = rawProducts.map(musementToUnified);
@@ -597,6 +597,11 @@ export default function ExperiencesPage() {
       totalCount: (useCombo || useVertical)
         ? finalProducts.length
         : (data.totalCount || 0),
+      // Surface the upstream-timeout flag the lib sets when Musement's
+      // /cities or /activities endpoint aborts via AbortSignal.timeout —
+      // lets the page show a real "try again" message instead of a
+      // misleading "0 results" empty state.
+      upstreamTimeout: Boolean(data.upstreamTimeout),
     };
   }, [verticalSel, priceMin, priceMax, durationBucket, freeCancelOnly]);
 
@@ -621,6 +626,13 @@ export default function ExperiencesPage() {
         const musementData = await fetchMusement(selectedCity, selectedCategory, startPage);
         allProducts = [...allProducts, ...musementData.products];
         allCount += musementData.totalCount;
+        // If Musement aborted via our hard timeout we want to TELL the
+        // user instead of letting the empty-results UI imply the catalog
+        // is empty. Only show the message when Musement was actually
+        // queried (i.e. we're not on a Viator-only run).
+        if (musementData.upstreamTimeout) {
+          setError("Musement is responding slowly right now. Please try again in a moment.");
+        }
       }
 
       // Sort merged results: Musement first (higher margin), then by rating
