@@ -7,11 +7,9 @@ const VIATOR_API_KEY = process.env.VIATOR_API_KEY || "";
 
 export async function GET() {
   const attempts = [
-    { url: `${VIATOR_API_BASE}/destinations`, ver: "2.0", method: "GET" },
-    { url: `${VIATOR_API_BASE}/destinations`, ver: "2.5", method: "GET" },
-    { url: `${VIATOR_API_BASE}/destinations`, ver: "2.0", method: "POST" },
-    { url: `${VIATOR_API_BASE}/v1/taxonomy/destinations`, ver: "1.0", method: "GET" },
-    { url: `${VIATOR_API_BASE}/taxonomy/destinations`, ver: "2.0", method: "GET" },
+    { url: `${VIATOR_API_BASE}/destinations`, ver: "2.0", method: "GET", lang: "en" },
+    { url: `${VIATOR_API_BASE}/destinations`, ver: "2.0", method: "GET", lang: "en-US" },
+    { url: `${VIATOR_API_BASE}/destinations`, ver: "2.5", method: "GET", lang: "en" },
   ];
   const probes: Array<Record<string, unknown>> = [];
   for (const a of attempts) {
@@ -20,6 +18,7 @@ export async function GET() {
         method: a.method,
         headers: {
           "Accept": `application/json;version=${a.ver}`,
+          "Accept-Language": a.lang,
           "exp-api-key": VIATOR_API_KEY,
           "Content-Type": "application/json",
         },
