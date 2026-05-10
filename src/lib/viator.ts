@@ -510,5 +510,454 @@ export async function searchProductsByDestinationId(
   }
 }
 
+// ────────────────────────────────────────────────────────────────────────────
+// Booking layer — Viator TAP / Affiliate Full + Booking Access
+// ────────────────────────────────────────────────────────────────────────────
+//
+// Built 2026-05-10 to mirror lib/musement.ts so the UI can route Musement +
+// Viator bookings through one supplier-agnostic flow. Today this runs in
+// MOCK MODE because we don't yet have "Full + Booking Access" provisioned
+// on Partner ID P00300314 — Carmen needs to approve that separately.
+//
+// Endpoints we'll call once live (per Viator's partner-API docs):
+//   POST  /partner/v1/bookings/hold        — temporarily reserve a slot (~30 min)
+//   POST  /partner/v1/bookings/book        — confirm after payment
+//   GET   /partner/v1/bookings/{ref}       — poll status (PENDING → CONFIRMED)
+//   POST  /partner/v1/bookings/{ref}/cancel-quote   — refund estimate
+//   POST  /partner/v1/bookings/{ref}/cancel         — actually cancel
+//
+// Mock-mode contract: every booking helper returns a realistically-shaped
+// object so the UI/database wiring can be exercised end-to-end before the
+// first real Viator credentials land. Swap to live = flip
+// VIATOR_TAP_LIVE=true + provide VIATOR_PARTNER_API_KEY.
+// ────────────────────────────────────────────────────────────────────────────
+
+const VIATOR_TAP_LIVE = process.env.VIATOR_TAP_LIVE === "true";
+const VIATOR_PARTNER_API_BASE =
+  process.env.VIATOR_PARTNER_API_BASE || "https://api.viator.com/partner/v1";
+const VIATOR_PARTNER_API_KEY = process.env.VIATOR_PARTNER_API_KEY || "";
+const VIATOR_FETCH_TIMEOUT_MS = 12_000;
+
+/**
+ * Returns true when live Viator booking credentials are configured. Until
+ * Carmen approves "Full + Booking Access" on P00300314 this stays false
+ * and the booking helpers below operate in mock mode.
+ */
+export function isViatorTapLive(): boolean {
+  return VIATOR_TAP_LIVE && Boolean(VIATOR_PARTNER_API_KEY);
+}
+
+/** AbortSignal that aborts after VIATOR_FETCH_TIMEOUT_MS — same pattern as musement.ts. */
+function viatorTimeoutSignal(): AbortSignal {
+  return AbortSignal.timeout(VIATOR_FETCH_TIMEOUT_MS);
+}
+
+/** Authentication headers for Viator's partner API. exp-api-key per Viator docs. */
+function viatorAuthHeaders(): Record<string, string> {
+  return {
+    "Accept": "application/json;version=2.0",
+    "Content-Type": "application/json",
+    ...(VIATOR_PARTNER_API_KEY ? { "exp-api-key": VIATOR_PARTNER_API_KEY } : {}),
+  };
+}
+
+// ─── Types ──────────────────────────────────────────────────────────────────
+
+export type ViatorTraveller = {
+  bandId?: string;       // e.g. "ADULT", "CHILD" — Viator product-specific
+  firstName: string;
+  lastName: string;
+  dateOfBirth?: string;  // ISO date if required by product
+};
+
+export type ViatorBookingHoldRequest = {
+  productCode: string;
+  productOptionCode?: string;
+  travelDate: string;          // ISO date "YYYY-MM-DD"
+  startTime?: string;          // "09:30" if time-slotted
+  travellers: ViatorTraveller[];
+  bookingQuestionAnswers?: Array<{
+    question: string;
+    answer: string;
+  }>;
+  pickupLocation?: string;
+  /**
+   * Required: agent's user id (e.g. U00806230). For TAP all bookings flow
+   * under the agency Partner ID (P00300314) — the agent is recorded for
+   * commission attribution and audit.
+   */
+  agentUserRef: string;
+  /** Reseller's reference for our internal pipeline, surfaced on voucher. */
+  resellerBookingRef?: string;
+  /** TicketMatch's idempotency key — replays the same hold instead of re-creating. */
+  idempotencyKey: string;
+};
+
+export type ViatorBookingHold = {
+  /** Viator's hold reference, valid ~30 min. Pass to confirmViatorBooking. */
+  holdRef: string;
+  /** When the hold expires; UI should warn / auto-refresh near this time. */
+  expiresAt: string;
+  /** Final per-booking pricing once Viator has resolved it. */
+  pricing: {
+    currency: string;
+    retailPrice: number;          // what the customer pays
+    commissionAmount: number;     // 10% under TAP boost, 8% standard
+    commissionRate: number;       // 0.10 / 0.08
+  };
+  cancellationPolicy: {
+    /** ISO timestamp; cancellation before this is fully refundable. */
+    freeUntil?: string;
+    summary: string;
+  };
+  voucherRequirements: string[];
+  /** Mock-mode echo so callers can confirm shape without a live booking. */
+  mock?: boolean;
+};
+
+export type ViatorBookingConfirmRequest = {
+  holdRef: string;
+  /**
+   * In Affiliate Full + Booking the customer pays Viator directly via an
+   * embedded widget. Once payment lands we call confirm with the
+   * payment-token Viator returned to our UI. In Merchant API this becomes
+   * a Stripe charge token. Field stays generic so one shape covers both.
+   */
+  paymentToken?: string;
+  agentNotes?: string;
+};
+
+export type ViatorBookingConfirmed = {
+  bookingRef: string;            // VTR-2026-XXXXXXX, customer-visible
+  status: "CONFIRMED" | "PENDING" | "AWAITING_SUPPLIER";
+  voucher: {
+    /** Customer-facing voucher URL (PDF). Always Viator-branded under TAP. */
+    url: string;
+    /** Best-effort barcode payload — used to render a QR client-side. */
+    barcode?: string;
+    deliveryEmail: string;
+  };
+  pricing: ViatorBookingHold["pricing"];
+  /** When does Viator pay this commission out? Typically post-travel. */
+  commissionPayout: {
+    /** ISO date the commission becomes payable. */
+    expectedAt: string;
+    status: "PENDING_TRAVEL" | "PAYABLE" | "PAID";
+  };
+  mock?: boolean;
+};
+
+export type ViatorBookingStatus = {
+  bookingRef: string;
+  status: "PENDING" | "CONFIRMED" | "CANCELLED" | "FAILED" | "AWAITING_SUPPLIER";
+  lastUpdatedAt: string;
+  voucher?: ViatorBookingConfirmed["voucher"];
+  failureReason?: string;
+  mock?: boolean;
+};
+
+export type ViatorCancelQuote = {
+  bookingRef: string;
+  refundable: boolean;
+  refundAmount: number;
+  currency: string;
+  /** Viator's free-cancellation deadline; null = past it. */
+  freeUntil: string | null;
+  summary: string;
+  mock?: boolean;
+};
+
+export type ViatorCancelResult =
+  | {
+      ok: true;
+      bookingRef: string;
+      refundAmount: number;
+      cancelledAt: string;
+      mock?: boolean;
+    }
+  | {
+      ok: false;
+      bookingRef: string;
+      reason: string;
+      mock?: boolean;
+    };
+
+// ─── Mock-mode helpers ─────────────────────────────────────────────────────
+
+function mockBookingRef(): string {
+  // Same shape as Viator's customer-facing references — predictable enough
+  // for fixtures, random enough not to collide.
+  const yr = new Date().getFullYear();
+  const rand = Math.floor(100000 + Math.random() * 900000);
+  return `VTR-${yr}-${rand}`;
+}
+
+function mockHoldRef(): string {
+  const rand = Math.random().toString(36).slice(2, 12).toUpperCase();
+  return `HOLD-${rand}`;
+}
+
+function isoDaysFromNow(days: number): string {
+  return new Date(Date.now() + days * 86_400_000).toISOString();
+}
+
+// ─── 1) HOLD ───────────────────────────────────────────────────────────────
+
+/**
+ * Reserve a Viator slot for ~30 minutes pending payment. Idempotent on
+ * `idempotencyKey` — replaying with the same key returns the same hold.
+ *
+ * Live: POST /partner/v1/bookings/hold
+ * Mock: returns a synthetic hold so the UI/db can be exercised end-to-end.
+ */
+export async function holdViatorBooking(
+  request: ViatorBookingHoldRequest
+): Promise<ViatorBookingHold | null> {
+  if (!isViatorTapLive()) {
+    // Mock-mode: pretend the hold succeeded with the boosted 10% commission
+    // we negotiated with Carmen. Pricing is a stand-in until we have real
+    // product-pricing wired up in the search layer.
+    const retail = 65.0;
+    return {
+      holdRef: mockHoldRef(),
+      expiresAt: new Date(Date.now() + 30 * 60_000).toISOString(),
+      pricing: {
+        currency: "EUR",
+        retailPrice: retail,
+        commissionAmount: +(retail * 0.1).toFixed(2),
+        commissionRate: 0.1,
+      },
+      cancellationPolicy: {
+        freeUntil: isoDaysFromNow(2),
+        summary: "Free cancellation up to 24 hours before travel.",
+      },
+      voucherRequirements: ["mobile-ticket-accepted"],
+      mock: true,
+    };
+  }
+
+  try {
+    const res = await fetch(`${VIATOR_PARTNER_API_BASE}/bookings/hold`, {
+      method: "POST",
+      headers: viatorAuthHeaders(),
+      body: JSON.stringify(request),
+      signal: viatorTimeoutSignal(),
+    });
+    if (!res.ok) {
+      let detail = "";
+      try { detail = (await res.text()).slice(0, 500); } catch {}
+      console.error(
+        `[holdViatorBooking] Viator ${res.status} ${res.statusText} body=${detail}`
+      );
+      return null;
+    }
+    const data = (await res.json()) as ViatorBookingHold;
+    return data;
+  } catch (err) {
+    const isTimeout = err instanceof Error && err.name === "TimeoutError";
+    if (isTimeout) {
+      console.error(`[holdViatorBooking] upstream timed out after ${VIATOR_FETCH_TIMEOUT_MS}ms`);
+    } else {
+      console.error("Viator hold error:", err);
+    }
+    return null;
+  }
+}
+
+// ─── 2) CONFIRM ────────────────────────────────────────────────────────────
+
+/**
+ * Confirm a previously-held booking after payment has been collected. In
+ * Affiliate Full + Booking, payment runs through Viator's embedded widget
+ * and we receive a payment-token to pass through here.
+ *
+ * Live: POST /partner/v1/bookings/book
+ * Mock: returns a fake CONFIRMED booking with a placeholder voucher URL.
+ */
+export async function confirmViatorBooking(
+  request: ViatorBookingConfirmRequest
+): Promise<ViatorBookingConfirmed | null> {
+  if (!isViatorTapLive()) {
+    const ref = mockBookingRef();
+    return {
+      bookingRef: ref,
+      status: "CONFIRMED",
+      voucher: {
+        url: `https://mock.viator.local/voucher/${ref}.pdf`,
+        barcode: ref,
+        deliveryEmail: "lead-traveller@example.com",
+      },
+      pricing: {
+        currency: "EUR",
+        retailPrice: 65.0,
+        commissionAmount: 6.5,
+        commissionRate: 0.1,
+      },
+      commissionPayout: {
+        expectedAt: isoDaysFromNow(14),
+        status: "PENDING_TRAVEL",
+      },
+      mock: true,
+    };
+  }
+
+  try {
+    const res = await fetch(`${VIATOR_PARTNER_API_BASE}/bookings/book`, {
+      method: "POST",
+      headers: viatorAuthHeaders(),
+      body: JSON.stringify(request),
+      signal: viatorTimeoutSignal(),
+    });
+    if (!res.ok) {
+      let detail = "";
+      try { detail = (await res.text()).slice(0, 500); } catch {}
+      console.error(
+        `[confirmViatorBooking] Viator ${res.status} ${res.statusText} body=${detail}`
+      );
+      return null;
+    }
+    const data = (await res.json()) as ViatorBookingConfirmed;
+    return data;
+  } catch (err) {
+    const isTimeout = err instanceof Error && err.name === "TimeoutError";
+    if (isTimeout) {
+      console.error(`[confirmViatorBooking] upstream timed out after ${VIATOR_FETCH_TIMEOUT_MS}ms`);
+    } else {
+      console.error("Viator confirm error:", err);
+    }
+    return null;
+  }
+}
+
+// ─── 3) STATUS ─────────────────────────────────────────────────────────────
+
+/**
+ * Poll a booking's status. Used post-confirm when status starts as
+ * AWAITING_SUPPLIER (Viator forwards to the operator) and we need to wait
+ * for them to confirm before we surface the voucher to the customer.
+ */
+export async function getViatorBookingStatus(
+  bookingRef: string
+): Promise<ViatorBookingStatus | null> {
+  if (!isViatorTapLive()) {
+    return {
+      bookingRef,
+      status: "CONFIRMED",
+      lastUpdatedAt: new Date().toISOString(),
+      voucher: {
+        url: `https://mock.viator.local/voucher/${bookingRef}.pdf`,
+        barcode: bookingRef,
+        deliveryEmail: "lead-traveller@example.com",
+      },
+      mock: true,
+    };
+  }
+
+  try {
+    const res = await fetch(
+      `${VIATOR_PARTNER_API_BASE}/bookings/${encodeURIComponent(bookingRef)}`,
+      {
+        headers: viatorAuthHeaders(),
+        signal: viatorTimeoutSignal(),
+      }
+    );
+    if (!res.ok) return null;
+    return (await res.json()) as ViatorBookingStatus;
+  } catch (err) {
+    console.error("Viator status error:", err);
+    return null;
+  }
+}
+
+// ─── 4) CANCEL QUOTE ───────────────────────────────────────────────────────
+
+/**
+ * Estimate a refund without actually cancelling. Surface in UI before the
+ * reseller confirms a cancellation so they can tell the customer exactly
+ * how much they'll get back (and warn if it's past the free-cancel window).
+ */
+export async function getViatorCancelQuote(
+  bookingRef: string
+): Promise<ViatorCancelQuote | null> {
+  if (!isViatorTapLive()) {
+    return {
+      bookingRef,
+      refundable: true,
+      refundAmount: 65.0,
+      currency: "EUR",
+      freeUntil: isoDaysFromNow(2),
+      summary: "Full refund available (within 24h-before-travel window).",
+      mock: true,
+    };
+  }
+
+  try {
+    const res = await fetch(
+      `${VIATOR_PARTNER_API_BASE}/bookings/${encodeURIComponent(bookingRef)}/cancel-quote`,
+      {
+        method: "POST",
+        headers: viatorAuthHeaders(),
+        signal: viatorTimeoutSignal(),
+      }
+    );
+    if (!res.ok) return null;
+    return (await res.json()) as ViatorCancelQuote;
+  } catch (err) {
+    console.error("Viator cancel-quote error:", err);
+    return null;
+  }
+}
+
+// ─── 5) CANCEL ─────────────────────────────────────────────────────────────
+
+/**
+ * Actually cancel the booking. Returns the refunded amount on success or
+ * a reason string on failure (e.g. past the free-cancellation deadline,
+ * supplier already issued voucher, etc.).
+ */
+export async function cancelViatorBooking(
+  bookingRef: string,
+  reason?: string
+): Promise<ViatorCancelResult> {
+  if (!isViatorTapLive()) {
+    return {
+      ok: true,
+      bookingRef,
+      refundAmount: 65.0,
+      cancelledAt: new Date().toISOString(),
+      mock: true,
+    };
+  }
+
+  try {
+    const res = await fetch(
+      `${VIATOR_PARTNER_API_BASE}/bookings/${encodeURIComponent(bookingRef)}/cancel`,
+      {
+        method: "POST",
+        headers: viatorAuthHeaders(),
+        body: JSON.stringify({ reason: reason || "" }),
+        signal: viatorTimeoutSignal(),
+      }
+    );
+    if (!res.ok) {
+      let detail = "";
+      try { detail = (await res.text()).slice(0, 200); } catch {}
+      return {
+        ok: false,
+        bookingRef,
+        reason: `Viator ${res.status}: ${detail || res.statusText}`,
+      };
+    }
+    return (await res.json()) as ViatorCancelResult;
+  } catch (err) {
+    const isTimeout = err instanceof Error && err.name === "TimeoutError";
+    return {
+      ok: false,
+      bookingRef,
+      reason: isTimeout ? "Viator upstream timed out" : "Viator cancel error",
+    };
+  }
+}
+
 // Export types
 export type { ViatorProduct, ViatorSearchParams, ViatorSearchResult };
