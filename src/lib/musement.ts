@@ -608,55 +608,15 @@ let countriesCache: MusementCountry[] | null = null;
 let citiesGlobalCache: MusementCityLite[] | null = null;
 let verticalsCache: MusementVertical[] | null = null;
 
-/**
- * Hardcoded country fallback for when Musement's /countries endpoint is
- * unavailable. Covers the markets where Musement / Viator have meaningful
- * inventory — keeps the country dropdown populated so resellers can still
- * pick a destination even during a sandbox outage. Country IDs match
- * Musement's production /countries response.
- */
-const FALLBACK_COUNTRIES: MusementCountry[] = [
-  { id: 124, name: "Netherlands", iso_code: "NL" },
-  { id: 17, name: "Belgium", iso_code: "BE" },
-  { id: 60, name: "France", iso_code: "FR" },
-  { id: 64, name: "Germany", iso_code: "DE" },
-  { id: 82, name: "Italy", iso_code: "IT" },
-  { id: 161, name: "Spain", iso_code: "ES" },
-  { id: 183, name: "United Kingdom", iso_code: "GB" },
-  { id: 11, name: "Argentina", iso_code: "AR" },
-  { id: 33, name: "Brazil", iso_code: "BR" },
-  { id: 41, name: "Canada", iso_code: "CA" },
-  { id: 56, name: "Czech Republic", iso_code: "CZ" },
-  { id: 110, name: "Ireland", iso_code: "IE" },
-  { id: 117, name: "Japan", iso_code: "JP" },
-  { id: 137, name: "Portugal", iso_code: "PT" },
-  { id: 174, name: "Switzerland", iso_code: "CH" },
-  { id: 178, name: "Turkey", iso_code: "TR" },
-  { id: 181, name: "United Arab Emirates", iso_code: "AE" },
-  { id: 184, name: "United States", iso_code: "US" },
-  { id: 7, name: "Austria", iso_code: "AT" },
-  { id: 80, name: "Hungary", iso_code: "HU" },
-  { id: 67, name: "Greece", iso_code: "GR" },
-  { id: 46, name: "Croatia", iso_code: "HR" },
-  { id: 130, name: "Norway", iso_code: "NO" },
-  { id: 159, name: "Sweden", iso_code: "SE" },
-  { id: 50, name: "Denmark", iso_code: "DK" },
-  { id: 109, name: "Iceland", iso_code: "IS" },
-  { id: 168, name: "Thailand", iso_code: "TH" },
-  { id: 100, name: "India", iso_code: "IN" },
-  { id: 99, name: "Indonesia", iso_code: "ID" },
-  { id: 154, name: "South Africa", iso_code: "ZA" },
-  { id: 12, name: "Australia", iso_code: "AU" },
-  { id: 128, name: "New Zealand", iso_code: "NZ" },
-  { id: 122, name: "Mexico", iso_code: "MX" },
-];
-
-/** All Musement countries with iso_code, alphabetised. */
+/** All Musement countries with iso_code, alphabetised.
+ *  No hardcoded fallback — the source of truth is Musement's /countries
+ *  response. If upstream is unavailable we return an empty list so the UI
+ *  shows nothing rather than a fabricated catalogue. Timeout per page
+ *  prevents the call from hanging through Cloudflare's edge cutoff. */
 export async function getCountries(language = "en"): Promise<MusementCountry[]> {
   if (countriesCache) return countriesCache;
   const all: MusementCountry[] = [];
   const PAGE = 100;
-  let timedOut = false;
   for (let offset = 0; offset < 500; offset += PAGE) {
     try {
       const res = await fetch(
@@ -675,7 +635,6 @@ export async function getCountries(language = "en"): Promise<MusementCountry[]> 
     } catch (err) {
       const isTimeout = err instanceof Error && err.name === "TimeoutError";
       if (isTimeout) {
-        timedOut = true;
         console.warn(
           `[getCountries] page offset=${offset} timed out after ${MUSEMENT_FETCH_TIMEOUT_MS}ms — stopping pagination`
         );
@@ -685,15 +644,10 @@ export async function getCountries(language = "en"): Promise<MusementCountry[]> 
       break;
     }
   }
-  // If we got nothing back (Musement sandbox flaky / down) fall back to
-  // our hardcoded list so the country dropdown still works. Don't cache
-  // the fallback — next call after upstream recovery should hit live.
-  if (all.length === 0) {
-    if (timedOut) {
-      console.warn("[getCountries] no countries returned — serving FALLBACK_COUNTRIES");
-    }
-    return [...FALLBACK_COUNTRIES].sort((a, b) => a.name.localeCompare(b.name));
-  }
+  // Don't cache an empty result — next call after upstream recovery should
+  // re-fetch. We never substitute a hardcoded list: Musement is the source
+  // of truth for which destinations we sell.
+  if (all.length === 0) return [];
   countriesCache = all
     .filter((c) => c?.iso_code)
     .sort((a, b) => a.name.localeCompare(b.name));
@@ -756,64 +710,17 @@ async function loadGlobalCities(language = "en"): Promise<MusementCityLite[]> {
 }
 
 /** Cities for a given ISO 2-letter country code, sorted by weight desc. */
-/**
- * Hardcoded top-3 cities per priority country. Served when loadGlobalCities()
- * returns empty (Musement /cities upstream is hung) so the city picker still
- * works. IDs match Musement's production /cities response — the search
- * call uses these IDs directly so end-to-end stays functional even during
- * a sandbox outage. Expand as new markets come online.
- */
-const FALLBACK_CITIES_BY_ISO: Record<string, MusementCityLite[]> = {
-  NL: [
-    { id: 178, name: "Amsterdam", countryIso: "NL", countryName: "Netherlands", weight: 100, activitiesCount: 0 },
-    { id: 356, name: "Rotterdam", countryIso: "NL", countryName: "Netherlands", weight: 80, activitiesCount: 0 },
-    { id: 358, name: "The Hague", countryIso: "NL", countryName: "Netherlands", weight: 70, activitiesCount: 0 },
-  ],
-  IT: [
-    { id: 11, name: "Rome", countryIso: "IT", countryName: "Italy", weight: 100, activitiesCount: 0 },
-    { id: 8, name: "Florence", countryIso: "IT", countryName: "Italy", weight: 95, activitiesCount: 0 },
-    { id: 9, name: "Venice", countryIso: "IT", countryName: "Italy", weight: 95, activitiesCount: 0 },
-    { id: 5, name: "Milan", countryIso: "IT", countryName: "Italy", weight: 90, activitiesCount: 0 },
-    { id: 56, name: "Naples", countryIso: "IT", countryName: "Italy", weight: 80, activitiesCount: 0 },
-  ],
-  FR: [{ id: 4, name: "Paris", countryIso: "FR", countryName: "France", weight: 100, activitiesCount: 0 }],
-  ES: [
-    { id: 80, name: "Barcelona", countryIso: "ES", countryName: "Spain", weight: 100, activitiesCount: 0 },
-    { id: 90, name: "Madrid", countryIso: "ES", countryName: "Spain", weight: 95, activitiesCount: 0 },
-  ],
-  GB: [{ id: 12, name: "London", countryIso: "GB", countryName: "United Kingdom", weight: 100, activitiesCount: 0 }],
-  DE: [
-    { id: 65, name: "Berlin", countryIso: "DE", countryName: "Germany", weight: 100, activitiesCount: 0 },
-    { id: 158, name: "Munich", countryIso: "DE", countryName: "Germany", weight: 90, activitiesCount: 0 },
-  ],
-  PT: [{ id: 28, name: "Lisbon", countryIso: "PT", countryName: "Portugal", weight: 100, activitiesCount: 0 }],
-  CZ: [{ id: 38, name: "Prague", countryIso: "CZ", countryName: "Czech Republic", weight: 100, activitiesCount: 0 }],
-  AT: [{ id: 47, name: "Vienna", countryIso: "AT", countryName: "Austria", weight: 100, activitiesCount: 0 }],
-  IE: [{ id: 110, name: "Dublin", countryIso: "IE", countryName: "Ireland", weight: 100, activitiesCount: 0 }],
-  BE: [{ id: 26, name: "Brussels", countryIso: "BE", countryName: "Belgium", weight: 100, activitiesCount: 0 }],
-  AR: [{ id: 22, name: "Buenos Aires", countryIso: "AR", countryName: "Argentina", weight: 100, activitiesCount: 0 }],
-  US: [
-    { id: 232, name: "New York", countryIso: "US", countryName: "United States", weight: 100, activitiesCount: 0 },
-    { id: 13, name: "Las Vegas", countryIso: "US", countryName: "United States", weight: 90, activitiesCount: 0 },
-    { id: 116, name: "San Francisco", countryIso: "US", countryName: "United States", weight: 85, activitiesCount: 0 },
-  ],
-};
-
+/** All cities Musement has under a country, sorted by weight (popularity).
+ *  No hardcoded fallback — Musement is the source of truth. If
+ *  loadGlobalCities returns empty (upstream hung) we return an empty
+ *  array so the UI can show "no cities available" honestly rather than
+ *  a curated subset that misrepresents what Musement actually sells. */
 export async function getCitiesByCountry(
   iso: string,
   language = "en"
 ): Promise<MusementCityLite[]> {
   const target = iso.toUpperCase();
   const all = await loadGlobalCities(language);
-  // If the global cities load failed (sandbox hung), serve our hardcoded
-  // fallback for that country so the dropdown still has options.
-  if (all.length === 0) {
-    const fallback = FALLBACK_CITIES_BY_ISO[target] || [];
-    if (fallback.length === 0) {
-      console.warn(`[getCitiesByCountry] no fallback cities for ${target} — dropdown will be empty`);
-    }
-    return fallback;
-  }
   return all
     .filter((c) => c.countryIso.toUpperCase() === target)
     .sort((a, b) => b.weight - a.weight || a.name.localeCompare(b.name));
