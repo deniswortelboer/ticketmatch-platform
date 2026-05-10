@@ -451,6 +451,20 @@ export default function ExperiencesPage() {
   const [countries, setCountries] = useState<CountryOpt[]>([]);
   const [countryCities, setCountryCities] = useState<CityOpt[]>([]);
   const [verticals, setVerticals] = useState<VerticalOpt[]>([]);
+
+  // Viator-specific destination state (only used when source === "viator").
+  // Source of truth = Viator's /destinations + /products/search totalCount.
+  // Counts shown in the dropdown are real — cities with zero Viator products
+  // are never rendered ("what you see is what you get").
+  type ViatorCountryOpt = { id: number; name: string };
+  type ViatorCityOpt = { id: number; name: string; count: number };
+  const [viatorCountries, setViatorCountries] = useState<ViatorCountryOpt[]>([]);
+  const [viatorCountry, setViatorCountry] = useState<string>("Netherlands");
+  const [viatorCities, setViatorCities] = useState<ViatorCityOpt[]>([]);
+  const [viatorCity, setViatorCity] = useState<ViatorCityOpt | null>(null);
+  const [loadingViatorCities, setLoadingViatorCities] = useState(false);
+  const [showViatorCountryDD, setShowViatorCountryDD] = useState(false);
+  const [showViatorCityDD, setShowViatorCityDD] = useState(false);
   // 0 = "All", -1 = synthetic "Combos" bucket, else a real Musement vertical id.
   const [verticalSel, setVerticalSel] = useState<number>(0);
   const [showCountryDD, setShowCountryDD] = useState(false);
@@ -504,6 +518,56 @@ export default function ExperiencesPage() {
       }
     })();
   }, []);
+
+  // Load Viator's countries the first time the user picks Viator as source.
+  // Lazy — we don't pay this round-trip on initial Musement-source page loads.
+  useEffect(() => {
+    if (source !== "viator" || viatorCountries.length > 0) return;
+    (async () => {
+      try {
+        const res = await fetch("/api/viator/countries");
+        const data = await res.json();
+        setViatorCountries(data.countries || []);
+      } catch {
+        setViatorCountries([]);
+      }
+    })();
+  }, [source, viatorCountries.length]);
+
+  // Load Viator's cities for the selected country, with REAL product counts.
+  // Lazy — fires only on country change while source = viator. Cities with
+  // count=0 are dropped server-side so the dropdown is WYSIWYG. Spinner state
+  // surfaces while we await per-city /products/search totalCount calls.
+  useEffect(() => {
+    if (source !== "viator" || !viatorCountry) return;
+    let cancelled = false;
+    setLoadingViatorCities(true);
+    setViatorCities([]);
+    (async () => {
+      try {
+        const res = await fetch(
+          `/api/viator/cities?country=${encodeURIComponent(viatorCountry)}`
+        );
+        const data = await res.json();
+        if (cancelled) return;
+        const list: ViatorCityOpt[] = data.cities || [];
+        setViatorCities(list);
+        // Auto-select highest-count city when current selection isn't in the
+        // new country's list (e.g. switched from NL to AR).
+        if (list.length && (!viatorCity || !list.some((c) => c.id === viatorCity.id))) {
+          setViatorCity(list[0]);
+        } else if (list.length === 0) {
+          setViatorCity(null);
+        }
+      } catch {
+        if (!cancelled) setViatorCities([]);
+      } finally {
+        if (!cancelled) setLoadingViatorCities(false);
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [source, viatorCountry]);
 
   // Load cities whenever country changes.
   useEffect(() => {
@@ -697,15 +761,27 @@ export default function ExperiencesPage() {
     setPage(1);
     setSearch("");
     const activeTag = subCategoryFilter || categoryFilter;
+    // When source=Viator, the destination picker uses Viator's own
+    // catalogue (viatorCity has the real Viator destinationId + name).
+    // Pass that destId so fetchViator skips the city-name lookup and
+    // searches by the exact Viator id we already resolved.
+    if (source === "viator" && viatorCity) {
+      fetchExperiences(viatorCity.name, activeTag, viatorCity.id, 1, false);
+      return;
+    }
     if (customCity) {
       fetchExperiences(customCity.name, activeTag, customCity.id, 1, false);
     } else {
       fetchExperiences(city, activeTag, undefined, 1, false);
     }
-  }, [city, customCity, categoryFilter, subCategoryFilter, source, verticalSel, priceMin, priceMax, durationBucket, freeCancelOnly, fetchExperiences]);
+  }, [city, customCity, viatorCity, categoryFilter, subCategoryFilter, source, verticalSel, priceMin, priceMax, durationBucket, freeCancelOnly, fetchExperiences]);
 
   const handleLoadMore = () => {
     const activeTag = subCategoryFilter || categoryFilter;
+    if (source === "viator" && viatorCity) {
+      fetchExperiences(viatorCity.name, activeTag, viatorCity.id, page + 1, true);
+      return;
+    }
     if (customCity) {
       fetchExperiences(customCity.name, activeTag, customCity.id, page + 1, true);
     } else {
@@ -882,8 +958,102 @@ export default function ExperiencesPage() {
         )}
       </div>
 
-      {/* Country + City pickers (Musement taxonomy) */}
+      {/* Country + City pickers — source-aware. When source = Viator, the
+          dropdowns are populated from Viator's /destinations + per-city
+          totalCount calls (lazy on country change). When source = Musement
+          or All, we use Musement's catalogue. */}
       <div className="mb-4 flex flex-wrap items-center gap-3">
+
+        {/* ─── VIATOR-SOURCE DROPDOWNS ─────────────────────────────────── */}
+        {source === "viator" && (
+          <>
+            {/* Country (Viator) */}
+            <div className="relative" onClick={(e) => e.stopPropagation()}>
+              <button
+                onClick={() => setShowViatorCountryDD(!showViatorCountryDD)}
+                className="flex items-center gap-2 rounded-full border border-border bg-white px-4 py-2 text-sm font-medium text-foreground hover:bg-gray-50"
+              >
+                <span className="text-[10px] uppercase tracking-wider text-muted/60">Country</span>
+                <span>{viatorCountry || "Select…"}</span>
+                <span className="text-muted">▾</span>
+              </button>
+              {showViatorCountryDD && (
+                <div className="absolute left-0 top-12 z-50 max-h-96 w-72 overflow-auto rounded-xl border border-border bg-white py-1 shadow-xl">
+                  <div className="sticky top-0 bg-white p-1">
+                    <input
+                      autoFocus
+                      type="text"
+                      placeholder="Search country…"
+                      value={countrySearch}
+                      onChange={(e) => setCountrySearch(e.target.value)}
+                      onClick={(e) => e.stopPropagation()}
+                      className="w-full rounded-lg border border-border px-3 py-1.5 text-sm outline-none focus:border-accent"
+                    />
+                  </div>
+                  {viatorCountries
+                    .filter((c) => {
+                      const q = countrySearch.toLowerCase();
+                      return !q || c.name.toLowerCase().includes(q);
+                    })
+                    .map((c) => (
+                      <button
+                        key={c.id}
+                        onClick={() => { setViatorCountry(c.name); setShowViatorCountryDD(false); setCountrySearch(""); }}
+                        className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors ${
+                          viatorCountry === c.name ? "bg-accent/10 font-medium text-accent" : "hover:bg-accent/5"
+                        }`}
+                      >
+                        <span className="flex-1">{c.name}</span>
+                      </button>
+                    ))}
+                  {!viatorCountries.length && (
+                    <div className="px-3 py-2 text-sm text-muted">Loading countries…</div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* City (Viator, lazy + spinner) */}
+            <div className="relative" onClick={(e) => e.stopPropagation()}>
+              <button
+                onClick={() => setShowViatorCityDD(!showViatorCityDD)}
+                disabled={loadingViatorCities || !viatorCities.length}
+                className="flex items-center gap-2 rounded-full border border-border bg-white px-4 py-2 text-sm font-medium text-foreground hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <span className="text-[10px] uppercase tracking-wider text-muted/60">City</span>
+                {loadingViatorCities ? (
+                  <span className="flex items-center gap-1.5">
+                    <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+                    <span className="text-xs text-muted">Loading…</span>
+                  </span>
+                ) : (
+                  <span>{viatorCity?.name || (viatorCities.length ? "Select…" : "—")}</span>
+                )}
+                <span className="text-muted">▾</span>
+              </button>
+              {showViatorCityDD && viatorCities.length > 0 && (
+                <div className="absolute left-0 top-12 z-50 max-h-96 w-72 overflow-auto rounded-xl border border-border bg-white py-1 shadow-xl">
+                  {viatorCities.map((c) => (
+                    <button
+                      key={c.id}
+                      onClick={() => { setViatorCity(c); setShowViatorCityDD(false); }}
+                      className={`flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm transition-colors ${
+                        viatorCity?.id === c.id ? "bg-accent/10 font-medium text-accent" : "hover:bg-accent/5"
+                      }`}
+                    >
+                      <span>{c.name}</span>
+                      <span className="text-xs text-muted/60">{c.count}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
+        )}
+
+        {/* ─── MUSEMENT / ALL-SOURCES DROPDOWNS ─────────────────────────── */}
+        {source !== "viator" && (
+          <>
         {/* Country */}
         <div className="relative" onClick={(e) => e.stopPropagation()}>
           <button
@@ -974,6 +1144,8 @@ export default function ExperiencesPage() {
             </div>
           )}
         </div>
+          </>
+        )}
 
         {/* Price range — pill that opens a small popover with two sliders. */}
         <div className="relative" onClick={(e) => e.stopPropagation()}>
