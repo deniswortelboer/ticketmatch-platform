@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { formatIso8601Duration } from "@/lib/duration";
 
@@ -605,7 +605,18 @@ export default function ExperiencesPage() {
     };
   }, [verticalSel, priceMin, priceMax, durationBucket, freeCancelOnly]);
 
+  // Request-ID counter for stale-result protection. Every call to
+  // fetchExperiences bumps fetchSeqRef and captures the new value;
+  // when its async result settles we only commit to state if our seq
+  // is still the latest. Prevents a slow Musement-timeout (12s) from
+  // overwriting a fresh Viator result the user already sees after
+  // switching source.
+  const fetchSeqRef = useRef(0);
+
   const fetchExperiences = useCallback(async (selectedCity: string, selectedCategory: string, destId?: number, startPage = 1, append = false) => {
+    const mySeq = ++fetchSeqRef.current;
+    const isStale = () => fetchSeqRef.current !== mySeq;
+
     if (append) {
       setLoadingMore(true);
     } else {
@@ -615,24 +626,21 @@ export default function ExperiencesPage() {
     try {
       let allProducts: UnifiedProduct[] = [];
       let allCount = 0;
+      let musementTimedOut = false;
 
       if (source === "viator" || source === "all") {
         const viatorData = await fetchViator(selectedCity, selectedCategory, destId, startPage);
+        if (isStale()) return; // user switched source mid-flight
         allProducts = [...allProducts, ...viatorData.products];
         allCount += viatorData.totalCount;
       }
 
       if (source === "musement" || source === "all") {
         const musementData = await fetchMusement(selectedCity, selectedCategory, startPage);
+        if (isStale()) return; // user switched source mid-flight
         allProducts = [...allProducts, ...musementData.products];
         allCount += musementData.totalCount;
-        // If Musement aborted via our hard timeout we want to TELL the
-        // user instead of letting the empty-results UI imply the catalog
-        // is empty. Only show the message when Musement was actually
-        // queried (i.e. we're not on a Viator-only run).
-        if (musementData.upstreamTimeout) {
-          setError("Musement is responding slowly right now. Please try again in a moment.");
-        }
+        musementTimedOut = musementData.upstreamTimeout;
       }
 
       // Sort merged results: Musement first (higher margin), then by rating
@@ -645,6 +653,8 @@ export default function ExperiencesPage() {
         });
       }
 
+      if (isStale()) return;
+
       if (append) {
         setProducts((prev) => [...prev, ...allProducts]);
       } else {
@@ -652,12 +662,22 @@ export default function ExperiencesPage() {
       }
       setTotalCount(allCount);
       setPage(startPage);
+
+      // Surface the Musement-slow banner ONLY at the very end, AFTER the
+      // staleness check, so a leaked timeout from a previous source
+      // can't write its banner over a fresh Viator-only result.
+      if (musementTimedOut) {
+        setError("Musement is responding slowly right now. Please try again in a moment.");
+      }
     } catch {
+      if (isStale()) return;
       setError("Could not load experiences. Please try again.");
       if (!append) setProducts([]);
     } finally {
-      setLoading(false);
-      setLoadingMore(false);
+      if (!isStale()) {
+        setLoading(false);
+        setLoadingMore(false);
+      }
     }
   }, [source, fetchViator, fetchMusement]);
 
