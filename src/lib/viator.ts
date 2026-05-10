@@ -63,11 +63,22 @@ type ViatorSearchResult = {
 // REGION/PROVINCE when both exist (e.g. Tokyo CITY 334 vs Tokyo Prefecture
 // REGION 50157).
 
-type ViatorDestination = { id: number; name: string; type: string };
+type ViatorDestination = {
+  id: number;
+  name: string;
+  type: string;
+  /** Chain of parent destinations (e.g. CITY → REGION → COUNTRY). Last
+   *  entry is typically the country. Used to filter cities by country. */
+  parentDestinationIds: number[];
+  /** ISO country code if Viator exposes one (e.g. "NL", "AR"). Optional. */
+  iso?: string;
+};
 let viatorDestinationsCache: ViatorDestination[] | null = null;
 const viatorIdByName: Map<string, ViatorDestination> = new Map();
+const viatorById: Map<number, ViatorDestination> = new Map();
 
 const VIATOR_FETCH_TIMEOUT_MS_CATALOG = 15_000;
+const VIATOR_FETCH_TIMEOUT_MS_SEARCH = 12_000;
 
 /**
  * Strip diacritics (NFD-normalize then drop combining marks). Pure Unicode
@@ -95,11 +106,24 @@ async function loadViatorDestinations(): Promise<ViatorDestination[]> {
     }
     const data = (await res.json()) as { destinations?: Array<Record<string, unknown>> };
     const list: ViatorDestination[] = (data.destinations || [])
-      .map((d) => ({
-        id: d.destinationId as number,
-        name: (d.name as string) || "",
-        type: (d.type as string) || "",
-      }))
+      .map((d) => {
+        // Viator returns parents either as `parentDestinationIds` (newer) or
+        // `parentId` (legacy). Defensive coercion handles both.
+        let parents: number[] = [];
+        const raw = (d.parentDestinationIds || d.parents || d.parentId) as unknown;
+        if (Array.isArray(raw)) {
+          parents = (raw as unknown[]).map((n) => Number(n)).filter((n) => Number.isFinite(n));
+        } else if (typeof raw === "number") {
+          parents = [raw];
+        }
+        return {
+          id: d.destinationId as number,
+          name: (d.name as string) || "",
+          type: (d.type as string) || "",
+          parentDestinationIds: parents,
+          iso: typeof d.iso === "string" ? d.iso as string : undefined,
+        };
+      })
       .filter((d) => d.id && d.name);
     viatorDestinationsCache = list;
     // Index for O(1) lookup. When the same name maps to multiple types
@@ -113,6 +137,7 @@ async function loadViatorDestinations(): Promise<ViatorDestination[]> {
       }
     };
     for (const d of list) {
+      viatorById.set(d.id, d);
       const key = d.name.toLowerCase();
       setIfBetter(key, d);
       const stripped = stripAccents(key);
@@ -142,6 +167,117 @@ async function resolveViatorDestinationId(city: string): Promise<number | null> 
   // form so "São Paulo" → "sao paulo", "Köln" → "koln", etc. still resolve.
   const hit = viatorIdByName.get(lower) || viatorIdByName.get(stripAccents(lower));
   return hit ? hit.id : null;
+}
+
+// ─── Source-aware destination listing (countries + cities) ─────────────────
+// These power the Experiences page's country/city dropdowns when source is
+// Viator. The whole flow respects the "supplier API is source of truth"
+// rule — never substitute, never fabricate. Counts come from real
+// /products/search calls (totalCount field), so what the user sees in the
+// dropdown is exactly what they'll get on click.
+
+export type ViatorCountrySummary = { id: number; name: string };
+export type ViatorCityWithCount = { id: number; name: string; count: number };
+
+/** Live list of all COUNTRY-type destinations Viator sells. */
+export async function getViatorCountries(): Promise<ViatorCountrySummary[]> {
+  await loadViatorDestinations();
+  const all = viatorDestinationsCache || [];
+  return all
+    .filter((d) => d.type === "COUNTRY")
+    .map((d) => ({ id: d.id, name: d.name }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/**
+ * Get the totalCount of Viator products for a destination. Uses the
+ * /products/search endpoint with count=1 (we don't need the products,
+ * only the totalCount field). ~300-1000ms per call. Cached per cold start.
+ */
+const viatorCountByDestId: Map<number, number> = new Map();
+
+async function getViatorProductCount(destinationId: number): Promise<number> {
+  if (viatorCountByDestId.has(destinationId)) {
+    return viatorCountByDestId.get(destinationId)!;
+  }
+  try {
+    const res = await fetch(`${VIATOR_API_BASE}/products/search`, {
+      method: "POST",
+      headers: getHeaders(),
+      body: JSON.stringify({
+        filtering: { destination: destinationId.toString() },
+        pagination: { start: 1, count: 1 },
+        currency: "EUR",
+      }),
+      signal: AbortSignal.timeout(VIATOR_FETCH_TIMEOUT_MS_SEARCH),
+    });
+    if (!res.ok) {
+      viatorCountByDestId.set(destinationId, 0);
+      return 0;
+    }
+    const data = (await res.json()) as { totalCount?: number };
+    const count = typeof data.totalCount === "number" ? data.totalCount : 0;
+    viatorCountByDestId.set(destinationId, count);
+    return count;
+  } catch (err) {
+    const isTimeout = err instanceof Error && err.name === "TimeoutError";
+    if (isTimeout) {
+      console.warn(`[getViatorProductCount] dest=${destinationId} timed out`);
+    } else {
+      console.error(`[getViatorProductCount] dest=${destinationId} error:`, err);
+    }
+    return 0;
+  }
+}
+
+/**
+ * List Viator's CITY-type destinations under a given country. Each city is
+ * returned with its REAL totalCount of Viator products — sorted desc by
+ * count, and cities with count=0 are omitted entirely (per Denis's
+ * "what you see is what you get" rule).
+ *
+ * Counts are fetched in parallel with a concurrency cap so we don't blast
+ * Viator with 200+ requests at once. Cold-start latency for a country
+ * with N cities ≈ ceil(N/8) * ~600ms.
+ */
+export async function getViatorCitiesByCountry(
+  countryName: string
+): Promise<ViatorCityWithCount[]> {
+  await loadViatorDestinations();
+  const all = viatorDestinationsCache || [];
+  // Find the country destination by name (case-insensitive, accent-tolerant).
+  const targetLower = countryName.toLowerCase();
+  const targetStripped = stripAccents(targetLower);
+  const country = all.find(
+    (d) =>
+      d.type === "COUNTRY" &&
+      (d.name.toLowerCase() === targetLower ||
+        stripAccents(d.name.toLowerCase()) === targetStripped)
+  );
+  if (!country) {
+    console.warn(`[getViatorCitiesByCountry] no COUNTRY match for "${countryName}"`);
+    return [];
+  }
+  // Cities = type=CITY whose parent chain includes the country id.
+  const cities = all.filter(
+    (d) => d.type === "CITY" && d.parentDestinationIds.includes(country.id)
+  );
+  if (cities.length === 0) return [];
+
+  // Fetch counts in parallel with a concurrency cap.
+  const CONCURRENCY = 8;
+  const results: ViatorCityWithCount[] = [];
+  for (let i = 0; i < cities.length; i += CONCURRENCY) {
+    const slice = cities.slice(i, i + CONCURRENCY);
+    const counts = await Promise.all(slice.map((c) => getViatorProductCount(c.id)));
+    for (let j = 0; j < slice.length; j++) {
+      results.push({ id: slice[j].id, name: slice[j].name, count: counts[j] });
+    }
+  }
+  // WYSIWYG: drop cities with zero Viator products, sort by count desc.
+  return results
+    .filter((c) => c.count > 0)
+    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
 }
 
 function getHeaders(language = "en") {
