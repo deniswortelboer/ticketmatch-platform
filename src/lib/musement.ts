@@ -180,48 +180,17 @@ const NL_CITY_NAMES = [
 // Cache for city lookups (cityName -> cityId)
 const cityIdCache: Map<string, number> = new Map();
 
-// ─── Known city IDs (short-circuit for the most-asked cities) ───────────────
-// Hotfix 2026-05-10: Musement's `/cities?country_in=…` endpoint has hung
-// >30s under intermittent sandbox load, blowing through Vercel's function
-// budget and Cloudflare's 100s edge timeout. For the cities customers
-// actually book, we skip the fan-out entirely and resolve the ID in O(1).
-// Add more here whenever a new market goes live; the dynamic fan-out
-// remains as a fallback for cities not yet on this list.
-const KNOWN_CITY_IDS: Record<string, number> = {
-  // Netherlands
-  "amsterdam": 178,
-  // Italy
-  "rome": 11,
-  "florence": 8,
-  "venice": 9,
-  "milan": 5,
-  "naples": 56,
-  // France
-  "paris": 4,
-  // Spain
-  "barcelona": 80,
-  "madrid": 90,
-  // United Kingdom
-  "london": 12,
-  // Germany
-  "berlin": 65,
-  "munich": 158,
-  // Portugal
-  "lisbon": 28,
-  // Czech Republic
-  "prague": 38,
-  // Austria
-  "vienna": 47,
-  // Ireland
-  "dublin": 110,
-};
-
-// Pre-seed the resolution cache so even the first call after a cold start
-// is O(1) for any of the cities above. Each Vercel worker that warms up
-// inherits the seeded entries on import.
-for (const [name, id] of Object.entries(KNOWN_CITY_IDS)) {
-  cityIdCache.set(name, id);
-}
+// ─── City resolution ───────────────────────────────────────────────────────
+// All city → ID lookups go through Musement's live /cities API. We
+// previously kept a hardcoded KNOWN_CITY_IDS map seeded with sandbox IDs,
+// which silently broke the search when MUSEMENT_API_BASE switched to
+// production (Amsterdam in sandbox = 178, in production = 57; Rome = 11
+// vs 2; etc.). The map made our cache out-of-sync with the supplier and
+// returned 0 results for the most-booked cities. Removed 2026-05-10 — the
+// supplier API is the only source of truth for IDs.
+//
+// resolveCityId() (further down) handles the live lookup, with timeout
+// protection and Promise.allSettled for the priority-country fan-out.
 
 // ─── Upstream fetch resilience ──────────────────────────────────────────────
 // Musement's sandbox occasionally takes 30-90s to respond on /cities and
