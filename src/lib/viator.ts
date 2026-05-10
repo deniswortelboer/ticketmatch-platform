@@ -69,6 +69,16 @@ const viatorIdByName: Map<string, ViatorDestination> = new Map();
 
 const VIATOR_FETCH_TIMEOUT_MS_CATALOG = 15_000;
 
+/**
+ * Strip diacritics (NFD-normalize then drop combining marks). Pure Unicode
+ * normalization — no content fabrication. Used so that Musement-side names
+ * ("São Paulo", "Köln", "Curaçao") still match Viator-side records that
+ * store accent-free spellings ("Sao Paulo", etc).
+ */
+function stripAccents(s: string): string {
+  return s.normalize("NFD").replace(/\p{Diacritic}/gu, "");
+}
+
 async function loadViatorDestinations(): Promise<ViatorDestination[]> {
   if (viatorDestinationsCache) return viatorDestinationsCache;
   try {
@@ -93,13 +103,20 @@ async function loadViatorDestinations(): Promise<ViatorDestination[]> {
       .filter((d) => d.id && d.name);
     viatorDestinationsCache = list;
     // Index for O(1) lookup. When the same name maps to multiple types
-    // (CITY, REGION, PROVINCE), prefer CITY.
+    // (CITY, REGION, PROVINCE), prefer CITY. We index BOTH the raw lowercased
+    // name AND the accent-stripped version so a Musement-style query like
+    // "São Paulo" still finds Viator's "Sao Paulo" entry.
+    const setIfBetter = (k: string, d: ViatorDestination) => {
+      const existing = viatorIdByName.get(k);
+      if (!existing || (d.type === "CITY" && existing.type !== "CITY")) {
+        viatorIdByName.set(k, d);
+      }
+    };
     for (const d of list) {
       const key = d.name.toLowerCase();
-      const existing = viatorIdByName.get(key);
-      if (!existing || (d.type === "CITY" && existing.type !== "CITY")) {
-        viatorIdByName.set(key, d);
-      }
+      setIfBetter(key, d);
+      const stripped = stripAccents(key);
+      if (stripped !== key) setIfBetter(stripped, d);
     }
     return list;
   } catch (err) {
@@ -120,7 +137,10 @@ async function resolveViatorDestinationId(city: string): Promise<number | null> 
   // Netherlands country destination is 60.
   if (city.toLowerCase() === "all") return 60;
   await loadViatorDestinations();
-  const hit = viatorIdByName.get(city.toLowerCase());
+  const lower = city.toLowerCase();
+  // Try the raw lowercased name first; fall back to the accent-stripped
+  // form so "São Paulo" → "sao paulo", "Köln" → "koln", etc. still resolve.
+  const hit = viatorIdByName.get(lower) || viatorIdByName.get(stripAccents(lower));
   return hit ? hit.id : null;
 }
 
