@@ -107,14 +107,25 @@ async function loadViatorDestinations(): Promise<ViatorDestination[]> {
     const data = (await res.json()) as { destinations?: Array<Record<string, unknown>> };
     const list: ViatorDestination[] = (data.destinations || [])
       .map((d) => {
-        // Viator returns parents either as `parentDestinationIds` (newer) or
-        // `parentId` (legacy). Defensive coercion handles both.
-        let parents: number[] = [];
-        const raw = (d.parentDestinationIds || d.parents || d.parentId) as unknown;
-        if (Array.isArray(raw)) {
-          parents = (raw as unknown[]).map((n) => Number(n)).filter((n) => Number.isFinite(n));
-        } else if (typeof raw === "number") {
-          parents = [raw];
+        // Viator's actual response shape (verified 2026-05-10 against live
+        // /destinations v2.0): each item has
+        //   parentDestinationId: 60                       ← SINGULAR number
+        //   lookupId: "6.60.525"                          ← full hierarchy
+        // The lookupId encodes the entire chain root.country.city, so we
+        // parse it to populate the parents array (handles cities under
+        // REGION → COUNTRY → CONTINENT, not just direct parent).
+        const parents: number[] = [];
+        const direct = d.parentDestinationId;
+        if (typeof direct === "number" && Number.isFinite(direct)) parents.push(direct);
+        const lookup = typeof d.lookupId === "string" ? (d.lookupId as string) : "";
+        if (lookup) {
+          for (const part of lookup.split(".")) {
+            const n = parseInt(part, 10);
+            // Skip the destination's own id (last segment) and any non-numeric
+            if (Number.isFinite(n) && n !== d.destinationId && !parents.includes(n)) {
+              parents.push(n);
+            }
+          }
         }
         return {
           id: d.destinationId as number,
