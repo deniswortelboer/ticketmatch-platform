@@ -103,10 +103,10 @@ export default async function ResellerPage({
               />
             ) : (
               <div
-                className="flex h-9 w-9 items-center justify-center rounded-lg text-white font-bold text-sm"
+                className="flex h-9 w-9 items-center justify-center rounded-lg text-white font-bold text-[10px]"
                 style={{ background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)` }}
               >
-                {reseller.name.slice(0, 2).toUpperCase()}
+                {reseller.name.split(" ")[0].slice(0, 3).toUpperCase()}
               </div>
             )}
             <span className="text-base font-bold tracking-tight">
@@ -427,10 +427,10 @@ export default async function ResellerPage({
                 />
               ) : (
                 <div
-                  className="flex h-7 w-7 items-center justify-center rounded-md text-white font-bold text-xs"
+                  className="flex h-7 w-7 items-center justify-center rounded-md text-white font-bold text-[9px]"
                   style={{ background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)` }}
                 >
-                  {reseller.name.slice(0, 2).toUpperCase()}
+                  {reseller.name.split(" ")[0].slice(0, 3).toUpperCase()}
                 </div>
               )}
               <span className="text-sm font-semibold">{reseller.name}</span>
