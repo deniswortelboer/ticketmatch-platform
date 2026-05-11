@@ -58,8 +58,28 @@ const RATE_LIMITED_PATHS = [
   "/api/agent",
 ];
 
+const RESELLER_SUBDOMAINS: Record<string, string> = {
+  w69travel: "w69travel",
+};
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // ── Subdomain → reseller rewrite ──
+  const hostname = request.headers.get("host") || "";
+  const subdomain = hostname.split(".")[0];
+  if (
+    subdomain &&
+    subdomain !== "ticketmatch" &&
+    subdomain !== "www" &&
+    subdomain !== "localhost" &&
+    RESELLER_SUBDOMAINS[subdomain] &&
+    !pathname.startsWith("/r/")
+  ) {
+    const url = request.nextUrl.clone();
+    url.pathname = `/r/${RESELLER_SUBDOMAINS[subdomain]}${pathname === "/" ? "" : pathname}`;
+    return NextResponse.rewrite(url);
+  }
 
   // ── Rate limiting for public API routes ──
   if (RATE_LIMITED_PATHS.some((p) => pathname.startsWith(p))) {
@@ -137,5 +157,7 @@ export const config = {
     "/dashboard/:path*",
     "/auth/:path*",
     "/api/:path*",
+    "/r/:path*",
+    "/((?!_next/static|_next/image|favicon.ico|.*\\..*).*)",
   ],
 };
